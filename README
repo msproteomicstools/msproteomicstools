@@ -1,0 +1,20 @@
+# vi: set ts=2 fdm=marker:
+
+=== Installation === 
+{{{
+
+copy to a directory in your $PYTHONPATH
+
+}}}
+
+=== Testing === 
+{{{
+
+run all tests 
+
+$ nosetests test
+
+
+}}}
+
+
