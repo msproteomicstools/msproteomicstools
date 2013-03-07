@@ -41,6 +41,84 @@ Doc :
     A random collection of useful and not so useful functions and objects.
 """
 
+import sys
+
+class stringp:
+        def contains(theString, theQueryValue):
+            return theString.find(theQueryValue) > -1
+        
+        def delSequenceDots(seq):
+            if seq.find('.')==2:
+                sequenceNoDots = seq[3:-3]
+            else:
+                sequenceNoDots = seq
+
+            return sequenceNoDots
+
+class Math:
+
+    def median(y):
+        z = len(y)
+        if not z%2: return (y[(z/2)-1] + y[z/2]) / 2
+        else: return y[z/2]        
+
+
+class Lists:
+    
+    def getNotFound(self, bigList, smallList):
+        """Returns the elements of smallList not contained in bigList"""
+        
+        if len(bigList)<len(smallList):
+            print "bad lists provided!"
+            sys.exit()
+            
+        resultingList = list(smallList)
+
+        for elem in smallList:
+            if elem in bigList:
+                resultingList.remove(elem)
+        
+        return resultingList
+    
+    def getFound(self, list1, list2):
+        """Returns the common elements of two lists"""
+
+        bigList= []
+        smallList = []
+        commonList = []
+        
+        if len(list1)>=len(list2):
+            bigList = list1
+            smallList = list2
+        else:
+            bigList = list2
+            smallList = list1
+        
+        for elem in smallList:
+            if elem in bigList:
+                commonList.append(elem)
+        
+        return commonList
+        
+        
+    
+    def readPeptideList(self, file):
+        import csv
+        mylist = []
+        csvfile = open(file,"rb")
+        reader = csv.reader(csvfile, delimiter='\t',quotechar=' ')
+        
+        for row in reader:
+            for k in row:
+                mylist.append(k.strip())
+                        
+        csvfile.close()
+        
+        return mylist
+  
+    
+
+
 def attach_method(fxn, instance, object):
     """We add the function fxn to the instance of a certain object.
 
