@@ -1,11 +1,12 @@
 =========================================================================
- Ê Ê Êmsproteomicstools -- Mass Spectrometry Proteomics Tools
+        msproteomicstools -- Mass Spectrometry Proteomics Tools
 =========================================================================
 
-The following authors contributed to msproteomicstools at some point. For the 
-authors contributing to a specific piece of code, please refer to
-the authors tag in the respective file header.
+The following authors contributed to msproteomicstools at some point. For the
+authors contributing to a specific piece of code, please refer to the authors
+tag in the respective file header.
  - Lorenz Blum
  - Pedro Navarro
+ - Hannes Roest
  - George Rosenberger
- - Hannes Ršst
+
