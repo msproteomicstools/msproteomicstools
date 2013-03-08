@@ -1,1 +1,1 @@
-__all__ = ["aminoacides","peptide","elements","peak","Residues","DDB"]
+__all__ = ["aminoacides","peptide","elements","peak","Residues","DDB","modifications"]
