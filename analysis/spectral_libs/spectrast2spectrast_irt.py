@@ -34,11 +34,12 @@ import getopt
 import scipy
 from numpy import *
 from scipy import stats
-from chauvenet import *
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 #import profile 
+
+from msproteomicstoolslib.math.chauvenet import *
 
 def lmedian(valarr):
   vals = sorted(valarr)
@@ -348,6 +349,7 @@ def main(argv):
     opts, args = getopt.getopt(argv, "i:o:k:apre:s:l:t:",["in=","out=","kit=","applychauvenet","spectralevel", "precursorlevel","report","exclude=","surrogate=","linearregressions=","rsq_threshold="])
   except getopt.GetoptError:
     help = True
+    opts =  ( ("",""),)
 
   for opt, arg in opts:
     if opt in ("-i","--in"):
