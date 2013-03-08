@@ -1,1 +1,1 @@
-__all__ = ["pepXMLReader","ProteinDB","speclib_db_lib"]
+__all__ = ["pepXMLReader","methodDamReader","methodMethReader","ProteinDB","speclib_db_lib"]
