@@ -30,73 +30,44 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
-$Maintainer: Pedro Navarro$
-$Authors: Pedro Navarro$
+$Maintainer: Hannes Roest$
+$Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import sys
+import unittest
+import os
 
-class Elements:
+import msproteomicstoolslib.data_structures.elements as elements
 
-    def __init__(self):
-        self.list = []
-        self._initElements()
+class TestUnitElement(unittest.TestCase):
 
-    def _initElements(self):
+    def setUp(self):
+        self.isots = elements.Elements()
 
-        elH = Element('H',[1.007825032,2.014101778],[0.99984426,0.00015574])
-        elC = Element('C',[12.000000000,13.00335484],[0.988922,0.011078])
-        elN = Element('N',[14.00307401,15.0001089],[0.996337,0.003663])
-        elO = Element('O',[15.99491462,16.9991315,17.9991604],[0.997628,0.000372,0.002000])
-        elS = Element('S',[31.97207069,32.9714585,33.96786683,35.96708088],[0.95018,0.0075,0.04215,0.00017])
-        elP = Element('P',[30.97376151],[1.00000])
-
-
-        self.list.append(elC)
-        self.list.append(elH)
-        self.list.append(elN)
-        self.list.append(elO)
-        self.list.append(elS)
-        self.list.append(elP)
+    def old_function_printout(self):
+        # TODO what do we test here?
+        isots = elements.Elements()
         
-        
-    def addElement(self,symbol,isotMass,isotAbundance):
-        newEl = Element(symbol,isotMass)
-        self.list.append(newEl)
+        for el in isots.list:
+            print el.symbol
+            totalAb = 0
+            for k,m in zip(el.isotMass,el.isotAbundance):
+                print "Mass: %s, Abundance: %s" % (k,m)
+                totalAb += m
+            print "Total abundance : " , totalAb
+                
+        #Monoisotopic masses
+        for el in isots.list:
+            print el.symbol , el.isotMass[0]
 
-    def getElement(self,symbol):
-        for el in self.list:
-            if el.symbol == symbol: return el
-        raise Exception('Element %s is not implemented' % symbol)
-        
+    def test_getElement(self):
+        self.assertAlmostEqual(self.isots.getElement("C").isotMass[0], 12)
+        self.assertAlmostEqual(self.isots.getElement("H").isotMass[0], 1.007825032)
+        self.assertAlmostEqual(self.isots.getElement("N").isotMass[0], 14.00307401)
+        self.assertAlmostEqual(self.isots.getElement("O").isotMass[0], 15.99491462)
+        self.assertAlmostEqual(self.isots.getElement("S").isotMass[0], 31.97207069)
+        self.assertAlmostEqual(self.isots.getElement("P").isotMass[0], 30.97376151)
 
-class Element:
-    
-    def __init__(self,symbol,isotMass,isotAbundance):
-        self.symbol = ''
-        self.isotMass = []
-        self.isotAbundance = []
-        self.symbol = symbol
-        self.isotMass = isotMass
-        self.isotAbundance = isotAbundance
-        
-def test():
-    isots = Elements()
-    
-    for el in isots.list:
-        print el.symbol
-        totalAb = 0
-        for k,m in zip(el.isotMass,el.isotAbundance):
-            print "Mass: %s, Abundance: %s" % (k,m)
-            totalAb += m
-        print "Total abundance : " , totalAb
-            
-    #Monoisotopic masses
-    for el in isots.list:
-        print el.symbol , el.isotMass[0]
-        
-    
-if __name__=="__main__":
-    test()
-    sys.exit(2)
+if __name__ == '__main__':
+    unittest.main()
