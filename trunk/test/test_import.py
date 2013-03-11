@@ -45,5 +45,11 @@ class TestImport(unittest.TestCase):
     def test_import_msproteomicstoolslib(self):
         import msproteomicstoolslib
 
+    def test_import_msproteomicstoolslib_folders(self):
+        import msproteomicstoolslib.data_structures
+        import msproteomicstoolslib.format
+        import msproteomicstoolslib.math
+        import msproteomicstoolslib.util
+
 if __name__ == '__main__':
     unittest.main()
