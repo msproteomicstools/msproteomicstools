@@ -59,17 +59,17 @@ class TestUnitPeptide(unittest.TestCase):
 		self.assertAlmostEqual(pep.getMZ(1), 1129.63979083)
 		
 		# TODO also check some ion series
-		print '#,' , ", ".join(pep.iontypes)
-		masses = []
-		for v in range(1,len(pep.sequence)+1) :
-			masses.append(str(v))
-			for ionserie in pep.iontypes :
-				masses.append(str(pep.getMZfragment(ionserie,v,1)))
-			print ", ".join(masses)
-			masses = []
-			
-			#for property, value in vars(pep).iteritems() :
-			#	print property , " : " , value
+		## print '#,' , ", ".join(pep.iontypes)
+		## masses = []
+		## for v in range(1,len(pep.sequence)+1) :
+		## 	masses.append(str(v))
+		## 	for ionserie in pep.iontypes :
+		## 		masses.append(str(pep.getMZfragment(ionserie,v,1)))
+		## 	print ", ".join(masses)
+		## 	masses = []
+		## 	
+		## 	#for property, value in vars(pep).iteritems() :
+		## 	#	print property , " : " , value
 
     def test_peptide_with_modifications(self):
 
@@ -80,17 +80,17 @@ class TestUnitPeptide(unittest.TestCase):
 		self.assertAlmostEqual(pep.getMZ(1), 1145.63470545)
 		
 		# TODO also check some ion series
-		print '#,' , ", ".join(pep.iontypes)
-		masses = []
-		for v in range(1,len(pep.sequence)+1) :
-			masses.append(str(v))
-			for ionserie in pep.iontypes :
-				masses.append(str(pep.getMZfragment(ionserie,v,1)))
-			print ", ".join(masses)
-			masses = []
-			
-			#for property, value in vars(pep).iteritems() :
-			#	print property , " : " , value
+		## print '#,' , ", ".join(pep.iontypes)
+		## masses = []
+		## for v in range(1,len(pep.sequence)+1) :
+		## 	masses.append(str(v))
+		## 	for ionserie in pep.iontypes :
+		## 		masses.append(str(pep.getMZfragment(ionserie,v,1)))
+		## 	print ", ".join(masses)
+		## 	masses = []
+		## 	
+		## 	#for property, value in vars(pep).iteritems() :
+		## 	#	print property , " : " , value
 
     def test_getMZfragment(self):
         # def getMZfragment(self,ion_type,ion_number,ion_charge, label = '', fragmentlossgain = 0.0):

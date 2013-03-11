@@ -90,7 +90,11 @@ class Aminoacides:
         
     def addAminoacid(self,aminoacid):
         self.list.append(aminoacid)
-       
+
+    def getAminoacid(self,code):
+        for aa in self.list:
+            if aa.code == code: return aa
+        raise Exception('Element %s is not implemented' % code)
             
 class Aminoacid:
     
@@ -138,7 +142,7 @@ if __name__ == "__main__":
 ##R           Arg              H12C6ON4             156.101111044
 ##N           Asn              H6C4O2N2             114.042927452
 ##D           Asp              H5C4O3N              115.02694303
-##C           Cys              H8C5SO2N2            103.00918448
+##C           Cys              H5C3SON              103.00918448
 ##E           Glu              H7C5O3N              129.042593094
 ##Q           Gln              H8C5O2N2             128.058577516
 ##G           Gly              H3C2ON               57.021463726
