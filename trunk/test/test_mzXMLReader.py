@@ -1,11 +1,14 @@
 
 import unittest
+import os
 
 class TestmzXMLReader(unittest.TestCase):
 
     def setUp(self):
+        dirname = os.path.dirname(os.path.abspath(__file__))
+        joined = os.path.join(dirname, "data")
         # the test file is AFA1451A160MA2 of the dataset PAe001446_mzXML_201102101633.tar.gz from Peptide Atlas
-        self.filename = "test/data/testfile.small.mzXML"
+        self.filename = os.path.join(joined, "testfile.small.mzXML")
 
     def test_readfile(self):
         import msproteomicstoolslib.format.mzXMLreader as mzXMLReader

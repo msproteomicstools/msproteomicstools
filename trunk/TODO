@@ -1,0 +1,6 @@
+
+- Write tests 
+-- write unit tests (use unittest, see the examples we have)
+-- write black box tests 
+- Write documentation, maybe try out http://sphinx-doc.org/config.html
+
