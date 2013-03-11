@@ -97,6 +97,8 @@ class Spectrum_Query:
     def __init__(self, elem):
         self.spectrum       = ( elem.get("spectrum") )
         self.charge         = int( elem.get("assumed_charge") )
+        self.start_scan     = int( elem.get("start_scan") )
+        self.end_scan       = int( elem.get("end_scan") )
         self.precursorMass  = float( elem.get("precursor_neutral_mass") )
         self.retTime        = -1
         if 'retention_time_sec' in elem.keys():
@@ -104,10 +106,11 @@ class Spectrum_Query:
 
     @property
     def scan_number(self):
-        myspec = self.spectrum.split('.')
-        assert self.charge == int(myspec[-1])
-        assert myspec[-2] == myspec[-3]
-        return int(myspec[-2])
+        return self.start_scan 
+        # myspec = self.spectrum.split('.')
+        # assert self.charge == int(myspec[-1])
+        # assert myspec[-2] == myspec[-3]
+        # return int(myspec[-2])
 
 class SearchHit:
     def __init__(self, search_hit):
