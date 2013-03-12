@@ -39,12 +39,15 @@ import unittest
 import os
 
 import msproteomicstoolslib.data_structures.peptide as peptide
+import msproteomicstoolslib.data_structures.modifications as modifications
+
 # from msproteomicstoolslib.data_structures.peptide import *
 
 class TestUnitPeptide(unittest.TestCase):
 
     def setUp(self):
-	    self.mypep = peptide.Peptide('LIGPTSVVMGR',modifications = {9:15.99491462})
+	    self.mods = modifications.Modifications()
+	    self.mypep = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] }) #M[147] 
 	    self.mypep2 = peptide.Peptide('LIGPTSVVMGR')
 
     def test_create_peptide(self):
@@ -74,9 +77,10 @@ class TestUnitPeptide(unittest.TestCase):
     def test_peptide_with_modifications(self):
 
 		# check that the total mass, mz and composition is correct
-		pep = peptide.Peptide('LIGPTSVVMGR',modifications = {9:15.99491462})
+		# pep = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['R[166]'] }) #M[147] 
+		pep = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] }) #M[147] 
 		self.assertAlmostEqual(pep.mass, 1144.62742895)
-		self.assertEqual(pep._getComposition(), {'H': 86, 'C': 49, 'S': 1, 'O': 13, 'N': 14} )
+		self.assertEqual(pep._getComposition(), {'H': 86, 'C': 49, 'S': 1, 'O': 14, 'N': 14} )
 		self.assertAlmostEqual(pep.getMZ(1), 1145.63470545)
 		
 		# TODO also check some ion series

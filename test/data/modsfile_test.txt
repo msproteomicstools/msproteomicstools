@@ -1,0 +1,2 @@
+modified-AA	TPP-nomenclature	Unimod-Accession	ProteinPilot-nomenclature	is_a_labeling	composition-dictionary
+S	S[167]	21	[Pho]	False	{'H':1,'O':3,'P':1}

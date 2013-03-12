@@ -69,5 +69,39 @@ class TestUnitElement(unittest.TestCase):
         self.assertAlmostEqual(self.isots.getElement("S").isotMass[0], 31.97207069)
         self.assertAlmostEqual(self.isots.getElement("P").isotMass[0], 30.97376151)
 
+        self.assertRaises(Exception, self.isots.getElement,"x") 
+
+    def test_addElement(self):
+      # def addElement(self,symbol,isotMass,isotAbundance):
+      self.isots.addElement("C", 12, 1.0)
+
+    def test_test(self):
+        elements.test()
+
+class TestUnitFormulas(unittest.TestCase):
+
+    def setUp(self):
+        self.formulas = elements.Formulas()
+
+    def test_mass(self):
+        self.assertAlmostEqual(self.formulas.mass({ "H" : 2}),  2.015650064)
+        self.assertAlmostEqual(self.formulas.mass({ "C13" : 1}),  13.00335484)
+        self.assertRaises(SystemExit, self.formulas.mass,{ "C18" : 1})
+        self.assertRaises(SystemExit, self.formulas.mass,{ "C18C45" : 1})
+
+    def test_add2components(self):
+
+        from msproteomicstoolslib.data_structures.elements import Formulas
+        self.assertEqual( {'H': 5, 'O': 5, 'P': 1}, Formulas.add2components(Formulas.H2O, Formulas.H3PO4))
+        self.assertEqual( {'H': 1, 'O': 3, 'P': 1}, Formulas.substract2components(Formulas.H3PO4, Formulas.H2O) )
+        self.assertEqual( 114.01844984 , Formulas.mass({'C13' : 6 , '18O' : 2}) )
+
+    def test_compositionString(self):
+        self.assertEqual( 'H5O5P', elements.Formulas.compositionString( {'H': 5, 'O': 5, 'P': 1}) )
+
+    def test_compositionString2formula(self):
+        self.assertEqual( {'H': 5, 'O': 5, 'P': 1}, elements.Formulas.compositionString2formula( 'H5O5P' ) )
+
+
 if __name__ == '__main__':
     unittest.main()
