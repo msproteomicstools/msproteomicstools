@@ -61,7 +61,7 @@ Doc :
         - Residues.monoisotopic_mod: monoisotopic modification data
         - Residues.mod_mapping: mapping of + notation to absolute weight notation (K[+8] to K[136])
         - Residues.Hydropathy: Hydropathy of amino acids (gravy scores)
-        - TODO hydrophopicity of amino acids 
+        - TODO hydrophobicity of amino acids 
         - TODO basicity of amino acids 
         - TODO helicity of amino acids 
         - Residues.pI: pI of amino acids 

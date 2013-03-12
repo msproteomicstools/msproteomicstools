@@ -35,7 +35,8 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-from elements import Elements
+#from elements import Elements
+from elements import Formulas
 
 class Aminoacides:
     
@@ -104,24 +105,8 @@ class Aminoacid:
         self.code3 = code3
         self.composition = {}
         self.composition = composition
-        self.elements = Elements()
-        self.deltaMass = self.calDeltaMass()
+        self.deltaMass = Formulas.mass(self.composition) #self.calDeltaMass()
     
-    def calDeltaMass(self):
-        deltaMass=0
-        for el in self.elements.list:
-            if el.symbol in self.composition:
-                deltaMass += el.isotMass[0] * self.composition[el.symbol]
-        return deltaMass
-    
-    def compositionString(self):
-        compString=""
-        for elem,num in self.composition.iteritems():
-            if num>1:
-                compString += "%s%s" % (elem,num)
-            else:
-                compString += "%s" % elem
-        return compString
     
 if __name__ == "__main__":
     
@@ -134,7 +119,7 @@ if __name__ == "__main__":
     print "1-letter code	3-letter code	Chemical formula	Monoisotopic"
     print "-"*65
     for aa in myAAs.list:
-        print "%-10s  %-15s  %-20s %s" % (aa.code, aa.code3, aa.compositionString(), aa.deltaMass)
+        print "%-10s  %-15s  %-20s %s" % (aa.code, aa.code3, Formulas.compositionString(aa.composition), aa.deltaMass)
           
 ##1-letter code 3-letter code Chemical formula Monoisotopic
 ##-----------------------------------------------------------------

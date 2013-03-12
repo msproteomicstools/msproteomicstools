@@ -36,13 +36,115 @@ $Authors: Pedro Navarro$
 """
 
 import sys
+import re
+
+class Formulas :
+    
+    #This mass tolerance is used only for matching isotope masses! 
+    #Since isotopes are typically reported as rounded masses (i.e. C13), this value should be quite high
+    massTolerance_forMatch = 0.3   
+    
+    
+    H2O         = { 'H' : 2 , 'O' : 1}
+    NH2         = { 'H' : 2 , 'N' : 1}
+    NH3         = { 'H' : 3 , 'N' : 1}
+    CO          = { 'C' : 1 , 'O' : 1}
+    CO2         = { 'C' : 1 , 'O' : 2}
+    OH          = { 'H' : 1 , 'O' : 1}
+    H3PO4       = { 'H' : 3 , 'P' : 1, 'O' : 4 }
+    HPO4        = { 'H' : 1 , 'P' : 1, 'O' : 4 }
+    HPO3        = { 'H' : 1 , 'P' : 1, 'O' : 3 }
+    CH2_CONH2   = { 'H' : 4 , 'N' : 1, 'C' : 2, 'O' : 1 }  #CH2-CONH2 (CAM)
+    
+    def __init__(self) :
+        pass
+        
+    @staticmethod
+    def mass(formula):
+        elements = Elements()
+        deltaMass=0
+        
+        for el , numatoms in formula.iteritems() : 
+            #Search it in the elements list
+            found = False
+            for el2 in elements.list :
+                if el2.symbol == el : deltaMass += el2.isotMass[0] * numatoms ; found = True
+            if not found : #it *might* be an isotope of an element --> figure it out
+                element_match = re.findall('[A-Za-z]+' , el )
+                isotope_match = (re.findall('[\d\.]+', el))
+                if not len(isotope_match) == 1 or not len(element_match) == 1 : 
+                    #Throw an Exception. Note : Should we create an Exception handler object??
+                    print "The following composition has not been recognized : " , formula
+                    print "Please, review the compositions of your modifications as a probable cause of this error."
+                    print "Error caused by : " , element_match , isotope_match
+                    sys.exit(5)
+                
+                found2 = False
+                for el in elements.list :
+                    if element_match[0] == el.symbol : 
+                        #find the closest isotope match for this element
+                        for isotopeMass in el.isotMass : 
+                            if abs(isotopeMass - float(isotope_match[0])) < Formulas.massTolerance_forMatch : 
+                                deltaMass += isotopeMass * numatoms ; 
+                                found2 = True
+                if not found2 : 
+                    #Throw an Exception. Note : Should we create an Exception handler object??
+                    print "The following composition has not been recognized : " , formula, deltaMass
+                    print "Please, review the compositions of your modifications as a probable cause of this error."
+                    print "Error caused by : " , element_match[0] , isotope_match[0]
+                    sys.exit(5)                        
+                
+        return deltaMass
+
+    @staticmethod
+    def add2components(formula1,formula2) :
+        formula = formula1.copy()
+        for el, value in formula2.iteritems() :
+            if el in formula    : formula[el] = formula[el] + formula2[el]
+            else                : formula[el] = formula2[el]
+        return formula
+    
+    @staticmethod
+    def substract2components(formula1,formula2) :
+        formula = formula1.copy()
+        for el,value in formula2.iteritems() :
+            if el in formula : formula[el] = formula[el] - formula2[el]
+            else             : formula[el] = -formula2[el]
+        return formula
+
+    @staticmethod
+    def compositionString(formula):
+        compString=""
+        for elem,num in formula.iteritems():
+            if num>1:
+                compString += "%s%s" % (elem,num)
+            else:
+                compString += "%s" % elem
+        return compString
+    
+    @staticmethod 
+    def compositionString2formula(compositionstring) :
+        '''This reads a composition string (i.e. 13C618O2), and returns a dictionary of it ( {'13C' : 6 , '18O' : 2} )
+            Warning!! Isotope number must be reported always BEFORE the element. 13C --> Good , C13 --> BAD!
+        '''
+        formula = {}
+        
+        element_match = re.findall('[A-Za-z]+' , el )
+        isotope_match = (re.findall('[\d\.]+', el))
+        
+        return formula
+        
+        
 
 class Elements:
 
     def __init__(self):
         self.list = []
         self._initElements()
-
+        self.element = {}
+        for el in self.list :
+            self.element[el.symbol] = el
+            
     def _initElements(self):
 
         elH = Element('H',[1.007825032,2.014101778],[0.99984426,0.00015574])
@@ -95,7 +197,11 @@ def test():
     #Monoisotopic masses
     for el in isots.list:
         print el.symbol , el.isotMass[0]
-        
+    
+    print "Adding H2O and H3PO4 results in :", Formulas.add2components(Formulas.H2O, Formulas.H3PO4)
+    print "Substracting H2O to H3PO4 results in :", Formulas.substract2components(Formulas.H3PO4, Formulas.H2O)
+    print "Calculating the mass for the formula 13C6_18O2 : " , Formulas.mass({'C13' : 6 , '18O' : 2})
+    #print isots.element
     
 if __name__=="__main__":
     test()
