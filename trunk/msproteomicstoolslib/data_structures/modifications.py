@@ -43,6 +43,7 @@ from peptide		import Peptide
 import csv
 import ast
 import re
+import sys
 
 class Modifications:
 	
@@ -197,11 +198,11 @@ class Modification:
 	def getcode(self, code):
 		if code not in Modification.codes :
 			print "Can't process the requested modification code : " , code
-			print "Available codes are: " , codes
+			print "Available codes are: " , Modification.codes
 			sys.exit(5)
 		
 		if code == 'TPP' : 			return self.TPP_Mod
-		if code == 'unimod' :		return self.unimodAccession
+		if code == 'unimod' :		return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
 		if code == 'ProteinPilot' :	return self.peakviewAccession
 		
 

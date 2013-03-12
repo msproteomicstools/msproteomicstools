@@ -127,8 +127,10 @@ class Formulas :
         '''This reads a composition string (i.e. 13C618O2), and returns a dictionary of it ( {'13C' : 6 , '18O' : 2} )
             Warning!! Isotope number must be reported always BEFORE the element. 13C --> Good , C13 --> BAD!
         '''
+        # TODO this is nowhere near finished
         formula = {}
         
+        el = compositionstring
         element_match = re.findall('[A-Za-z]+' , el )
         isotope_match = (re.findall('[\d\.]+', el))
         
@@ -164,6 +166,7 @@ class Elements:
         
         
     def addElement(self,symbol,isotMass,isotAbundance):
+        # TODO this is broken, Elements signature does not match
         newEl = Element(symbol,isotMass)
         self.list.append(newEl)
 

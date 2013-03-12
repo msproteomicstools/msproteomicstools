@@ -47,8 +47,13 @@ class TestUnitAminoAcides(unittest.TestCase):
 
     def test_getAminoacid(self):
         self.assertEqual(self.myAAs.getAminoacid("A").code3, "Ala")
-        self.assertEqual(self.myAAs.getAminoacid("A").compositionString(), "H5C3ON")
+        self.assertEqual(self.myAAs.getAminoacid("A").composition, {'H': 5, 'C': 3, 'O': 1, 'N': 1}  )
         self.assertAlmostEqual(self.myAAs.getAminoacid("A").deltaMass, 71.03711379)
+
+    def test_getAminoacid_fail(self):
+        self.assertRaises(Exception, self.myAAs.getAminoacid,"B")
+
+    def test_getAminoacid_all(self):
 
         ##1-letter code 3-letter code Chemical formula Monoisotopic
         ##-----------------------------------------------------------------
@@ -96,6 +101,31 @@ class TestUnitAminoAcides(unittest.TestCase):
             H9C9O2N  
             H9C5ON   """.split()
 
+        composition =  [
+        
+            {'H': 5, 'C': 3, 'O': 1, 'N': 1},
+            {'H': 12, 'C': 6, 'O': 1, 'N': 4},
+            {'H': 6, 'C': 4, 'O': 2, 'N': 2},
+            {'H': 5, 'C': 4, 'O': 3, 'N': 1},
+            {'H': 5, 'C': 3, 'S': 1, 'O': 1, 'N': 1},
+            {'H': 7, 'C': 5, 'O': 3, 'N': 1},
+            {'H': 8, 'C': 5, 'O': 2, 'N': 2},
+            {'H': 3, 'C': 2, 'O': 1, 'N': 1},
+            {'H': 7, 'C': 6, 'O': 1, 'N': 3},
+            {'H': 11, 'C': 6, 'O': 1, 'N': 1},
+            {'H': 11, 'C': 6, 'O': 1, 'N': 1},
+            {'H': 12, 'C': 6, 'O': 1, 'N': 2},
+            {'H': 9, 'C': 5, 'S': 1, 'O': 1, 'N': 1},
+            {'H': 9, 'C': 9, 'O': 1, 'N': 1},
+            {'H': 7, 'C': 5, 'O': 1, 'N': 1},
+            {'H': 5, 'C': 3, 'O': 2, 'N': 1},
+            {'H': 7, 'C': 4, 'O': 2, 'N': 1},
+            {'H': 10, 'C': 11, 'O': 1, 'N': 2},
+            {'H': 9, 'C': 9, 'O': 2, 'N': 1},
+            {'H': 9, 'C': 5, 'O': 1, 'N': 1}
+
+        ]
+
         monoisotopic_mass = [
             71.03711379,
             156.101111044 ,
@@ -122,7 +152,7 @@ class TestUnitAminoAcides(unittest.TestCase):
             aa = self.myAAs.getAminoacid(code)
             # print "%-10s  %-15s  %-20s %s %s" % (aa.code, aa.code3, aa.compositionString(), aa.deltaMass, i)
             self.assertEqual(aa.code3, codes3[i])
-            self.assertEqual(aa.compositionString(), chemical_comp[i])
+            self.assertEqual(aa.composition, composition[i])
             self.assertAlmostEqual(aa.deltaMass, monoisotopic_mass[i])
 
 
