@@ -67,7 +67,6 @@ class mzXMLReader:
             #print e.args
             raise Exception('Parsing failed, probably not an mzXML file')
 
-
     def _parse_header_fast(self):
         f = open( self.file, 'r')
         lines = []
@@ -134,9 +133,14 @@ class mzXMLReader:
         for event, elem in context:
             if event == "end" and elem.tag[ -4: ] == 'scan': 
                 s = Scan( elem)
+                # print  "scan ", s, s.msLevel, ms2Only, s.msLevel == 2 and ms2Only
                 if s.msLevel == 2 and len(elem) ==0: fail.append( elem )
                 elif s.msLevel == 2 and ms2Only: 
                     if readPeaks: s.read_peaks( elem )
+                    scans.append( s )
+                    self.scan_number_hash[ s.scan_number ] = s
+                else:
+                    # if readPeaks: s.read_peaks( elem )
                     scans.append( s )
                     self.scan_number_hash[ s.scan_number ] = s
             if event == "end" and elem.tag.endswith("index"):
@@ -215,6 +219,7 @@ class Scan:
         self.basePeak  = float( elem.get("basePeakMz"))
         self.basePeakI = float( elem.get("basePeakIntensity"))
         self._peaks    = None
+        self.precursorMZ = -1
         self.mrm       = is_mrm
         for child in elem.getchildren():
             if child.tag[-11 :] == 'precursorMz':

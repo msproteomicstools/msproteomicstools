@@ -38,6 +38,8 @@ $Authors: Hannes Roest$
 import unittest
 import os
 
+import msproteomicstoolslib.format.mzXMLreader as mzXMLReader
+
 class TestmzXMLReader(unittest.TestCase):
 
     def setUp(self):
@@ -47,7 +49,6 @@ class TestmzXMLReader(unittest.TestCase):
         self.filename = os.path.join(joined, "testfile.small.mzXML")
 
     def test_readfile(self):
-        import msproteomicstoolslib.format.mzXMLreader as mzXMLReader
         reader = mzXMLReader.mzXMLReader(self.filename, True)
 
     def test_readscan(self):
@@ -64,6 +65,15 @@ class TestmzXMLReader(unittest.TestCase):
         self.assertAlmostEqual( scan.peaks[0].mz, 350.3074646)
         self.assertAlmostEqual( scan.max_peak().int, 10638.6044922)
         self.assertAlmostEqual( scan.max_peak().mz, 390.929901123)
+
+    def test_parse_scans(self):
+        reader = mzXMLReader.mzXMLReader(self.filename, False)
+        scans = reader.parse_scans(ms2Only=False)
+
+    def test_create_ms_rt_hashes(self):
+        reader = mzXMLReader.mzXMLReader(self.filename, False)
+        scans = reader.parse_scans()
+        reader.create_ms_rt_hashes(scans)
 
 if __name__ == '__main__':
     unittest.main()
