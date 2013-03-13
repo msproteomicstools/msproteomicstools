@@ -55,22 +55,23 @@ def usage() :
 	print ""
 	print "Usage: "
 	print "python spectrast2tsv.py [options] spectrast_file(s)"
-	print "-h			--help		Display this help"
-	print "-f	fasta_file	--fasta		Fasta file to relate peptides to their proteins (this is optional)."
-	print "-r	iRT_file(s)	--irt	peptide iRT correspondencies"
-	print "-l	mass_limits	--limits	Lower and Upper mass limits. Example: -l 400,1200"
-	print "-s	ion_series	--series	List of ion series to be used. Example: -s y,b"
-	print "-g	mass_modifs --gain		List of allowed fragment mass modifications. Useful for phosphorilation. Example: -80,-98"
-	print "-e			--exact		Use exact mass."
-	print "-o	int		--min		Min number of reported ions per peptide/z. Default: 3"
-	print "-n	int		--max		Max number of reported ions per peptide/z. Default: 20"
-	print "-x	allowed_frg_charge_states	--charge	Fragment ion charge states allowed. Default: 1,2"
-	print "-p   float	--precision	Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
-	print "-m	modifications_file	--modifications	File with the modifications delta mass"
-	print "-w	swaths_file			--swaths		File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range."
-	print "-i 	labeling_file		--isot-labeling	File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
-	print "-t   time-scale			Options: minutes, seconds. Default: seconds."
-	print "-d						--remove-duplicates	Remove duplicate masses from labeling"
+	print "-d			--remove-duplicates	Remove duplicate masses from labeling"
+	print "-e			--exact			Use exact mass."
+	print "-f	fasta_file	--fasta			Fasta file to relate peptides to their proteins (this is optional)."
+	print "-g	mass_modifs 	--gain			List of allowed fragment mass modifications. Useful for phosphorilation. Example: -80,-98"
+	print "-h			--help			Display this help"
+	print "-i 	labeling_file	--isot-labeling		File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
+	print "-k	output_key	--key			Select the output provided. Keys available: openswath, peakview. Default: peakview"
+	print "-l	mass_limits	--limits		Lower and Upper mass limits. Example: -l 400,1200"
+	print "-m	mods_file	--modifications		File with the modifications delta mass"
+	print "-n	int		--max			Max number of reported ions per peptide/z. Default: 20"
+	print "-o	int		--min			Min number of reported ions per peptide/z. Default: 3"
+	print "-p   	float		--precision		Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
+	print "-r	iRT_file(s)	--irt			peptide iRT correspondencies"
+	print "-s	ion_series	--series		List of ion series to be used. Example: -s y,b"
+	print "-t   	time-scale				Options: minutes, seconds. Default: seconds."
+	print "-w	swaths_file	--swaths		File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range."
+	print "-x	allowed_frg_z	--charge		Fragment ion charge states allowed. Default: 1,2"
 	print ""
 
 def writeStandardConfigFile(filename):
@@ -297,11 +298,20 @@ def main(argv) :
 	labeling = {}
 	removeDuplicatesInHeavy = False
 	useMinutes = False
+	keys			= ['openswath','peakview']
+	key				= 'peakview'
 
-	csv_headers = 	[	'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
+	csv_headers_peakview = 	[	'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
 					 'relative_intensity', 'stripped_sequence', 'modification_sequence', 'prec_z',
 					 'frg_type', 'frg_z', 'frg_nr', 'iRT', 'uniprot_id', 'decoy'
 					 ]
+	csv_headers_openswath = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name', 'CE',
+							'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName', 
+							'Annotation', 'FullUniModPeptideName', 'MissedCleavages', 'Replicates', 'NrModifications',
+							'PrecursorCharge', 'GroupLabel', 'UniprotID', 'FragmentType', 'FragmentCharge',
+							'FragmentSeriesNumber']
+	
+	csv_headers = csv_headers_peakview
 
 	#swaths =[	(400,426)   , (425,451)   , (450,476) , (475,501) ,
 	#			(500,526)   , (525,551)   , (550,576) , (575,601) ,
@@ -316,7 +326,7 @@ def main(argv) :
 
 	#Get options
 	try:
-		opts, args = getopt.getopt(argv, "hf:l:s:en:r:m:o:w:c:z:g:i:dx:p:t:",["help","fasta","limits","series","exact","max","irt","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale"])
+		opts, args = getopt.getopt(argv, "hf:l:s:en:r:m:o:w:c:z:g:i:dx:p:t:k:",["help","fasta","limits","series","exact","max","irt","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key"])
 
 	except getopt.GetoptError:
 		usage()
@@ -400,6 +410,15 @@ def main(argv) :
 			else :
 				print "Choose a right time-scale. Options are: minutes, seconds"
 				sys.exit(10)
+		if opt in ('-k', 'key') :
+			if arg not in codes :
+				print "Error: key option is not valid! key : " , arg
+				print "Valid options are : " , keys
+				sys.exit(2)
+			key = arg
+			if key == 'openswath' 	: csv_headers = csv_headers_openswath
+			if key == 'peakview'	: csv_headers = csv_headers_peakview
+			
 
 
 
@@ -580,10 +599,22 @@ def main(argv) :
 
 				#Write the data into the data matrix (transitions)
 
-				transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
-								peak.intensity , spectrum.sequence , pep.getSequenceWithMods('ProteinPilot') , int(z_parent) ,
-								peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
+				code = 'ProteinPilot'
+				if key == 'openswath' 	: code = 'unimod'
+				if key == 'peakview'	: code = 'ProteinPilot'
 
+				transition = []
+				if key == 'peakview' :
+					transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
+									peak.intensity , spectrum.sequence , pep.getSequenceWithMods(code) , int(z_parent) ,
+									peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
+				if key == 'openswath' :
+					transition = [precursorMZ, fragment_mz, RT_experimental, 'transition_name', '1',
+							peak.intensity, 'transition_group_id', 'FALSE', spectrum.sequence, protein_desc, 
+							peak.peak_annotation, pep.getSequenceWithMods(code), 'MissedCleavages', 'Replicates', len(pep.modifications),
+							int(z_parent), 'light', protein_code1, peak.frg_serie, peak.frg_z,
+							peak.frg_nr ]
+				
 				filteredtransitions.append(transition)
 
 			#Sort transitions by frg_serie, frg_nr, frg_z and intensity (desc) --> remove duplicates
@@ -617,20 +648,26 @@ def main(argv) :
 				#Isotopic labeling 
 				#To-Do : All the labeling calculations must be reviewed and adapted to the Peptide class
 				if len(labeling) > 0 :
-				#heavy_transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'heavy' ,
-				#			peak.intensity , spectrum.sequence , sequence_mods_peakview , int(z_parent) ,
-				#			peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
-
 					heavy_transition   	= filteredtransitions[index]
-					heavy_transition[4] = 'heavy'
-					precursorMZ_heavy  	= heavy_transition[0]
-					fragment_mz_heavy  	= heavy_transition[1]
-					sequence_heavy     	= heavy_transition[6]
-					z_parent           	= heavy_transition[8]
-					frg_serie          	= heavy_transition[9]
-					frg_z			   	= heavy_transition[10]
-					frg_number		   	= heavy_transition[11]
-
+					if key == 'peakview' :
+						heavy_transition[4] = 'heavy'
+						precursorMZ_heavy  	= heavy_transition[0]
+						fragment_mz_heavy  	= heavy_transition[1]
+						sequence_heavy     	= heavy_transition[6]
+						z_parent           	= heavy_transition[8]
+						frg_serie          	= heavy_transition[9]
+						frg_z			   	= heavy_transition[10]
+						frg_number		   	= heavy_transition[11]
+					if key == 'openswath' :
+						heavy_transition[4] = 'heavy'
+						precursorMZ_heavy  	= heavy_transition[0]
+						fragment_mz_heavy  	= heavy_transition[1]
+						sequence_heavy     	= heavy_transition[8]
+						z_parent           	= heavy_transition[15]
+						frg_serie          	= heavy_transition[18]
+						frg_z			   	= heavy_transition[19]
+						frg_number		   	= heavy_transition[20]
+										
 					#NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
 					if frg_serie[0] not in ['y','b'] : continue
 
