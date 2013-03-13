@@ -5,8 +5,10 @@
 The following authors contributed to msproteomicstools at some point. For the
 authors contributing to a specific piece of code, please refer to the authors
 tag in the respective file header.
+ - Ruedi Aebersold
  - Lorenz Blum
+ - Ludovic Gillet
+ - Lars Malmstršm
  - Pedro Navarro
  - Hannes Roest
  - George Rosenberger
-

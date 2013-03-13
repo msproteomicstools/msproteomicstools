@@ -448,15 +448,15 @@ def test():
 	from modifications import Modifications
 
 	mods = Modifications()
-	mypep = Peptide('LIGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['R[166]'] }) #M[147]
-	mypep2 = Peptide('LIGPTSVVMGR')
+	mypep  = Peptide('LMGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['M[147]'] , 2 : mods.mods_TPPcode['M[147]']}) #M[147]
+	mypep2 = Peptide('LMGPTSVVMGR')
 	
 	for pep in [mypep, mypep2] : 
 			
 		print pep.sequence, pep.mass, pep.modifications
 		print pep._getComposition()
 		print pep._getAminoacidList(True)
-		
+		print pep.getSequenceWithMods("ProteinPilot")
 		print pep.getMZ(1)
 		
 		print '#,' , ", ".join(pep.iontypes)

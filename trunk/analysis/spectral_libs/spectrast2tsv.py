@@ -41,9 +41,10 @@ import csv
 import getopt, glob
 from configobj		import ConfigObj
 
-from msproteomicstoolslib.data_structures.peptide 	import Peptide
-from msproteomicstoolslib.format.ProteinDB			import ProteinDB  
-import msproteomicstoolslib.format.speclib_db_lib	as speclib_db_lib  
+from msproteomicstoolslib.data_structures.modifications	import 	Modifications
+from msproteomicstoolslib.data_structures.peptide 		import 	Peptide
+from msproteomicstoolslib.format.ProteinDB				import 	ProteinDB  
+import msproteomicstoolslib.format.speclib_db_lib		as 		speclib_db_lib  
 
 
 def usage() :
@@ -53,13 +54,13 @@ def usage() :
 	print "This script is used as filter from spectraST files to swath input files."
 	print ""
 	print "Usage: "
-	print "python spectrast2peakview.py [options] spectrast_file(s)"
+	print "python spectrast2tsv.py [options] spectrast_file(s)"
 	print "-h			--help		Display this help"
 	print "-f	fasta_file	--fasta		Fasta file to relate peptides to their proteins (this is optional)."
 	print "-r	iRT_file(s)	--irt	peptide iRT correspondencies"
 	print "-l	mass_limits	--limits	Lower and Upper mass limits. Example: -l 400,1200"
 	print "-s	ion_series	--series	List of ion series to be used. Example: -s y,b"
-	print "-g	mass_modifs --gain		List of allowed fragment mass modifications. Useful for phosphorilarion. Example: -80,-98"
+	print "-g	mass_modifs --gain		List of allowed fragment mass modifications. Useful for phosphorilation. Example: -80,-98"
 	print "-e			--exact		Use exact mass."
 	print "-o	int		--min		Min number of reported ions per peptide/z. Default: 3"
 	print "-n	int		--max		Max number of reported ions per peptide/z. Default: 20"
@@ -103,32 +104,6 @@ def writeStandardConfigFile(filename):
 	config['MASCOT']['sc'] = 0
 
 	config.write()
-
-
-def readModificationsFile(modificationsfile) :
-	#Modifications is a dictionary : modifications = { modinsequence1 : ( peakview_name1 , deltaMass1 ), ... , modinsequencen : ( peakview_namen , deltaMassn )  }
-	modifications = {}
-
-	file = open(modificationsfile,"r")
-
-	while True:
-		line = file.readline()
-		if len(line) == 0   : break
-		if line[0]   == '#' : continue
-
-		sline = line.split('\t')
-
-		if len(sline) != 3 : continue
-
-		modinsequence = sline[0]
-		peakview_name = sline[1]
-		deltaMass     = float(sline[2])
-
-		modifications[modinsequence] = ( peakview_name , deltaMass )
-
-	file.close()
-
-	return modifications
 
 def readiRTFile(iRT_file) :
 	#Returns a dictionary of sequences and iRTs { sequence1 : iRT1 , ...}. Modifications over the sequences must be in peakview format.
@@ -301,63 +276,6 @@ def filterBySearchEngineParams(searchEngineInfo, searchEngine, parameter_thresho
 
 	return spectrumOK
 
-def translateModificationsFromSequence(sequence, modificationsLibrary) :
-	'''Returns ( naked_sequence , sequence_mods_in_peakView_format , mods_in_the_Peptide_class_format ) '''
-	sequence_mods_peakview = sequence
-
-	#mods_peptide is a dictionary wich uses the position of the modification as key, and the delta mass as value:
-	#example : GGGGMoxDDCDK  -> mods_peptide = { 5 : 15.99949 , 8 : 57.02147 }
-	mods_peptide = {}
-	mods_peptide_pv = {}
-	#find (variable) modifications, expressed within brackets
-
-	last_mod_pos = 0
-	while (1):
-		if '[' not in sequence[:] : break
-		#print sequence
-		seq_mod = ''
-		#fetch the modification
-		bracket0 = sequence.find('[')
-		bracket1 = sequence.find(']', bracket0)
-		seq_mod = sequence[bracket0+1:bracket1]
-		#seq_mod has the look : 147
-		if bracket0 > -1 : last_mod_pos = bracket0
-
-		aa_modified = sequence[bracket0-1]
-		aa_modified_pos = bracket0
-
-		seq_mod = aa_modified + '[' + seq_mod + ']'
-		#seq_mod has the look: M[147]
-
-		if seq_mod in modificationsLibrary :
-			pos = sequence_mods_peakview.find(seq_mod)
-			end_pos = pos + len(seq_mod)
-			mods_peptide[aa_modified_pos] = modificationsLibrary[seq_mod][1]
-			mods_peptide_pv[aa_modified_pos] = modificationsLibrary[seq_mod][0]
-		else :
-			print "WARNING: Modification not known. Please, review your modifications list. This peptide modification will be ignored."
-			print sequence
-			#sys.exit()
-
-		#Once processed, remove it from the sequence
-		sequence_tmp = sequence[:bracket0] + sequence[bracket1+1:]
-		sequence = sequence_tmp
-
-	sequence_array = []
-	for aa in sequence[:] :
-		sequence_array.append(aa)
-
-	for mod_pos,mod_txt in mods_peptide_pv.iteritems() :
-		sequence_array[mod_pos-1] = sequence_array[mod_pos-1] + mod_txt
-
-	sequence_mods_peakview = ''
-	for aa in sequence_array :
-		sequence_mods_peakview += aa
-
-
-	sequence_no_mods =sequence
-
-	return ( sequence_no_mods , sequence_mods_peakview , mods_peptide )
 
 def main(argv) :
 
@@ -498,11 +416,12 @@ def main(argv) :
 		sptxtf = glob.glob(pat)
 		for file in sptxtf : sptxtfiles.append(file)
 
-	#If a modifications file is provided, read and store it into a dictionary
-	modificationsLib = None
+	#If a modifications file is provided, update the Modifications
+	modificationsLib = Modifications()     #None
 	if len(modificationsfile) > 0 :
-		modificationsLib = readModificationsFile(modificationsfile)
-	print "Modifications used : " , modificationsLib
+		modificationsLib.readModificationsFile(modificationsfile)
+	print "Modifications used : "
+	modificationsLib.printModifications()
 
 	#If a fasta file is provided, read and store it into a dictionary
 	print "Reading fasta file :" , fastafile
@@ -545,7 +464,8 @@ def main(argv) :
 		num_spectrum = 0
 		offset = spectrastlib.get_first_offset(sptxtfile)
 		last_offset = -100
-
+		modification_code = 'TPP'
+		
 		while ( offset - last_offset > 10) :
 			last_offset = offset
 			offset , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
@@ -560,23 +480,23 @@ def main(argv) :
 
 			#print sequence, z_parent
 
-			#find modifications in the sequence
-			#mods_peptide is a dictionary wich uses the position of the modification as key, and the delta mass as value:
-			#example : GGGGMoxDDCDK  -> mods_peptide = { 5 : 15.99949 , 8 : 57.02147 }
-			sequence_no_mods , sequence_mods_peakview , mods_peptide  = translateModificationsFromSequence(sequence,modificationsLib)
-
+			#Declare the peptide
+			pep = modificationsLib.translateModificationsFromSequence(sequence, modification_code)
+			
 			irt_sequence = -100
 			RT_experimental = 0.0
 			if spectrum.RetTime_detected != -1 :
 				RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-			if sequence_mods_peakview in iRTs :
-				irt_sequence	= iRTs[sequence_mods_peakview][0]
-				RT_experimental	= iRTs[sequence_mods_peakview][1]
+			
+			#pep.sequence.getSequenceWithMods(modification_code)
+			if sequence in iRTs :  #To-Do : adapt it to any code (Unimod, ProteinPilot...). So far, the iRT file must contain the mods in TPP format
+				irt_sequence	= iRTs[sequence][0]
+				RT_experimental	= iRTs[sequence][1]
 
 			if useMinutes : RT_experimental = RT_experimental * 60
 
 			spec_proteins = []
-			if proteins : spec_proteins = proteins.get_proteins_containing_peptide(sequence_no_mods)
+			if proteins : spec_proteins = proteins.get_proteins_containing_peptide(pep.sequence)
 
 
 			protein_code1 = ''
@@ -599,60 +519,36 @@ def main(argv) :
 				if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac
 				else : protein_desc  = 'unknown'
 
-
-
-			#print sequence, z_parent, protein_desc, protein_code1
-
 			num_spectrum = num_spectrum +1
-
 			if (num_spectrum % 1000 == 0) : print "spectra processed: %s" % num_spectrum
 
-
-			pep = None
 			precursorMZ = spectrum.precursorMZ
 			if useexactmass : #calculate Q1 and Q3 mass/charge values
-				pep = Peptide(sequence_no_mods,"",mods_peptide)
 				precursorMZ = pep.getMZ(z_parent , label = '')
-
-			#for property , value in vars(spectrum).iteritems() :
-			#	print property , " : " , value
 
 			searchenginefiltered = False
 			try :
-				#print spectrum.searchEngineInfo
 				for searchengine in searchEngineconfig :
 					if not filterBySearchEngineParams(spectrum.searchEngineInfo ,searchengine, searchEngineconfig[searchengine] ) :
-						#print "filtered by search engine parameters"
 						searchenginefiltered = True
 						continue
 			except AttributeError :
 				pass
-
-
 
 			peaks = spectrum.get_peaks()
 			if searchenginefiltered : peaks = []
 
 			filteredtransitions = []
 			for peak in peaks :
-
 				if peak.is_unknown : continue
-
 				if peak.frg_is_isotope	: continue
 				if peak.frg_z not in frgchargestate : continue
 				if hasattr(peak, 'mass_error') :
 					if abs(peak.mass_error) > precision : continue
-
 				#If exact mass selected, calculate the fragment mass, otherwise keep "experimental" mass
 				fragment_mz = float(peak.peak)
 				if useexactmass :
-					#if peak.frg_serie not in ['y','b'] :
-						#for property , value in vars(peak).iteritems() :
-						#	print property , " : " , value
 					fragment_mz  = pep.getMZfragment(peak.frg_serie , peak.frg_nr , peak.frg_z , label = '')
-
-				#sys.exit()
-
 
 				#If ion series were specified by the user, filter those not matching user preferences.
 				if len(ionseries) > 0 :
@@ -685,7 +581,7 @@ def main(argv) :
 				#Write the data into the data matrix (transitions)
 
 				transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
-								peak.intensity , spectrum.sequence , sequence_mods_peakview , int(z_parent) ,
+								peak.intensity , spectrum.sequence , pep.getSequenceWithMods('ProteinPilot') , int(z_parent) ,
 								peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
 
 				filteredtransitions.append(transition)
@@ -718,7 +614,8 @@ def main(argv) :
 			for index in range(0,min(len(filteredtransitions),maxtransitions)) :
 				writer.writerow(filteredtransitions[index])
 
-				#Isotopic labeling
+				#Isotopic labeling 
+				#To-Do : All the labeling calculations must be reviewed and adapted to the Peptide class
 				if len(labeling) > 0 :
 				#heavy_transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'heavy' ,
 				#			peak.intensity , spectrum.sequence , sequence_mods_peakview , int(z_parent) ,
