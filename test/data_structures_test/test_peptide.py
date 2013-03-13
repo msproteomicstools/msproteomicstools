@@ -96,28 +96,25 @@ class TestUnitPeptide(unittest.TestCase):
 		## 	#for property, value in vars(pep).iteritems() :
 		## 	#	print property , " : " , value
 
-    def test_getMZfragment(self):
-        # def getMZfragment(self,ion_type,ion_number,ion_charge, label = '', fragmentlossgain = 0.0):
-        self.assertAlmostEqual( self.mypep.getMZfragment("y", 4, 1), 478.2442291)
-        self.assertAlmostEqual( self.mypep.getMZfragment("y", 5, 1), 577.312643018)
-        self.assertAlmostEqual( self.mypep.getMZfragment("y", 6, 1), 664.344671428)
+    def test_peptide_with_modifications_2(self):
+  	    mypep  = peptide.Peptide('LMGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] , 2 : self.mods.mods_TPPcode['M[147]']}) #M[147]
 
-    def test_getMZ(self):
-		self.assertAlmostEqual(self.mypep.getMZ(1), 1145.63470545)
-		self.assertAlmostEqual(self.mypep.getMZ(2), 573.320990973)
+    ###################################
+    ## All function unit tests      ##
+    ###################################
 
-        # TODO calculate true values
-		# self.assertAlmostEqual(self.mypep.getMZ(1, "N15"), 1145.63470545)
-		# self.assertAlmostEqual(self.mypep.getMZ(2, "N15"), 573.320990973)
+    def test_getSequenceWithMods(self):
+        self.assertEqual(self.mypep.getSequenceWithMods("TPP"), 'LIGPTSVVM[147]GR')
+        self.assertEqual(self.mypep.getSequenceWithMods("unimod"), 'LIGPTSVVM(UniMod:35)GR')
+        self.assertEqual(self.mypep.getSequenceWithMods("ProteinPilot"), 'LIGPTSVVM[Oxi]GR')
 
-    def test_shuffle_sequence(self):
-        # test that we dont loose any elements
-        initial_len = len(self.mypep.sequence)
-        self.mypep.shuffle_sequence()
-        self.assertEqual( len(self.mypep.sequence), initial_len) 
+    def test_getMassFromSequence(self):
+        # TODO
+        pass
 
-    def test_shuffle_sequence_1(self):
-        # test that we also shuffle the modifications
+
+    def test_getDeltaMassFromSequence(self):
+        # TODO
         pass
 
     def test_pseudoreverse(self):
@@ -128,9 +125,66 @@ class TestUnitPeptide(unittest.TestCase):
         self.assertEqual( len(self.mypep.sequence), initial_len) 
         self.assertNotEqual( self.mypep.sequence, initial_seq) 
 
-    def test_getDeltaMassFromSequence(self):
+    def test_pseudoreverse_2(self):
+        # test that we dont loose any elements
+        initial_len = len(self.mypep.sequence)
+        initial_seq = self.mypep.sequence
+        newseq = self.mypep.pseudoreverse(initial_seq)
+        self.assertEqual( len(newseq), initial_len) 
+        self.assertNotEqual( newseq, initial_seq) 
+
+    def test_shuffle_sequence(self):
+        # test that we dont loose any elements
+        initial_len = len(self.mypep.sequence)
+        self.mypep.shuffle_sequence()
+        self.assertEqual( len(self.mypep.sequence), initial_len) 
+
+    def test_shuffle_sequence_1(self):
+        # test that we also shuffle the modifications
         # TODO
         pass
+
+    def test_get_decoy_Q3(self):
+        # def test_get_decoy_Q3(self, frg_serie, frg_nr, frg_z, blackList=[], max_tries=1000):
+        # TODO
+        pass
+
+    def test_getComposition(self):
+        # TODO
+        pass
+
+    def test_getCompositionSeq(self):
+        # def _getCompositionSeq(self, sequence, modifications = {}):
+        # TODO
+        pass
+
+    def test_getAminoacidList(self):
+        #def _getAminoacidList(self, fullList=False):
+        pass
+        print self.mypep._getAminoacidList()
+
+    def test_getMZ(self):
+		self.assertAlmostEqual(self.mypep.getMZ(1), 1145.63470545)
+		self.assertAlmostEqual(self.mypep.getMZ(2), 573.320990973)
+
+		# TODO 'N15' 'SILAC_K6R10' 'SILAC_K8R10' 'SILAC_K8R6' :
+
+        # TODO calculate true values
+		# self.assertAlmostEqual(self.mypep.getMZ(1, "N15"), 1145.63470545)
+		# self.assertAlmostEqual(self.mypep.getMZ(2, "N15"), 573.320990973)
+
+    def test_getMZfragment(self):
+        # def getMZfragment(self,ion_type,ion_number,ion_charge, label = '', fragmentlossgain = 0.0):
+        self.assertAlmostEqual( self.mypep.getMZfragment("y", 4, 1), 478.2442291)
+        self.assertAlmostEqual( self.mypep.getMZfragment("y", 5, 1), 577.312643018)
+        self.assertAlmostEqual( self.mypep.getMZfragment("y", 6, 1), 664.344671428)
+        self.assertRaises(SystemExit, self.mypep.getMZfragment, "y", 6, 1, "dummylabel")
+
+		# TODO 'N15' 'SILAC_K6R10' 'SILAC_K8R10' 'SILAC_K8R6' :
+
+
+    def test_test(self):
+        peptide.test()
 
 if __name__ == '__main__':
     unittest.main()
