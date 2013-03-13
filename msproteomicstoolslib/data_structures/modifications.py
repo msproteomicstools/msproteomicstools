@@ -150,7 +150,7 @@ class Modifications:
 				for modif in self.list :
 					if aa == modif.getcode(code) :
 						#add the modification to the mods_peptide dictionary
-						mods_peptide[i] = modif
+						mods_peptide[i+1] = modif
 						modification_found = True
 				if not modification_found :
 					#Throw an Exception
@@ -203,7 +203,7 @@ class Modification:
 		
 		if code == 'TPP' : 			return self.TPP_Mod
 		if code == 'unimod' :		return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
-		if code == 'ProteinPilot' :	return self.peakviewAccession
+		if code == 'ProteinPilot' :	return "%s%s" % (self.aminoacid, self.peakviewAccession)
 		
 
 def test(args):
