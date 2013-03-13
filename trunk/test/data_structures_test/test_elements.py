@@ -73,7 +73,7 @@ class TestUnitElement(unittest.TestCase):
 
     def test_addElement(self):
       # def addElement(self,symbol,isotMass,isotAbundance):
-      self.isots.addElement("C", 12, 1.0)
+      self.isots.addElement("C", [12], [1.0])
 
     def test_test(self):
         elements.test()
@@ -99,8 +99,6 @@ class TestUnitFormulas(unittest.TestCase):
     def test_compositionString(self):
         self.assertEqual( 'H5O5P', elements.Formulas.compositionString( {'H': 5, 'O': 5, 'P': 1}) )
 
-    def test_compositionString2formula(self):
-        self.assertEqual( {'H': 5, 'O': 5, 'P': 1}, elements.Formulas.compositionString2formula( 'H5O5P' ) )
 
 
 if __name__ == '__main__':

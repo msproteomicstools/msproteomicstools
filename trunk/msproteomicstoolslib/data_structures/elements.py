@@ -121,22 +121,6 @@ class Formulas :
             else:
                 compString += "%s" % elem
         return compString
-    
-    @staticmethod 
-    def compositionString2formula(compositionstring) :
-        '''This reads a composition string (i.e. 13C618O2), and returns a dictionary of it ( {'13C' : 6 , '18O' : 2} )
-            Warning!! Isotope number must be reported always BEFORE the element. 13C --> Good , C13 --> BAD!
-        '''
-        # TODO this is nowhere near finished
-        formula = {}
-        
-        el = compositionstring
-        element_match = re.findall('[A-Za-z]+' , el )
-        isotope_match = (re.findall('[\d\.]+', el))
-        
-        return formula
-        
-        
 
 class Elements:
 
@@ -149,26 +133,44 @@ class Elements:
             
     def _initElements(self):
 
-        elH = Element('H',[1.007825032,2.014101778],[0.99984426,0.00015574])
-        elC = Element('C',[12.000000000,13.00335484],[0.988922,0.011078])
-        elN = Element('N',[14.00307401,15.0001089],[0.996337,0.003663])
-        elO = Element('O',[15.99491462,16.9991315,17.9991604],[0.997628,0.000372,0.002000])
-        elS = Element('S',[31.97207069,32.9714585,33.96786683,35.96708088],[0.95018,0.0075,0.04215,0.00017])
-        elP = Element('P',[30.97376151],[1.00000])
-
-
-        self.list.append(elC)
-        self.list.append(elH)
-        self.list.append(elN)
-        self.list.append(elO)
-        self.list.append(elS)
-        self.list.append(elP)
-        
+        self.addElement('H',[1.007825032,2.014101778],[0.99984426,0.00015574])
+        self.addElement('C',[12.000000000,13.00335484],[0.988922,0.011078])
+        self.addElement('N',[14.00307401,15.0001089],[0.996337,0.003663])
+        self.addElement('O',[15.99491462,16.9991315,17.9991604],[0.997628,0.000372,0.002000])
+        self.addElement('S',[31.97207069,32.9714585,33.96786683,35.96708088],[0.95018,0.0075,0.04215,0.00017])
+        self.addElement('P',[30.97376151],[1.00000])
         
     def addElement(self,symbol,isotMass,isotAbundance):
         # TODO this is broken, Elements signature does not match
-        newEl = Element(symbol,isotMass)
-        self.list.append(newEl)
+        
+        #Check that the lists of masses and natural abundances have the same length
+		if len(isotMass) != len(isotAbundance) :
+			#Throw an exception
+			print "Error : the isotopic masses and the natural abundance vector sizes don't match!"
+			print "Element : " , symbol
+			print "isotopic masses : " , isotMass
+			print "natural abundances : " , isotAbundance
+			sys.exit(5)
+
+		#Check that the sum of all the natural abundances is close enough to 1 (over 1 is not good, a bit below 1 might be acceptable)
+		sumAbundances = sum(isotAbundance)
+		
+		if sumAbundances > 1 : 
+			print "Error : the sum of the abundances is over 1!"
+			print "Element : " , symbol
+			print "isotopic masses : " , isotMass
+			print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+			sys.exit(5)
+		
+		if sumAbundances < 0.97 :
+			print "Error : the sum of the abundances is too low! It should be closer to 1."
+			print "Element : " , symbol
+			print "isotopic masses : " , isotMass
+			print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+			sys.exit(5)
+			
+		newEl = Element(symbol,isotMass, isotAbundance)
+		self.list.append(newEl)
 
     def getElement(self,symbol):
         for el in self.list:
