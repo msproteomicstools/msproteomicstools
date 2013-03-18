@@ -65,9 +65,8 @@ class TestPepXMLReader(unittest.TestCase):
 
         args = "%s %s" % (filename, tmpfilename)
         cmd = "python %s %s" % (script, args)
-        p = sub.Popen(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
-        output, errors = p.communicate()
-
+        sub.check_call(cmd,shell=True)
+        
         self.exact_diff(tmpfilename, expected_outcome)
 
         os.remove(tmpfilename)
