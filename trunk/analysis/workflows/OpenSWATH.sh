@@ -238,7 +238,7 @@ else
 fi
 
 echo "Done Running mProphet"
-mv ${file_basename}_mprophet_all_peakgroups.xls ${file_basename}_all_peakgroups.xls
+mv ${file_basename}_mprophet_*peakgroups.xls ${file_basename}_all_peakgroups.xls
 tar czvf runlogs_mprophet.tar.gz ${file_basename}_mprophet*
 rm ${file_basename}_mprophet*
 #rm ${file_basename}_combined.short_format.csv
