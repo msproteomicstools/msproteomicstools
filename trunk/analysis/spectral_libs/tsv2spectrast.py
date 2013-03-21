@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8  -*-
 """
 =========================================================================
@@ -35,7 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import MySQLdb, time, sys
+import time, sys
 from string import Template
 import csv
 
