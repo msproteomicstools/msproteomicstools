@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8  -*-
 
 # // -*- mode: C++; tab-width: 2; -*-
@@ -31,13 +31,17 @@
 
 """
 Usage: 
-    python split.py filename window_size
+    python split.py filename window_size [outputdir] [noms1map]
 
-where filename is an mzXML file. Window size is usually 32
+where 
+    filename is an mzXML file 
+    window size is usually 32
+    outputdir is . default
+    noms1map is default false (ms1scans are written)
 
 Purpose: To split files from SWATH scans into individual files.
 
-Author: Hannes Roest
+Author: Hannes Roest loblum
 
 ###########################################################################
 """
@@ -45,10 +49,18 @@ Author: Hannes Roest
 import re, csv, sys, os
 full_filename = sys.argv[1]
 window_size = int(sys.argv[2])
-if len(sys.argv) == 4:
-		out_dir = sys.argv[3] + "/"
+
+if len(sys.argv) >= 4:
+    out_dir = sys.argv[3] + "/"
+    print "Set outdir to " + out_dir
 else:
-		out_dir = "./"
+        out_dir = "./"
+
+if len(sys.argv) >= 5 and sys.argv[4] == 'noms1map':
+    writeMs1 = False
+    print "Skipping ms1map output"
+else:
+    writeMs1 = True
 
 filename = full_filename.split(".mzXML")
 if len(filename) != 2:
@@ -73,8 +85,8 @@ def rewrite_single_scan(mybuffer, swathscan):
 windows = []
 for w in range(window_size):
     windows.append( open(out_dir + 'split_' + filename + '_' + str(w) + '.mzXML', 'w') )
-
-ms1map = open(out_dir + 'split_' + filename + '_' + 'ms1scan.mzXML', 'w')
+if writeMs1:
+    ms1map = open(out_dir + 'split_' + filename + '_' + 'ms1scan.mzXML', 'w')
 
 # Go through all lines, find the start and end tags: <scan and </scan
 # The header is found before the first <scan tag
@@ -95,7 +107,8 @@ for line in source:
             header_done = True
             for f in windows:
                 f.write(header)
-            ms1map.write(header)
+            if writeMs1:
+                ms1map.write(header)
         # Start new buffer
         mybuffer = line
     if line.find('</scan') != -1:
@@ -103,7 +116,8 @@ for line in source:
         if mybuffer.find('msLevel="1"')  != -1:
             scanwindow = 0
             swathscan += 1
-            ms1map.write(mybuffer)
+            if writeMs1:
+                ms1map.write(mybuffer)
         else:
             mybuffer = rewrite_single_scan(mybuffer, swathscan)
             windows[scanwindow].write(mybuffer)
@@ -113,6 +127,7 @@ for line in source:
 for f in windows:
     f.write('  </msRun>\n</mzXML>')
     f.close()
+if writeMs1:
+    ms1map.write('  </msRun>\n</mzXML>')
+    ms1map.close()
 
-ms1map.write('  </msRun>\n</mzXML>')
-ms1map.close()
