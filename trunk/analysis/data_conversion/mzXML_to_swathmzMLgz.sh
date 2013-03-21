@@ -30,4 +30,4 @@ split_mzXML_intoSwath.py $input $windows $outdir $noms1map
 for i in $outdir/split*.mzXML
 do
 	echo ${i%%.mzXML}
-done | xargs -P $threads -I file sh -c '{ FileConverter -in "file.mzXML" -out "file.mzML"; gzip -fv "file.mzML"; rm -v "file.mzXML"}' 
+done | xargs -P $threads -I file sh -c '{ FileConverter -in "file.mzXML" -out "file.mzML"; gzip -fv "file.mzML"; rm -v "file.mzXML"; }' 
