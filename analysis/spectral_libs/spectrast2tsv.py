@@ -49,7 +49,7 @@ import msproteomicstoolslib.format.speclib_db_lib		as 		speclib_db_lib
 
 def usage() :
 	print ""
-	print "spectrast2peakview.py"
+	print "spectrast2tsv.py"
 	print ("-" * 15)
 	print "This script is used as filter from spectraST files to swath input files."
 	print ""
