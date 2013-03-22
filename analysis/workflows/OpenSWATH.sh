@@ -247,15 +247,15 @@ bsub -I -n $OMP_NUM_THREADS -W8:00 -R "rusage[mem=6144]" OpenSwathRewriteToFeatu
   -featureXML ${file_basename}_combined.featureXML -out ${file_basename}_combined_fdr.featureXML -threads $OMP_NUM_THREADS
 bzip2 ${file_basename}_all_peakgroups.xls
 bsub -I -n $OMP_NUM_THREADS OpenSwathFeatureXMLToTSV -in ${file_basename}_combined_fdr.featureXML -tr $library \
-  -out ${file_basename}_combined_fdr.long_format.tsv -best_scoring_peptide $best_score -threads $OMP_NUM_THREADS
+  -out ${file_basename}_combined_fdr.long_format.csv -best_scoring_peptide $best_score -threads $OMP_NUM_THREADS
 bsub -I -n $OMP_NUM_THREADS OpenSwathFeatureXMLToTSV -in ${file_basename}_combined_fdr.featureXML -tr $library \
-  -out ${file_basename}_combined_fdr.short_format.tsv -best_scoring_peptide $best_score -short_format -threads $OMP_NUM_THREADS
+  -out ${file_basename}_combined_fdr.short_format.csv -best_scoring_peptide $best_score -short_format -threads $OMP_NUM_THREADS
 
 ##### Step 5
 # look at the result 
 uptime
 echo "Done"
-outname=${file_basename}_combined_fdr.short_format.tsv
+outname=${file_basename}_combined_fdr.short_format.csv
 for fdr in 0.20 0.15 0.10 0.05 0.01 0.002 0.001; do
  ${mprophet_dir}fdr_cutoff.py $outname ${outname}_fdr.csv m_score DECOY_ $fdr FALSE TRUE 
   grep -v DECOY ${outname}_fdr.csv > ${outname}_fdr_nodc.csv
