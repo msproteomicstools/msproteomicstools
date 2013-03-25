@@ -308,7 +308,7 @@ def main(argv) :
 					 ]
 	csv_headers_openswath = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name', 'CE',
 							'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName', 
-							'Annotation', 'FullUniModPeptideName', 'MissedCleavages', 'Replicates', 'NrModifications',
+							'Annotation', 'FullUniModPeptideName', 'NrModifications',
 							'PrecursorCharge', 'GroupLabel', 'UniprotID', 'FragmentType', 'FragmentCharge',
 							'FragmentSeriesNumber']
 	
@@ -488,6 +488,8 @@ def main(argv) :
 		last_offset = -100
 		modification_code = 'TPP'
 		
+		transition_cnt = 0
+		precursor_cnt = 0
 		while ( offset - last_offset > 10) :
 			last_offset = offset
 			offset , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
@@ -561,6 +563,7 @@ def main(argv) :
 			if searchenginefiltered : peaks = []
 
 			filteredtransitions = []
+			precursor_cnt += 1
 			for peak in peaks :
 				if peak.is_unknown : continue
 				if peak.frg_is_isotope	: continue
@@ -607,14 +610,15 @@ def main(argv) :
 				if key == 'peakview'	: code = 'ProteinPilot'
 
 				transition = []
+				transition_cnt += 1
 				if key == 'peakview' :
 					transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
 									peak.intensity , spectrum.sequence , pep.getSequenceWithMods(code) , int(z_parent) ,
 									peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
 				if key == 'openswath' :
-					transition = [precursorMZ, fragment_mz, RT_experimental, 'transition_name', '1',
-							peak.intensity, 'transition_group_id', 'FALSE', spectrum.sequence, protein_desc, 
-							peak.peak_annotation, pep.getSequenceWithMods(code), 'MissedCleavages', 'Replicates', len(pep.modifications),
+					transition = [precursorMZ, fragment_mz, RT_experimental, "%s_%s_%s" % (transition_cnt, pep.getSequenceWithMods(code), int(z_parent)), '1',
+							peak.intensity, "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent)), 0, spectrum.sequence, protein_desc, 
+							peak.peak_annotation, pep.getSequenceWithMods(code), len(pep.modifications),
 							int(z_parent), 'light', protein_code1, peak.frg_serie, peak.frg_z,
 							peak.frg_nr ]
 				
