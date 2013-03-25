@@ -296,6 +296,7 @@ def main(argv) :
 	gain_or_loss_mz_txt = []
 	gain_or_loss_mz = []
 	labeling = {}
+	codes = ["openswath", "peakview"]
 	removeDuplicatesInHeavy = False
 	useMinutes = False
 	keys			= ['openswath','peakview']
@@ -405,6 +406,7 @@ def main(argv) :
 			precision = float(arg)
 			argsUsed += 2
 		if opt in("-t","--timescale") :
+			argsUsed += 2
 			if arg in ["minutes","seconds"] :
 				if arg in ["minutes"] : useMinutes = True
 			else :
@@ -418,6 +420,7 @@ def main(argv) :
 			key = arg
 			if key == 'openswath' 	: csv_headers = csv_headers_openswath
 			if key == 'peakview'	: csv_headers = csv_headers_peakview
+			argsUsed += 2
 			
 
 
