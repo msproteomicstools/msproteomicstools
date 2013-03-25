@@ -72,6 +72,7 @@ def usage() :
 	print "-t   	time-scale				Options: minutes, seconds. Default: seconds."
 	print "-w	swaths_file	--swaths		File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range."
 	print "-x	allowed_frg_z	--charge		Fragment ion charge states allowed. Default: 1,2"
+	print "			--output		Output file name (default: appends _peakview.txt)"
 	print ""
 
 def writeStandardConfigFile(filename):
@@ -301,6 +302,7 @@ def main(argv) :
 	useMinutes = False
 	keys			= ['openswath','peakview']
 	key				= 'peakview'
+	outputfile = None
 
 	csv_headers_peakview = 	[	'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
 					 'relative_intensity', 'stripped_sequence', 'modification_sequence', 'prec_z',
@@ -327,7 +329,7 @@ def main(argv) :
 
 	#Get options
 	try:
-		opts, args = getopt.getopt(argv, "hf:l:s:en:r:m:o:w:c:z:g:i:dx:p:t:k:",["help","fasta","limits","series","exact","max","irt","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key"])
+		opts, args = getopt.getopt(argv, "hf:l:s:en:r:m:o:w:c:z:g:i:dx:p:t:k:a:",["help","fasta","limits","series","exact","max","irt","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key","output"])
 
 	except getopt.GetoptError:
 		usage()
@@ -338,6 +340,9 @@ def main(argv) :
 		if opt in ("-h","--help") :
 			usage()
 			sys.exit()
+		if opt in ("-a", "--output") :
+			outputfile = arg
+			argsUsed += 2
 		if opt in ("-f","--fasta") :
 			fastafile = arg
 			argsUsed += 2
@@ -470,7 +475,10 @@ def main(argv) :
 			sys.exit(2)
 
 
-		peakviewfilename = sptxtfile[:-6] + "_peakview.txt"
+		if outputfile is None:
+			peakviewfilename = sptxtfile[:-6] + "_peakview.txt"
+		else:
+			peakviewfilename = outputfile
 		try :
 			writer = csv.writer(open(peakviewfilename,'w'), dialect='excel-tab')
 		except :
