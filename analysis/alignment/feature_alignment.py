@@ -52,13 +52,33 @@ class MinimalPeakGroup():
     # Note that for performance reasons, the peakgroups are created on-the-fly
     # and not stored as objects but rather as tuples in "Peptide".
     #
-    def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide):
+    def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide, intensity=None):
       self.id = unique_id
       self.fdr_score = fdr_score
       self.diff_from_assay_seconds = assay_rt 
       self.selected_ = selected
       self.peptide = peptide
+      self.intensity_ = intensity
   
+    ## Print
+    def print_out(self):
+        # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
+        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
+
+    ## Getters 
+    def get_fdr_score(self):
+      return self.fdr_score
+
+    def get_feature_id(self):
+      return self.id
+
+    def get_normalized_retentiontime(self):
+      return self.diff_from_assay_seconds
+
+    def get_intensity(self):
+      return self.intensity_
+
+    ## Select / De-select peakgroup
     def is_selected(self):
         return self.selected_
 
@@ -70,18 +90,6 @@ class MinimalPeakGroup():
         self.selected_ = False
         self.peptide.unselect_pg(self.id)
 
-    def get_fdr_score(self):
-      return self.fdr_score
-
-    def get_feature_id(self):
-      return self.id
-
-    def get_normalized_retentiontime(self):
-      return self.diff_from_assay_seconds
-  
-    def print_out(self):
-        # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
-        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
   
 class Peptide():
     # A collection of peakgroups that belong to the same precursor and belong
@@ -107,9 +115,9 @@ class Peptide():
         return "%s (run %s)" % (self.id, self.run)
 
     def add_peakgroup_tpl(self, pg_tuple, tpl_id):
-        # peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds)
+        # peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
         assert self.id == tpl_id # Check that the peak group is added to the correct precursor
-        assert len(pg_tuple) == 3
+        assert len(pg_tuple) == 4
         self.peakgroups_.append(pg_tuple)
         self.selected_.append(False)
 
@@ -150,7 +158,7 @@ class Peptide():
                 best_score = peakgroup[1]
                 result = peakgroup
         index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self)
+        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
 
     def get_selected_peakgroup(self):
       # return the selected peakgroup of this peptide, we can only select 1 or
@@ -160,18 +168,18 @@ class Peptide():
       if len(selected) == 1:
         index = selected[0]
         result = self.peakgroups_[index]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self)
+        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
       else: 
           return None
 
     def get_all_peakgroups(self):
         for index, result in enumerate(self.peakgroups_):
-            yield MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self)
+            yield MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
   
     def find_closest_in_iRT(self, delta_assay_rt):
       result = min(self.peakgroups_, key=lambda x: abs(float(x[2]) - float(delta_assay_rt)))
       index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-      return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self)
+      return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
 
 class Multipeptide():
     # A collection of the same precursors (chromatograms) across multiple runs
@@ -282,6 +290,7 @@ class Run():
         protein_id_col = "ProteinName"
         sequence_col = "Sequence"
         unique_feature_id_name = "id"
+        intensity_name = "Intensity"
         decoy = "FALSE"
 
         # use the aligned retention time if it is available!
@@ -298,6 +307,7 @@ class Run():
         fdr_score = float(this_row[self.header_dict[fdr_score_name]])
         diff_from_assay_seconds = float(this_row[self.header_dict[diff_from_assay_in_sec_name]])
         unique_peakgroup_id = this_row[self.header_dict[unique_peakgroup_id_name]]
+        intensity = float(this_row[self.header_dict[intensity_name]])
         if "decoy" in self.header_dict:
             decoy = this_row[self.header_dict[decoy_name]]
         run_id = int(this_row[self.header_dict[run_id_name]])
@@ -309,7 +319,67 @@ class Run():
           p.run_id = run_id
           p.set_decoy(decoy)
           self.all_peptides[trgr_id] = p
-        peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds)
+        peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+        self.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+
+    def parse_row_peakview(self, this_row, do_realignment):
+        decoy_name = "Decoy"
+        fdr_score_name = "Score" # TODO invert score!!!
+        unique_peakgroup_id_name = "Peptide" ## Does not exist!!
+        run_id_name = "Sample"
+        protein_id_col = "Protein"
+        sequence_col = "Peptide"
+        unique_feature_id_name = "id" # does not exist!!!
+        decoy = "FALSE"
+        intensity_name = "MaxPeak.Intensity"
+
+        diff_from_assay_in_sec_name = "empirical_iRT"
+        if not diff_from_assay_in_sec_name in self.header_dict:
+            diff_from_assay_in_sec_name = "Median RT"
+
+        # use the aligned retention time if it is available!
+        if "aligned_rt" in self.header_dict: 
+            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+        # if we want to re-do the re-alignment, we just use the "regular" retention time
+        if do_realignment: 
+            diff_from_assay_in_sec_name = "Median RT"
+
+        # create some id
+        import uuid 
+        thisid = str(uuid.uuid1() )
+        # thisid = this_row[self.header_dict[unique_feature_id_name]]
+
+        if len(this_row) < self.header_dict[fdr_score_name] :
+            # what to do here!? 
+            return
+
+        protein_name = this_row[self.header_dict[protein_id_col]]
+        sequence = this_row[self.header_dict[sequence_col]]
+        trgr_id = this_row[self.header_dict[unique_peakgroup_id_name]]
+        unique_peakgroup_id = this_row[self.header_dict[unique_peakgroup_id_name]]
+        intensity = float(this_row[self.header_dict[intensity_name]])
+        #print self.header_dict
+        #print self.header_dict["Score"]
+
+        # compute 1/score to have a score that gets better when smaller
+        fdr_score = float(this_row[self.header_dict[fdr_score_name]])
+        fdr_score = 1/fdr_score
+
+        diff_from_assay_seconds = float(this_row[self.header_dict[diff_from_assay_in_sec_name]])
+        if "decoy" in self.header_dict:
+            decoy = this_row[self.header_dict[decoy_name]]
+        run_id = this_row[self.header_dict[run_id_name]]
+
+        if not self.all_peptides.has_key(trgr_id):
+          p = Peptide(trgr_id, self)
+          p.protein_name = protein_name
+          p.sequence = sequence
+          p.run_id = run_id
+          p.set_decoy(decoy)
+          self.all_peptides[trgr_id] = p
+          if verb: print "add peptide", trgr_id
+        peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
+        if verb: print "append tuple", peakgroup_tuple
         self.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
 
     def __iter__(self):
@@ -426,16 +496,15 @@ class Experiment():
             spl_aligner.spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit)
 
     def parse_files(self, infiles, file_format, do_realignment):
-        if file_format == "openswath":
-            self.parse_files_openswath(infiles, do_realignment)
-        elif file_format == "peakview":
-            raise Exception("Peakview is not yet implemented")
-        else:
-            raise Exception("Could not understand file format %s" % file_format)
-
-    def parse_files_openswath(self, infiles, do_realignment):
       print "Parsing input files"
-      run_id_name = "run_id"
+
+      if file_format == "openswath":
+          run_id_name = "run_id"
+      elif file_format == "peakview":
+          run_id_name = "Sample"
+      else:
+          raise Exception("Could not understand file format %s" % file_format)
+
       self.runs = []
       for file_nr, f in enumerate(infiles):
         stdout.write("\rReading %s" % str(f))
@@ -460,7 +529,10 @@ class Experiment():
             else: 
                 assert len(current_run) == 1
                 current_run = current_run[0]
-            current_run.parse_row_openswath(this_row, do_realignment)
+            if file_format == "openswath":
+                current_run.parse_row_openswath(this_row, do_realignment)
+            elif file_format == "peakview":
+                current_run.parse_row_peakview(this_row, do_realignment)
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in self.runs])) == len(self.runs) # each run has a unique id
       stdout.write("\r\r\n") # clean up
@@ -552,7 +624,9 @@ class Experiment():
         for m in multipeptides:
             # If the peptide is found in each run above the FDR, we are fine.
             # else we will try to realign some of the peakgroups.
+            if verb: print "00000000000000000000000000000000000 new peptide ", m.peptides.values()[0].sequence
             if m.all_above_cutoff(fdr_cutoff):
+              if verb: print "all above cutoff"
               for p in m.peptides.values():
                   p.get_best_peakgroup().select_this_peakgroup()
                   a.nr_quantified += 1
@@ -564,7 +638,6 @@ class Experiment():
                   pg = p.get_best_peakgroup()
                   if verb: print "best rt", pg.get_normalized_retentiontime(), pg.peptide.run.get_id(), pg.get_fdr_score()
               
-
               groups = []
               for p in m.peptides.values(): # loop over runs
                   # use all peakgroups for clustering
@@ -572,7 +645,7 @@ class Experiment():
                   for pg in all_pgs:
                       if pg.get_fdr_score() < aligned_fdr_cutoff: 
                           groups.append(pg) 
-                          if verb: print "group", pg.get_normalized_retentiontime(), pg.peptide.run.get_id(), pg.get_fdr_score()
+                          # if verb: print "group", pg.get_normalized_retentiontime(), pg.peptide.run.get_id(), pg.get_fdr_score()
 
               # do the clustering
               from cluster import HierarchicalClustering
@@ -582,11 +655,12 @@ class Experiment():
               # if there was only one group, we need to prepare a special object of size one
               if len(groups) == 1: clusters_rt_obj = [Cluster( groups )]
 
+              if verb: print "==== Clusters "
               # make sure only one is selected from each run...
               for c in clusters_rt_obj: 
                   c.select_one_per_run()
                   if verb:
-                      print "Cluster", c.get_total_score()
+                      print " - Cluster", c.get_total_score()
                       for pg in c.peakgroups: print pg.get_normalized_retentiontime(), pg.peptide.run.get_id()
                 
               if len(clusters_rt_obj) == 1 :
@@ -675,7 +749,7 @@ class Experiment():
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
-    def write_to_file(self, multipeptides, infiles, outfile, fraction_needed_selected):
+    def write_to_file(self, multipeptides, infiles, outfile, fraction_needed_selected, file_format):
         writer = csv.writer(open(outfile + "_idsonly.csv", "w"), delimiter="\t")
         selected_ids = []
         for m in multipeptides:
@@ -688,13 +762,32 @@ class Experiment():
                 selected_ids.append(selected_pg.get_feature_id())
         selected_ids_set = set(selected_ids)
 
-        # write out
+        # write out ids
         writer = csv.writer(open(outfile, "w"), delimiter="\t")
         header_first = self.runs[0].header
         for run in self.runs:
             assert header_first == run.header
         header_first += ["align_runid", "align_origfilename"]
         writer.writerow(header_first)
+
+        writer = csv.writer(open(outfile + "_matrix.csv", "w"), delimiter="\t")
+        run_ids = [r.get_id() for r in self.runs]
+        header = ["Peptide"]
+        for rid in run_ids:
+            header.extend(["Intensity_%s" % rid, "RT_%s" % rid])
+        writer.writerow(header)
+        for m in multipeptides:
+            line = [m.get_id()]
+            for rid in run_ids:
+                pg = m.peptides[rid].get_selected_peakgroup()
+                if pg is None:
+                    line.extend(["NA", "NA"])
+                else:
+                    line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
+            writer.writerow(line)
+
+        # only in openswath we have the ID and can go back to the original file ... 
+        if file_format != "openswath": return
 
         for file_nr, f in enumerate(infiles):
           header_dict = {}
@@ -718,7 +811,7 @@ def handle_args():
 
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
-    parser.add_argument("--out", dest="outfile", help="Output file with filtered peakgroups for quantification")
+    parser.add_argument("--out", dest="outfile", default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR)", metavar='0.2', type=float)
@@ -756,7 +849,7 @@ def main(options):
 
     # print statistics, write output
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff)
-    this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.min_frac_selected)
+    this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.min_frac_selected, options.file_format)
 
 if __name__=="__main__":
     options = handle_args()
