@@ -3,7 +3,18 @@
 === Installation === 
 {{{
 
+==== Dependencies ====
+{{{
+- nose (for nosetest)
+- for spline alignment, one of the following two:
+-- scikit-datasmooth
+-- rpy2 and R installation
+}}}
+
+==== Instructions ====
+{{{
 copy to a directory in your $PYTHONPATH
+}}}
 
 }}}
 
