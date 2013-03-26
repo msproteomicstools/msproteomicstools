@@ -48,6 +48,9 @@ class MinimalPeakGroup():
     # of multiple transitions. Additionally it has an fdr_score and it has an
     # aligned RT (e.g. retention time in normalized space).
     # A peakgroup can be selected for quantification or not.
+    # 
+    # Note that for performance reasons, the peakgroups are created on-the-fly
+    # and not stored as objects but rather as tuples in "Peptide".
     #
     def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide):
       self.id = unique_id
@@ -79,7 +82,6 @@ class MinimalPeakGroup():
     def print_out(self):
         # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
         return self.peptide.run.get_id() + "/" + self.get_feature_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
-
   
 class Peptide():
     # A collection of peakgroups that belong to the same precursor and belong
@@ -92,12 +94,14 @@ class Peptide():
     # tuple (invariable). This tuple contains a unique feature id, a score and
     # a retention time. Additionally, we also store, whether the feature was
     # selected or not.
+    # 
     def __init__(self, this_id, run):
         self.id = this_id  
         self.peakgroups = []
         self.run = run
         self.peakgroups_ = []
         self.selected_ = []
+        self._decoy = False
   
     def __str__(self):
         return "%s (run %s)" % (self.id, self.run)
@@ -114,6 +118,17 @@ class Peptide():
   
     def get_run_id(self):
       return self.run.get_id()
+    
+    def get_decoy(self):
+        return self._decoy
+
+    def set_decoy(self, decoy):
+        if decoy == "FALSE":
+            self._decoy = False
+        elif decoy == "TRUE":
+            self._decoy = True
+        else:
+            raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
   
     # store information about the peakgroup - tuples (e.g. whether they are selected)
     def select_pg(self, this_id):
@@ -191,6 +206,12 @@ class Multipeptide():
           if p.get_selected_peakgroup() is None: return False
       return True
 
+    def get_decoy(self):
+        # If one is a decoy, all of them are...
+        if len(self.peptides.values()) > 1:
+            return self.peptides.values()[0].get_decoy() 
+        return False
+
     def get_selected_peakgroups(self):
       return [p.get_selected_peakgroup() for p in self.peptides.values() if p.get_selected_peakgroup() is not None]
 
@@ -252,7 +273,8 @@ class Run():
           # this run has no peakgroup for that peptide
           return None
 
-    def parse_row_openswath(self, this_row):
+    def parse_row_openswath(self, this_row, do_realignment):
+        decoy_name = "decoy"
         fdr_score_name = "m_score"
         unique_peakgroup_id_name = "transition_group_id"
         diff_from_assay_in_sec_name = "delta_rt"
@@ -260,10 +282,14 @@ class Run():
         protein_id_col = "ProteinName"
         sequence_col = "Sequence"
         unique_feature_id_name = "id"
+        decoy = "FALSE"
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in self.header_dict: 
             diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+        # if we want to re-do the re-alignment, we just use the "regular" retention time
+        if do_realignment: 
+            diff_from_assay_in_sec_name = "RT"
 
         trgr_id = this_row[self.header_dict[unique_peakgroup_id_name]]
         protein_name = this_row[self.header_dict[protein_id_col]]
@@ -272,15 +298,23 @@ class Run():
         fdr_score = float(this_row[self.header_dict[fdr_score_name]])
         diff_from_assay_seconds = float(this_row[self.header_dict[diff_from_assay_in_sec_name]])
         unique_peakgroup_id = this_row[self.header_dict[unique_peakgroup_id_name]]
+        if "decoy" in self.header_dict:
+            decoy = this_row[self.header_dict[decoy_name]]
         run_id = int(this_row[self.header_dict[run_id_name]])
+
         if not self.all_peptides.has_key(trgr_id):
           p = Peptide(trgr_id, self)
           p.protein_name = protein_name
           p.sequence = sequence
           p.run_id = run_id
+          p.set_decoy(decoy)
           self.all_peptides[trgr_id] = p
         peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds)
         self.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+
+    def __iter__(self):
+        for peptide in self.all_peptides.values():
+            yield peptide
   
 class Cluster:
     def __init__(self, peakgroups):
@@ -302,21 +336,104 @@ class Cluster:
         mult = mult * pg.get_fdr_score()
       return mult
 
+class SplineAligner():
+    def __init__(self):
+      pass
+
+    def determine_best_run(self, experiment, alignment_fdr_threshold):
+
+        maxcount = -1
+        bestrun = -1
+        for run in experiment.runs:
+            cnt = 0
+            for peptide in run.all_peptides.values():
+                if peptide.get_decoy(): continue
+                pg = peptide.get_best_peakgroup()
+                if pg.get_fdr_score() < alignment_fdr_threshold:
+                    cnt += 1
+            if cnt > maxcount:
+                maxcount = cnt
+                bestrun = run.get_id()
+        print "fond best run", bestrun, "with features", maxcount
+        return [r for r in experiment.runs if r.get_id() == bestrun][0]
+
+    def spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
+        import msproteomicstoolslib.math.Smoothing as smoothing
+        sm = smoothing.Smoothing()
+
+        # get those peptides we want to use for alignment => for this use the mapping
+        data1 = []
+        data2 = []
+        for m in multipeptides:
+            ref_pep = m.peptides[bestrun.get_id()].get_best_peakgroup()
+            align_pep = m.peptides[run.get_id()].get_best_peakgroup()
+            if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): continue
+            if ref_pep.get_fdr_score() < alignment_fdr_threshold and align_pep.get_fdr_score() < alignment_fdr_threshold:
+                data1.append(ref_pep.get_normalized_retentiontime())
+                data2.append(align_pep.get_normalized_retentiontime())
+
+        print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
+
+        all_pg = []
+        for pep in run.all_peptides.values():
+            all_pg.extend( [ (pg.get_normalized_retentiontime(), pg.get_feature_id()) for pg in pep.get_all_peakgroups()] )
+
+        rt_eval = [ pg[0] for pg in all_pg]
+
+        # data1 is master, data2 is slave. Since we want to predict how to
+        # convert from slave to master, slave is first and master is second
+        try:
+            if use_scikit: import dummydummy # forces to use scikit
+            aligned_result = sm.smooth_spline_r(data2, data1, rt_eval)
+        except ImportError:
+          aligned_result = sm.smooth_spline_scikit_wrap(data2, data1, rt_eval)
+          print "use scikit to compute spline alignment..."
+
+        # The two methods produce very, very similar results
+        # but R is faster => prefer to use R when possible.
+        # hist(aligned_result - aligned_result_2, 100)
+        # numpy.std(aligned_result - aligned_result_2)
+        # 0.66102016517870454
+        # numpy.median(aligned_result - aligned_result_2)
+        # -0.020456989235640322
+
+        # now re-populate the peptide data!
+        i = 0
+        for pep in run.all_peptides.values():
+            mutable = [list(pg) for pg in pep.peakgroups_]
+            for k in range(len(mutable)):
+                mutable[k][2] = aligned_result[i]
+                i += 1
+            pep.peakgroups_ = [ tuple(m) for m in mutable]
+
 class Experiment():
     # An Experiment may have multiple runs that may share some precursors. 
 
     def __init__(self):
       pass
 
-    def parse_files(self, infiles, file_format):
+    def align_all_runs(self, multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False):
+
+        print "Will re-align runs"
+        spl_aligner = SplineAligner()
+
+        # get the best run (e.g. the one with the most ids below threshold)
+        bestrun = spl_aligner.determine_best_run(self, alignment_fdr_threshold)
+
+        # go through all runs and align two runs at a time
+        for run in self.runs:
+            if run.get_id() == bestrun.get_id(): continue # do not align reference run itself
+            spl_aligner.spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit)
+
+    def parse_files(self, infiles, file_format, do_realignment):
         if file_format == "openswath":
-            self.parse_files_openswath(infiles)
+            self.parse_files_openswath(infiles, do_realignment)
         elif file_format == "peakview":
             raise Exception("Peakview is not yet implemented")
         else:
             raise Exception("Could not understand file format %s" % file_format)
 
-    def parse_files_openswath(self, infiles):
+    def parse_files_openswath(self, infiles, do_realignment):
       print "Parsing input files"
       run_id_name = "run_id"
       self.runs = []
@@ -343,7 +460,7 @@ class Experiment():
             else: 
                 assert len(current_run) == 1
                 current_run = current_run[0]
-            current_run.parse_row_openswath(this_row)
+            current_run.parse_row_openswath(this_row, do_realignment)
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in self.runs])) == len(self.runs) # each run has a unique id
       stdout.write("\r\r\n") # clean up
@@ -361,8 +478,8 @@ class Experiment():
         for i,r in enumerate(self.runs):
             stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
             stdout.flush()
-            union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) ] )
-            union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) ])) )
+            union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
         stdout.write("\r\r\n") # clean up
 
         self.union_transition_groups_set = set(union_transition_groups[0])
@@ -374,8 +491,8 @@ class Experiment():
 
         print "==================================="
         print "Finished parsing, number of precursors and peptides per run"
-        print "All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
-        print "All proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
+        print "All target precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
+        print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
 
         multipeptides = []
         for peptide_id in self.union_transition_groups_set:
@@ -387,7 +504,6 @@ class Experiment():
 
     def get_max_pg(self):
       return len(self.runs)*len(self.union_transition_groups_set)
-
 
     def detect_outliers(self, multipeptides, aligned_fdr_cutoff, outlier_threshold_seconds):
         class Outliers:
@@ -538,19 +654,23 @@ class Experiment():
         # Do statistics and print out
         in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff)])
         proteins_in_all_runs_wo_align = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff)]))
+        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
 
         print "Present in all runs", in_all_runs_wo_align
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
         nr_peptides = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs]))
         nr_proteins = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs]))
-        nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected()])
+        nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = self.get_max_pg()
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set), "peakgroups quantified in at least one run, " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", nr_precursors_in_all, "/", len(self.union_transition_groups_set), "precursors in all runs (up from", in_all_runs_wo_align, "before alignment)"
-        print "We were able to quantify", nr_peptides, "peptides and", nr_proteins, "proteins in all runs (up from", proteins_in_all_runs_wo_align, "before alignment)"
+        #print "We were able to quantify", nr_peptides, "peptides and", nr_proteins, "proteins in all runs (up from", proteins_in_all_runs_wo_align, "before alignment)"
+        print "We were able to quantify", nr_peptides_target, "target peptides and", nr_proteins_target, "target proteins in all runs (up from target", proteins_in_all_runs_wo_align_target, "before alignment)"
         print "Able to quantify", alignment.nr_quantified, "/", max_pg, "of which we aligned", alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
@@ -605,6 +725,9 @@ def handle_args():
     parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0', type=float)
     parser.add_argument('--remove_outliers', action='store_true', default=False)
+    parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
+    parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
+    parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001', type=float)
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall or best_cluster_score)")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
 
@@ -614,11 +737,15 @@ def handle_args():
 def main(options):
     # Read the files
     this_exp = Experiment()
-    this_exp.parse_files(options.infiles, options.file_format)
+    this_exp.parse_files(options.infiles, options.file_format, options.realign_runs)
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
     multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff)
+
+    # If we want to align runs
+    if options.realign_runs:
+        this_exp.align_all_runs(multipeptides, options.alignment_score, options.use_scikit)
 
     # do the alignment and annotate chromatograms without identified features
     # then perform an outlier detection over multiple runs
