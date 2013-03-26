@@ -53,9 +53,9 @@ class TestFeatureAlignment(unittest.TestCase):
         for l1,l2 in zip(f1,f2):
             self.assertEqual(l1,l2)
 
-    def test_featureAlignment(self):
+    def test_featureAlignment_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
-        filename = os.path.join(self.datadir, "feature_alignment_openswath_input.csv")
+        filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_openswath_output_cluster_ids_2.csv")
         tmpfilename = "featureAlignment.out.tmp"
         tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
@@ -68,6 +68,24 @@ class TestFeatureAlignment(unittest.TestCase):
 
         os.remove(tmpfilename)
         os.remove(tmpfilename_ids)
+        os.remove("featureAlignment.out.tmp_matrix.csv")
+
+    def test_featureAlignment_peakview(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
+        filename = os.path.join(self.datadir, "feature_alignment_peakview_input_2.csv")
+        expected_outcome = os.path.join(self.datadir, "feature_alignment_peakview_output_matrix_2.csv")
+        tmpfilename = "featureAlignment_2.out.tmp"
+        tmpfilename_matrix = "featureAlignment_2.out.tmp_matrix.csv"
+
+        args = "--in %s --out %s --file_format peakview  --outlier_thresh 5 --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score" % (filename, tmpfilename)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename_matrix, expected_outcome)
+
+        os.remove(tmpfilename)
+        os.remove(tmpfilename_matrix)
+        os.remove("featureAlignment_2.out.tmp_idsonly.csv")
 
 if __name__ == '__main__':
     unittest.main()
