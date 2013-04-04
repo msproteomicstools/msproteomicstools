@@ -446,14 +446,14 @@ def main(argv) :
 	modificationsLib = Modifications()     #None
 	if len(modificationsfile) > 0 :
 		modificationsLib.readModificationsFile(modificationsfile)
-	print "Modifications used : "
-	modificationsLib.printModifications()
+	print "Modifications used : ",modificationsLib.mods_TPPcode.keys()
 
 	#If a fasta file is provided, read and store it into a dictionary
-	print "Reading fasta file :" , fastafile
+	
 	proteins = None
 	if len(fastafile) > 0 :
 		proteins = ProteinDB()
+		print "Reading fasta file :" , fastafile
 		proteins.readFasta(fastafile)
 
 	#Read iRTs file (if provided)
