@@ -437,12 +437,11 @@ def main(argv) :
 
 
 
-	sptxtfiles_pat = argv[argsUsed:]
-	sptxtfiles = []
-	for pat in sptxtfiles_pat :
-		sptxtf = glob.glob(pat)
-		for file in sptxtf : sptxtfiles.append(file)
-
+	sptxtfiles = argv[argsUsed:]
+	if len(sptxtfiles) == 0:
+		print "No input files given"
+		sys.exit(2)
+	
 	#If a modifications file is provided, update the Modifications
 	modificationsLib = Modifications()     #None
 	if len(modificationsfile) > 0 :
@@ -469,7 +468,6 @@ def main(argv) :
 	for sptxtfile in sptxtfiles :
 		transitions = []
 		print "Reading : " , sptxtfile
-		assert sptxtfile[-6:] == '.sptxt'
 		if not os.path.exists(sptxtfile):
 			print "The file: %s does not exist!" % sptxtfile
 			sys.exit(2)
