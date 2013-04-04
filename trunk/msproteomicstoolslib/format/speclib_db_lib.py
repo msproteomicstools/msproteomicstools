@@ -380,7 +380,7 @@ class Library:
 	def get_rawspectrum_with_offset(self, splibFileName, offset) :
 		"""Get a raw spectrum as it is from a spectrast file by using an offset to locate it."""
 		
-		assert splibFileName[-6:] == '.sptxt'
+		assert splibFileName[-6:-3] == '.sp'
 		
 		fs = open( splibFileName , 'r' )
 		
@@ -410,7 +410,7 @@ class Library:
 	def read_sptxt_with_offset(self, splibFileName, offset) :
 		"""Read a sptxt spectra library file by using an offset to keep memory free"""
 
-		assert splibFileName[-6:] == '.sptxt'
+		assert splibFileName[-6:-3] == '.sp'
 
 		line_offset = 0
 		last_offset = 0
