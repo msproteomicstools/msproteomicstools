@@ -523,7 +523,7 @@ def main(argv) :
 				irt_sequence	= iRTs[sequence][0]
 				RT_experimental	= iRTs[sequence][1]
 
-			if useMinutes : RT_experimental = RT_experimental * 60
+			if not useMinutes : RT_experimental = RT_experimental * 60
 
 			spec_proteins = []
 			if proteins : spec_proteins = proteins.get_proteins_containing_peptide(pep.sequence)
