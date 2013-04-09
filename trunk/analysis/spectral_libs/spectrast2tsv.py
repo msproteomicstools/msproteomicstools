@@ -56,9 +56,9 @@ def usage() :
 	print "Usage: "
 	print "python spectrast2tsv.py [options] spectrast_file(s)"
 	print "-d			--remove-duplicates	Remove duplicate masses from labeling"
-	print "-e			--exact			Use exact mass."
+	print "-e			--exact			Use theoretical mass."
 	print "-f	fasta_file	--fasta			Fasta file to relate peptides to their proteins (this is optional)."
-	print "-g	mass_modifs 	--gain			List of allowed fragment mass modifications. Useful for phosphorilation. Example: -80,-98"
+	print "-g	mass_modifs 	--gain			List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -80,-98,-17,-18"
 	print "-h			--help			Display this help"
 	print "-i 	labeling_file	--isot-labeling		File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
 	print "-k	output_key	--key			Select the output provided. Keys available: openswath, peakview. Default: peakview"
@@ -70,9 +70,9 @@ def usage() :
 	print "-r	iRT_file(s)	--irt			peptide iRT correspondencies"
 	print "-s	ion_series	--series		List of ion series to be used. Example: -s y,b"
 	print "-t   	time-scale				Options: minutes, seconds. Default: seconds."
-	print "-w	swaths_file	--swaths		File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range."
+	print "-w	swaths_file	--swaths		File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
 	print "-x	allowed_frg_z	--charge		Fragment ion charge states allowed. Default: 1,2"
-	print "			--output		Output file name (default: appends _peakview.txt)"
+	print "-a			--output		Output file name (default: appends _peakview.txt)"
 	print ""
 
 def writeStandardConfigFile(filename):
