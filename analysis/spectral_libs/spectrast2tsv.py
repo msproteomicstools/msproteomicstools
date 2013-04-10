@@ -54,23 +54,23 @@ def usage() :
     print ""
     print "Usage: "
     print "python spectrast2tsv.py [options] spectrast_file(s)"
-    print "-h                  --help           Display this help"
-    print "-d                  --remove-duplicates Remove duplicate masses from labeling"
-    print "-e                  --exact          Use theoretical mass."
-    print "-f    fasta_file    --fasta          Fasta file to relate peptides to their proteins (this is optional)."
-    print "-g    mass_modifs   --gain           List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -80,-98,-17,-18"
-    print "-i    labeling_file --isot-labeling  File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
-    print "-k    output_key    --key            Select the output provided. Keys available: openswath, peakview. Default: peakview"
-    print "-l    mass_limits   --limits         Lower and Upper mass limits. Example: -l 400,1200"
-    print "-m    mods_file     --modifications  File with the modifications delta mass"
-    print "-n    int           --max            Max number of reported ions per peptide/z. Default: 20"
-    print "-o    int           --min            Min number of reported ions per peptide/z. Default: 3"
-    print "-p    float         --precision      Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
-    print "-s    ion_series    --series         List of ion series to be used. Example: -s y,b"
-    print "-t    time-scale    --timescale      Options: minutes, seconds. Default: seconds."
-    print "-w    swaths_file    --swaths        File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
-    print "-x    allowed_frg_z  --charge        Fragment ion charge states allowed. Default: 1,2"
-    print "-a    outfile        --output        Output file name (default: appends _peakview.txt)"
+    print "-h                  Display this help"
+    print "-d                  Remove duplicate masses from labeling"
+    print "-e                  Use theoretical mass"
+    print "-f    fasta_file    Fasta file to relate peptides to their proteins (this is optional)."
+    print "-g    mass_modifs   List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -80,-98,-17,-18"
+    print "-i    labeling_file File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
+    print "-k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview"
+    print "-l    mass_limits   Lower and Upper mass limits. Example: -l 400,1200"
+    print "-m    mods_file     File with the modifications delta mass"
+    print "-n    int           Max number of reported ions per peptide/z. Default: 20"
+    print "-o    int           Min number of reported ions per peptide/z. Default: 3"
+    print "-p    float         Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
+    print "-s    ion_series    List of ion series to be used. Example: -s y,b"
+    print "-t    time-scale    Options: minutes, seconds. Default: seconds."
+    print "-w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
+    print "-x    allowed_frg_z Fragment ion charge states allowed. Default: 1,2"
+    print "-a    outfile       Output file name (default: appends _peakview.txt)"
     print ""
 
 def writeStandardConfigFile(filename):
@@ -485,21 +485,24 @@ def main(argv) :
 
             for prot in spec_proteins :
                 protein_code1    += prot.code1
-                protein_code1    += ','
+                protein_code1    += '/'
                 protein_desc    += prot.description
-                protein_desc    += ','
+                protein_desc    += '/'
 
             if len(protein_code1) > 0 : protein_code1 = protein_code1[:-1]
             if len(protein_desc) > 0 :  protein_desc  = protein_desc[:-1]
 
             if len(protein_code1) == 0 :
-                if hasattr(spectrum, 'protein_ac') : protein_code1 = spectrum.protein_ac
+                if hasattr(spectrum, 'protein_ac') : protein_code1 = spectrum.protein_ac[spectrum.protein_ac.find('/')+1:]
                 else : protein_code1 = 'unknown'
             if len(protein_desc)  == 0 :
-                if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac
+                if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac[spectrum.protein_ac.find('/')+1:]
                 else : protein_desc  = 'unknown'
             ###endfasta
-
+            
+            nr_proteins = protein_desc.count('/')
+            #if removeDuplicatePeptides and nr_proteins > 1:
+            #    continue
 
             num_spectrum = num_spectrum +1
             if (num_spectrum % 1000 == 0) : print "spectra processed: %s" % num_spectrum
