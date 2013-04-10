@@ -350,7 +350,9 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score = float(this_row[run.header_dict[fdr_score_name]])
         diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
-        intensity = float(this_row[run.header_dict[intensity_name]])
+        intensity = -1
+        if run.header_dict.has_key(intensity_name):
+            intensity = float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
         run_id = int(this_row[run.header_dict[run_id_name]])
