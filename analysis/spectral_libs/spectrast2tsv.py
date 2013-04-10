@@ -54,24 +54,23 @@ def usage() :
     print ""
     print "Usage: "
     print "python spectrast2tsv.py [options] spectrast_file(s)"
-    print "-d            --remove-duplicates    Remove duplicate masses from labeling"
-    print "-e            --exact            Use theoretical mass."
-    print "-f    fasta_file    --fasta            Fasta file to relate peptides to their proteins (this is optional)."
-    print "-g    mass_modifs     --gain            List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -80,-98,-17,-18"
-    print "-h            --help            Display this help"
-    print "-i     labeling_file    --isot-labeling        File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
+    print "-h                  --help           Display this help"
+    print "-d                  --remove-duplicates Remove duplicate masses from labeling"
+    print "-e                  --exact          Use theoretical mass."
+    print "-f    fasta_file    --fasta          Fasta file to relate peptides to their proteins (this is optional)."
+    print "-g    mass_modifs   --gain           List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -80,-98,-17,-18"
+    print "-i    labeling_file --isot-labeling  File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
     print "-k    output_key    --key            Select the output provided. Keys available: openswath, peakview. Default: peakview"
-    print "-l    mass_limits    --limits        Lower and Upper mass limits. Example: -l 400,1200"
-    print "-m    mods_file    --modifications        File with the modifications delta mass"
-    print "-n    int        --max            Max number of reported ions per peptide/z. Default: 20"
-    print "-o    int        --min            Min number of reported ions per peptide/z. Default: 3"
-    print "-p       float        --precision        Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
-    print "-r    iRT_file(s)    --irt            peptide iRT correspondencies"
-    print "-s    ion_series    --series        List of ion series to be used. Example: -s y,b"
-    print "-t       time-scale                Options: minutes, seconds. Default: seconds."
+    print "-l    mass_limits   --limits         Lower and Upper mass limits. Example: -l 400,1200"
+    print "-m    mods_file     --modifications  File with the modifications delta mass"
+    print "-n    int           --max            Max number of reported ions per peptide/z. Default: 20"
+    print "-o    int           --min            Min number of reported ions per peptide/z. Default: 3"
+    print "-p    float         --precision      Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
+    print "-s    ion_series    --series         List of ion series to be used. Example: -s y,b"
+    print "-t    time-scale    --timescale      Options: minutes, seconds. Default: seconds."
     print "-w    swaths_file    --swaths        File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
-    print "-x    allowed_frg_z    --charge        Fragment ion charge states allowed. Default: 1,2"
-    print "-a            --output        Output file name (default: appends _peakview.txt)"
+    print "-x    allowed_frg_z  --charge        Fragment ion charge states allowed. Default: 1,2"
+    print "-a    outfile        --output        Output file name (default: appends _peakview.txt)"
     print ""
 
 def writeStandardConfigFile(filename):
@@ -106,37 +105,6 @@ def writeStandardConfigFile(filename):
 
     config.write()
 
-def readiRTFile(iRT_file) :
-    #Returns a dictionary of sequences and iRTs { sequence1 : iRT1 , ...}. Modifications over the sequences must be in peakview format.
-    iRTs = {}
-
-    file = open(iRT_file,"r")
-
-    while True :
-        line = file.readline()
-        if len(line) == 0   : break
-        if line[0]   == '#' : continue
-
-        sequence        = ''
-        iRT             = -100
-        RT_experimental = 0.0
-
-        sline = line.split('\t')
-
-        if len(sline) == 2 :
-            sequence        = sline[0]
-            iRT                = float(sline[1])
-
-        if len(sline) == 3 :
-            sequence        = sline[0]
-            iRT                = float(sline[1])
-            RT_experimental = float(sline[2])
-
-        iRTs[sequence] = ( iRT , RT_experimental )
-
-    file.close()
-
-    return iRTs
 
 def readLabelingFile(labeling_file) :
     #Returns a dictionary of amino-acides (including also C-Term and N-Term) with the mass shifts due to an isotope labeling experiment.
@@ -280,7 +248,6 @@ def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
 
 def main(argv) :
 
-    irtfile            = ''
     fastafile        = ''
     swathsfile        = ''
     masslimits        = [0,30000]
@@ -324,7 +291,7 @@ def main(argv) :
 
     #Get options
     try:
-        opts, _ = getopt.getopt(argv, "hf:l:s:en:r:m:o:w:c:z:g:i:dx:p:t:k:a:",["help","fasta","limits","series","exact","max","irt","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key","output"])
+        opts, _ = getopt.getopt(argv, "hf:l:s:en:m:o:w:c:z:g:i:dx:p:t:k:a:",["help","fasta","limits","series","exact","max","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key","output"])
 
     except getopt.GetoptError:
         usage()
@@ -340,9 +307,6 @@ def main(argv) :
             argsUsed += 2
         if opt in ("-f","--fasta") :
             fastafile = arg
-            argsUsed += 2
-        if opt in ("-r","--irt") :
-            irtfile = arg
             argsUsed += 2
         if opt in ("-m","--modifications") :
             modificationsfile = arg
@@ -450,10 +414,6 @@ def main(argv) :
         print "Reading fasta file :" , fastafile
         proteins.readFasta(fastafile)
 
-    #Read iRTs file (if provided)
-    iRTs = {}
-    if len(irtfile) > 0 :
-        iRTs = readiRTFile(irtfile)
 
     #Read swaths file (if provided)
     if swathsfile != '' :
@@ -512,17 +472,13 @@ def main(argv) :
             RT_experimental = 0.0
             if spectrum.RetTime_detected != -1 :
                 RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-            
-            #pep.sequence.getSequenceWithMods(modification_code)
-            if sequence in iRTs :  #To-Do : adapt it to any code (Unimod, ProteinPilot...). So far, the iRT file must contain the mods in TPP format
-                irt_sequence    = iRTs[sequence][0]
-                RT_experimental    = iRTs[sequence][1]
 
             if not useMinutes : RT_experimental = RT_experimental * 60
 
+
+            ###only if fasta file set
             spec_proteins = []
             if proteins : spec_proteins = proteins.get_proteins_containing_peptide(pep.sequence)
-
 
             protein_code1 = ''
             protein_desc  = ''
@@ -533,7 +489,6 @@ def main(argv) :
                 protein_desc    += prot.description
                 protein_desc    += ','
 
-
             if len(protein_code1) > 0 : protein_code1 = protein_code1[:-1]
             if len(protein_desc) > 0 :  protein_desc  = protein_desc[:-1]
 
@@ -543,6 +498,8 @@ def main(argv) :
             if len(protein_desc)  == 0 :
                 if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac
                 else : protein_desc  = 'unknown'
+            ###endfasta
+
 
             num_spectrum = num_spectrum +1
             if (num_spectrum % 1000 == 0) : print "spectra processed: %s" % num_spectrum
@@ -624,12 +581,14 @@ def main(argv) :
                             peak.frg_nr ]
                 
                 filteredtransitions.append(transition)
-
-            #Sort transitions by frg_serie, frg_nr, frg_z and intensity (desc) --> remove duplicates
+            
+            #Sort transitions by frg_serie, frg_nr, frg_z and MINUS intensity, then remove duplicates
+            #this means of every frag_serie/no/chg only the highest(!) intensity peak is stored
             filteredtransitions = sorted(filteredtransitions, key= lambda x: (x[9], x[10], x[11], -x[5]))
             filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
 
-            #sort the transitions by intensity
+            #REVERSE sort the transitions by intensity
+            #this means the highest(!) intensity peaks of this transition are on top
             filteredtransitions = sorted ( filteredtransitions    , key=lambda transition : transition[5], reverse=True )
 
             #Remove transitions with very similar Q3 masses
@@ -649,7 +608,7 @@ def main(argv) :
                 filteredtransitions = [] #I don't think this is really necessary, just in case.
                 continue
 
-            #Write in the peakview input file (until the max number of transitions per peptide/z)
+            #Write in the peakview input file (until the max number of transitions per peptide/z (the most intense N transitions)
             for index in range(0,min(len(filteredtransitions),maxtransitions)) :
                 writer.writerow(filteredtransitions[index])
 
