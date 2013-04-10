@@ -356,45 +356,51 @@ class Experiment():
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
-    def write_to_file(self, multipeptides, infiles, outfile, fraction_needed_selected, file_format):
-        writer = csv.writer(open(outfile + "_idsonly.csv", "w"), delimiter="\t")
-        selected_ids = []
-        for m in multipeptides:
-            selected_peakgroups = m.get_selected_peakgroups()
-            if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-            for p in m.peptides.values():
-                selected_pg = p.get_selected_peakgroup()
-                if selected_pg is None: continue
-                writer.writerow([selected_pg.get_feature_id()])
-                selected_ids.append(selected_pg.get_feature_id())
-        selected_ids_set = set(selected_ids)
+    def write_to_file(self, multipeptides, infiles, outfile, matrix_outfile, ids_outfile, fraction_needed_selected, file_format):
+        if len(ids_outfile) > 0:
+            fh = open(ids_outfile, "w")
+            id_writer = csv.writer(fh, delimiter="\t")
+            selected_ids = []
+            for m in multipeptides:
+                selected_peakgroups = m.get_selected_peakgroups()
+                if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
+                for p in m.peptides.values():
+                    selected_pg = p.get_selected_peakgroup()
+                    if selected_pg is None: continue
+                    id_writer.writerow([selected_pg.get_feature_id()])
+                    selected_ids.append(selected_pg.get_feature_id())
+            selected_ids_set = set(selected_ids)
+            fh.close()
+            del id_writer
 
-        # write out ids
+        if len(matrix_outfile) > 0:
+            matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
+            run_ids = [r.get_id() for r in self.runs]
+            header = ["Peptide"]
+            for rid in run_ids:
+                header.extend(["Intensity_%s" % rid, "RT_%s" % rid])
+            matrix_writer.writerow(header)
+            for m in multipeptides:
+                line = [m.get_id()]
+                for rid in run_ids:
+                    pg = m.peptides[rid].get_selected_peakgroup()
+                    if pg is None:
+                        line.extend(["NA", "NA"])
+                    else:
+                        line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
+                matrix_writer.writerow(line)
+            del matrix_writer
+
+        # only in openswath we have the ID and can go back to the original file ... 
+        if file_format != "openswath": return
+
+        # write out the complete original files 
         writer = csv.writer(open(outfile, "w"), delimiter="\t")
         header_first = self.runs[0].header
         for run in self.runs:
             assert header_first == run.header
         header_first += ["align_runid", "align_origfilename"]
         writer.writerow(header_first)
-
-        writer = csv.writer(open(outfile + "_matrix.csv", "w"), delimiter="\t")
-        run_ids = [r.get_id() for r in self.runs]
-        header = ["Peptide"]
-        for rid in run_ids:
-            header.extend(["Intensity_%s" % rid, "RT_%s" % rid])
-        writer.writerow(header)
-        for m in multipeptides:
-            line = [m.get_id()]
-            for rid in run_ids:
-                pg = m.peptides[rid].get_selected_peakgroup()
-                if pg is None:
-                    line.extend(["NA", "NA"])
-                else:
-                    line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
-            writer.writerow(line)
-
-        # only in openswath we have the ID and can go back to the original file ... 
-        if file_format != "openswath": return
 
         for file_nr, f in enumerate(infiles):
           header_dict = {}
@@ -407,7 +413,6 @@ class Experiment():
                   row_to_write = row
                   row_to_write += [file_nr, f]
                   writer.writerow(row_to_write)
-
   
 class Cluster:
     """
@@ -593,7 +598,9 @@ def handle_args():
 
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
-    parser.add_argument("--out", dest="outfile", default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification")
+    parser.add_argument("--out", dest="outfile", default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
+    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
+    parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR)", metavar='0.2', type=float)
@@ -635,7 +642,7 @@ def main(options):
 
     # print statistics, write output
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff)
-    this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.min_frac_selected, options.file_format)
+    this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.matrix_outfile, options.ids_outfile, options.min_frac_selected, options.file_format)
 
 if __name__=="__main__":
     options = handle_args()
