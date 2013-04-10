@@ -375,7 +375,7 @@ def main(argv) :
                 if arg in ["minutes"] : useMinutes = True
             else :
                 print "Choose a right time-scale. Options are: minutes, seconds"
-                sys.exit(10)
+                sys.exit(10) 
         if opt in ('-k', 'key') :
             if arg not in codes :
                 print "Error: key option is not valid! key : " , arg
@@ -485,25 +485,22 @@ def main(argv) :
 
             for prot in spec_proteins :
                 protein_code1    += prot.code1
-                protein_code1    += '/'
+                protein_code1    += ','
                 protein_desc    += prot.description
-                protein_desc    += '/'
+                protein_desc    += ','
 
             if len(protein_code1) > 0 : protein_code1 = protein_code1[:-1]
             if len(protein_desc) > 0 :  protein_desc  = protein_desc[:-1]
 
             if len(protein_code1) == 0 :
-                if hasattr(spectrum, 'protein_ac') : protein_code1 = spectrum.protein_ac[spectrum.protein_ac.find('/')+1:]
+                if hasattr(spectrum, 'protein_ac') : protein_code1 = spectrum.protein_ac
                 else : protein_code1 = 'unknown'
             if len(protein_desc)  == 0 :
-                if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac[spectrum.protein_ac.find('/')+1:]
+                if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac
                 else : protein_desc  = 'unknown'
             ###endfasta
             
-            nr_proteins = protein_desc.count('/')
-            #if removeDuplicatePeptides and nr_proteins > 1:
-            #    continue
-
+            
             num_spectrum = num_spectrum +1
             if (num_spectrum % 1000 == 0) : print "spectra processed: %s" % num_spectrum
 
