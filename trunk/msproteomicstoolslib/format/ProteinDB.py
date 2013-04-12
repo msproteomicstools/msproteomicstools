@@ -81,6 +81,9 @@ class Protein :
 				current_peptide += self.sequence[index]
 			index+=1
 		
+		#If there is no cleavage site in the protein -> reverse the entire protein
+		if len(rev_protein) == 0 : rev_protein = self.sequence[::-1] 
+				
 		self.sequence = rev_protein
 		self.code1    = decoytag + self.code1
 
@@ -90,6 +93,7 @@ class ProteinDB :
 	def __init__(self, dict=None) :
 		if dict : self.proteinDictionary = dict
 		else : self.proteinDictionary = {}
+		self.chunksize = 80
 	
 	def findSequenceInProteins(self, sequence) :
 		'''Given a peptide sequence, this def returns a list of proteins (code1) in which the peptide is present. Don't use modified sequences, remove their modifications before calling this def.'''
@@ -105,8 +109,8 @@ class ProteinDB :
 		for protein_code1, protein in self.proteinDictionary.iteritems() :
 			protein.pseudoreverse(decoytag)
 
-	def writeFastaFile(self, fastaFileName, chunksize = 80) :
-				
+	def writeFastaFile(self, fastaFileName, chunksize = -1) :
+		if chunksize < 0 : chunksize = self.chunksize
 		file = open(fastaFileName,"w")
 		
 		for code1, protein in self.proteinDictionary.iteritems() :
@@ -119,7 +123,7 @@ class ProteinDB :
 				continue
 			
 			chunk     = protein.sequence[:chunksize]
-			remaining = protein.sequence[chunksize+1:]
+			remaining = protein.sequence[chunksize:]
 			file.write(chunk)
 			file.write("\n")
 			while True :
@@ -128,7 +132,7 @@ class ProteinDB :
 					file.write("\n")
 					break
 				chunk = remaining[:chunksize]
-				remaining = remaining[chunksize+1:]
+				remaining = remaining[chunksize:]
 				file.write(chunk)
 				file.write("\n")
 
@@ -161,7 +165,7 @@ class ProteinDB :
 			print "The file: %s does not exist!" % fastaFileName
 			sys.exit(2)
 		
-		
+		is_chunksize_set = False
 		counter = 0
 		with open(fastaFileName,"r") as file:    
 			proteinToSend = False
@@ -201,8 +205,8 @@ class ProteinDB :
 						
 						#set up to send a new protein to the database
 						dectag = '>' + decoytag
-						if line[:7] == dectag : proteinToSend = False
-						if line[:7] <> dectag : 
+						if line[:len(dectag)] == dectag : proteinToSend = False
+						if line[:len(dectag)] <> dectag : 
 							
 							# Try the first annotation structure
 							firstannotation = False
@@ -266,10 +270,13 @@ class ProteinDB :
 					
 					else:
 						#fetch the sequence to the current protein
-						sequence += line[:-1]
+						sequence += line[:].rstrip()
+						if not is_chunksize_set : 
+							self.chunksize = len(line[:-1])
+							is_chunksize_set = True
 		
 			if proteinToSend == True :  # Send the very last protein of the file
-				if sequence[-1:] == '*' : sequence = sequence[:-1]
+				if sequence[-1:] == '*' : sequence = sequence[:].rstrip()
 				
 				proteinDetails = { 'code1' : code1, 'code2' : code2 , 'modres' : modres, 'ncbi_tax_id' : ncbi_tax_id, 'description' : description, 'sequence' : sequence }
 				protein = Protein(proteinDetails)
