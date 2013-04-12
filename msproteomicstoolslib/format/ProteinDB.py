@@ -81,8 +81,9 @@ class Protein :
 				current_peptide += self.sequence[index]
 			index+=1
 		
-		#If there is no cleavage site in the protein -> reverse the entire protein
-		if len(rev_protein) == 0 : rev_protein = self.sequence[::-1] 
+		#Reverse the last tail
+		if len(rev_protein) < len(self.sequence) :
+			rev_protein += self.sequence[:len(rev_protein)-1:-1]
 				
 		self.sequence = rev_protein
 		self.code1    = decoytag + self.code1
