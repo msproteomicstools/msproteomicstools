@@ -84,6 +84,12 @@ class Protein :
 		#Reverse the last tail
 		if len(rev_protein) < len(self.sequence) :
 			rev_protein += self.sequence[:len(rev_protein)-1:-1]
+		
+		#If there is not any cleavage site at the protein --> reverse the total protein
+		if len(rev_protein) == 0 : rev_protein = self.sequence[::-1]
+		
+		if not len(rev_protein) == len(self.sequence) :
+			print "Warning : size of reversed protein does not match with the original. " , len(rev_protein) , len(self.sequence) 
 				
 		self.sequence = rev_protein
 		self.code1    = decoytag + self.code1
