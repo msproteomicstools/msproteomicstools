@@ -383,7 +383,9 @@ class Experiment():
             for m in multipeptides:
                 line = [m.get_id()]
                 for rid in run_ids:
-                    pg = m.peptides[rid].get_selected_peakgroup()
+                    pg = None
+                    if m.peptides.has_key(rid):
+                        pg = m.peptides[rid].get_selected_peakgroup()
                     if pg is None:
                         line.extend(["NA", "NA"])
                     else:
