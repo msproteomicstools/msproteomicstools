@@ -610,14 +610,17 @@ def handle_args():
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR)", metavar='0.2', type=float)
-    parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0', type=float)
-    parser.add_argument('--remove_outliers', action='store_true', default=False)
-    parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
-    parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
-    parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001', type=float)
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall or best_cluster_score)")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+
+    experimental_parser = parser.add_argument_group('experimental options')
+
+    experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
+    experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
+    experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
+    experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
+    experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001', type=float)
 
     args = parser.parse_args(sys.argv[1:])
     return args
