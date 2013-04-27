@@ -483,6 +483,9 @@ class Cluster:
         mult = mult * pg.get_fdr_score()
       return mult
 
+    def get_median_rt(self):
+        return numpy.median([pg.get_normalized_retentiontime() for pg in self.peakgroups])
+
 # Align features goes through all multipeptides (which contains peptides from all runs) and 
 # tries to re-align them
 def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method="best_overall"):
