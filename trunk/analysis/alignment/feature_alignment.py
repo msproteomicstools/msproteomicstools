@@ -226,7 +226,6 @@ class SplineAligner():
 
     def spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
         import msproteomicstoolslib.math.Smoothing as smoothing
-        sm = smoothing.Smoothing()
 
         # get those peptides we want to use for alignment => for this use the mapping
         data1 = []
@@ -251,10 +250,16 @@ class SplineAligner():
         # convert from slave to master, slave is first and master is second
         try:
             if use_scikit: import dummydummy # forces to use scikit
-            aligned_result = sm.smooth_spline_r(data2, data1, rt_eval)
+            sm = smoothing.SmoothingR()
+            sm.initialize(data2, data1)
+            aligned_result = sm.predict(rt_eval)
         except ImportError:
-          aligned_result = sm.smooth_spline_scikit_wrap(data2, data1, rt_eval)
-          print "use scikit to compute spline alignment..."
+            sm = smoothing.SmoothingPy()
+            print "use scikit to compute spline alignment..."
+        
+        # Use the smoother to make a prediction
+        sm.initialize(data2, data1)
+        aligned_result = sm.predict(rt_eval)
 
         # The two methods produce very, very similar results
         # but R is faster => prefer to use R when possible.

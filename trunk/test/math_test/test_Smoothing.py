@@ -48,7 +48,7 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_smooth_spline_scikit(self):
         """Test the smoothing spline using scikit"""
-        sm = smoothing.Smoothing()
+        sm = smoothing.SmoothingPy()
         r = sm._smooth_spline_scikit(self.data1, self.data2)
 
         self.assertEqual(len(r), 8)
@@ -86,43 +86,48 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_smooth_spline_scikit_wrap(self):
         """Test the smoothing spline using scikit"""
-        sm = smoothing.Smoothing()
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, self.data1)
+        sm = smoothing.SmoothingPy()
+        import numpy
+        sm.initialize(self.data1, self.data2, xmin=numpy.min(numpy.array(self.data1)), xmax=numpy.max(numpy.array(self.data1)))
+        r_pred = sm.predict(self.data1)
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, self.data1)
         self.assertEqual(len(r), 8)
         expected = [4.340432925607892, 7.412884078435387, 8.865581929053054,
                     10.157652480992748, 11.196560644581082, 14.158931578788266,
                     7.561207213410677, 5.90694677222806]
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
+        for res, exp in zip(r_pred,expected):
+            self.assertAlmostEqual(res,exp)
 
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, [5,7,10.0])
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, [5,7,10.0])
         self.assertEqual(len(r), 3)
         expected = [4.307319862409416, 7.423679061650855, 11.15630836580813]
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, [10.0,5.0,7])
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, [10.0,5.0,7])
         self.assertEqual(len(r), 3)
         expected = [11.15630836580813, 4.307319862409416, 7.423679061650855]
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
         # Here, we expect the exact same results
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, [10.0,5.0,7,10.0])
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, [10.0,5.0,7,10.0])
         self.assertEqual(len(r), 4)
         expected = [11.15630836580813, 4.307319862409416, 7.423679061650855, 11.15630836580813]
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
         # However, if we also evaluate at a point outside the previous window, we expect the results to change slightly
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, [10.0,5.0,7,10.0, 15.0])
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, [10.0,5.0,7,10.0, 15.0])
         self.assertEqual(len(r), 5)
         expected = [11.196560644581082, 4.340432925607892, 7.412884078435387, 11.196560644581082, 14.158931578788266]
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
         # If we chose a point that is very far away, we still expect a "reasonable" result (e.g. -100 becores -96)
-        r = sm.smooth_spline_scikit_wrap(self.data1, self.data2, [10.0,5.0,7,-100.0, 15.0])
+        r = sm._smooth_scikit_legacy(self.data1, self.data2, [10.0,5.0,7,-100.0, 15.0])
         self.assertEqual(len(r), 5)
         expected = [10.265638884711272, 5.411029040286351, 7.352910860216361, -96.53810165019972, 15.119857967104132]
         for res, exp in zip(r,expected):
@@ -130,8 +135,9 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_smooth_spline_r(self):
         """Test the smoothing spline using R"""
-        sm = smoothing.Smoothing()
-        r = sm.smooth_spline_r(self.data1, self.data2, self.data2)
+        sm = smoothing.SmoothingR()
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data2)
         expected = [  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
                 11.85840597,  13.48225519,   7.44184246,   6.61579704]
 
@@ -141,7 +147,7 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_duplication(self):
         arr = [0, 0, 5, 6, 6, 7, 8, 8]
-        sm = smoothing.Smoothing()
+        sm = smoothing.SmoothingPy()
         de_dupl,duplications = sm.de_duplicate_array(arr)
         re_dupl = sm.re_duplicate_array(de_dupl, duplications)
         # the input and output need to be identical!
