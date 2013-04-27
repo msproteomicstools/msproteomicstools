@@ -386,13 +386,13 @@ class Experiment():
         if len(matrix_outfile) > 0:
             matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
             run_ids = [r.get_id() for r in self.runs]
-            header = ["Peptide"]
+            header = ["Peptide", "Protein"]
             for r in self.runs:
                 header.extend(["Intensity_%s" % r.get_id(), "RT_%s" % r.get_id()])
                 print("Run id %s corresponds to %s" % (r.get_id(), r.orig_filename))
             matrix_writer.writerow(header)
             for m in multipeptides:
-                line = [m.get_id()]
+                line = [m.get_id(), m.find_best_peptide_pg().peptide.protein_name]
                 selected_peakgroups = m.get_selected_peakgroups()
                 if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
                 for rid in run_ids:
