@@ -84,7 +84,7 @@ class MinimalPeakGroup():
     ## Print
     def print_out(self):
         # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
-        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
+        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " RT:" + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
 
     ## Getters 
     def get_fdr_score(self):
