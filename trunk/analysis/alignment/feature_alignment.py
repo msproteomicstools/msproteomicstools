@@ -138,6 +138,8 @@ alignment = this_exp.align_features(multipeptides, 30, 0.01, 0.2)
 class Multipeptide():
     """
     A collection of the same precursors (chromatograms) across multiple runs
+
+    It has peptides as attributes.
     """
   
     def __init__(self):
@@ -445,6 +447,7 @@ class Cluster:
       for pg in self.peakgroups:
           rid = pg.peptide.get_run_id()
           if rid in run_ids:
+              if verb: print "have run id", rid, "multiple times", pg.get_fdr_score(), "/", pg.get_normalized_retentiontime(), " vs ", run_ids[rid].get_fdr_score(), "/", run_ids[rid].get_normalized_retentiontime()
               if run_ids[rid].get_fdr_score() > pg.get_fdr_score():
                   run_ids[rid] = pg
           else: run_ids[rid] = pg
@@ -508,7 +511,7 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
           for c in clusters_rt_obj: 
               c.select_one_per_run()
               if verb:
-                  print " - Cluster", c.get_total_score()
+                  print " - Cluster with score", c.get_total_score(), "at", c.get_median_rt()
                   for pg in c.peakgroups: print pg.get_normalized_retentiontime(), pg.peptide.run.get_id()
             
           if len(clusters_rt_obj) == 1 :
@@ -531,7 +534,7 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
                 else:
                     if verb: print "FDR boost", pg.peptide.get_best_peakgroup().print_out(), " old ====> ", pg.print_out()
             else:
-              if verb: print "no need to align"
+              if verb: print "no need to align", pg.print_out()
 
           i += 1
         elif method == "best_overall":
@@ -566,7 +569,9 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
                       else:
                         if verb: print "FDR boost", pg.print_out(), " old ====> ", newpg.print_out()
                   else:
-                      if verb: print "could not align"
+                      if verb: print "could not align", pg.peptide.run.get_id(), pg.peptide.run.orig_filename, "best rt_diff was ", \
+                            abs(float(newpg.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
+                            newpg.get_fdr_score() 
                       a.could_not_align += 1
         else:
             raise Exception("Method '%s' unknown" % method)
