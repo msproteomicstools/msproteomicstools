@@ -59,7 +59,7 @@ class TestSpectrast2TSV(unittest.TestCase):
         expected_outcome = os.path.join(self.datadir, "spectrast2tsv_1_openswath_out.csv")
         tmpfilename = "spectrast2tsv.out.tmp"
 
-        args = "-k openswath -a %s %s" % (tmpfilename, filename)
+        args = "-k openswath -t minutes -a %s %s" % (tmpfilename, filename)
         cmd = "python %s %s" % (script, args)
         sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
         
