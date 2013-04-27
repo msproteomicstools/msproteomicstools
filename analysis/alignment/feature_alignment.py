@@ -299,7 +299,7 @@ class Experiment():
             if run.get_id() == bestrun.get_id(): continue # do not align reference run itself
             spl_aligner.spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit)
 
-    def get_all_multipeptides(self, fdr_cutoff):
+    def get_all_multipeptides(self, fdr_cutoff, verbose=False):
         # Find all precursors that are above the fdr cutoff in each run and
         # build a union of those precursors. Then search for each of those
         # precursors in all the other runs and build a multipeptide /
@@ -307,11 +307,12 @@ class Experiment():
         union_transition_groups = []
         union_proteins = []
         for i,r in enumerate(self.runs):
-            stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
-            stdout.flush()
+            if verbose: 
+                stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
+                stdout.flush()
             union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
             union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
-        stdout.write("\r\r\n") # clean up
+        if verbose: stdout.write("\r\r\n") # clean up
 
         self.union_transition_groups_set = set(union_transition_groups[0])
         self.union_proteins_set = set(union_proteins[0])
@@ -320,10 +321,11 @@ class Experiment():
         for proteins in union_proteins:
           self.union_proteins_set = self.union_proteins_set.union( proteins )
 
-        print "==================================="
-        print "Finished parsing, number of precursors and peptides per run"
-        print "All target precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
-        print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
+        if verbose:
+            print "==================================="
+            print "Finished parsing, number of precursors and peptides per run"
+            print "All target precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
+            print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
 
         multipeptides = []
         for peptide_id in self.union_transition_groups_set:
@@ -641,7 +643,7 @@ def main(options):
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
-    multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff)
+    multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=True)
 
     # If we want to align runs
     if options.realign_runs:
