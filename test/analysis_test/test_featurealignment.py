@@ -69,6 +69,38 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename)
         os.remove(tmpfilename_ids)
 
+    def test_featureAlignment_openswath_alignment(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
+        filename = os.path.join(self.datadir, "feature_alignment_openswath_input_3.csv")
+        expected_outcome = os.path.join(self.datadir, "feature_alignment_openswath_output_cluster_ids_3.csv")
+        tmpfilename = "featureAlignment.out.tmp"
+        tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
+
+        args = "--in %s --out %s --out_ids %s --realign_runs --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename_ids, expected_outcome)
+
+        os.remove(tmpfilename)
+        os.remove(tmpfilename_ids)
+
+    def test_featureAlignment_openswath_alignment_scikit(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
+        filename = os.path.join(self.datadir, "feature_alignment_openswath_input_3.csv")
+        expected_outcome = os.path.join(self.datadir, "feature_alignment_openswath_output_cluster_ids_3.csv")
+        tmpfilename = "featureAlignment.out.tmp"
+        tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
+
+        args = "--in %s --out %s --out_ids %s --realign_runs --use_scikit --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename_ids, expected_outcome)
+
+        os.remove(tmpfilename)
+        os.remove(tmpfilename_ids)
+
     def test_featureAlignment_peakview(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_peakview_input_2.csv")

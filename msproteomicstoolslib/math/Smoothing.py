@@ -37,12 +37,92 @@ $Authors: Hannes Roest$
 
 import numpy
 
-class Smoothing:
-    """ tool class to smooth data """
+def get_smooting_operator():
+  try:
+    import rpy2.robjects as robjects
+    return SmoothingR()
+  except ImportError:
+    pass
+  # Now try the Python
+  try:
+    from scikits import datasmooth as ds
+    scikits_present = True
+    return SmoothingPy()
+  except ImportError:
+    pass
+  return None
+
+class SmoothingR:
+    """Class to smooth data using the smooth.spline function from R
+
+     data1 = c(5,7,8,9,10,15,7.1,6)
+     data2 = c(4,7,9,11,11,14,7.1,6.5)
+     data1 = sort(data1)
+     data2 = sort(data2)
+     smooth.model = smooth.spline(data1,data2,cv=T)
+     data2_pred = predict(smooth.model,data2)$y 
+     [1]  2.342662  6.615797  7.292613  7.441842 10.489440 11.858406 11.858406
+     [8] 13.482255
+     plot(data1, data2)
+     lines(data1, data2_pred, col="blue")
+
+
+    # In python ...
+    import rpy2.robjects as robjects
+    # uses python-rpy2
+    data1 = [5,7,8,9,10,15,7.1,6]
+    data2 = [4,7,9,11,11,14,7.1,6.5]
+    rdata1 = robjects.FloatVector(data1)
+    rdata2 = robjects.FloatVector(data2)
+    spline = robjects.r["smooth.spline"]
+    sm = spline(data1,data2,cv=T)
+    predict = robjects.r["predict"]
+    predicted_data = predict(sm, rdata2)
+    numpy.array(predicted_data[1])
+    array([  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
+            11.85840597,  13.48225519,   7.44184246,   6.61579704])
+
+    """
 
     def __init__(self):
-        pass
+        try:
+          import rpy2.robjects as robjects
+        except ImportError:
+            print "==================================="
+            print "rpy2 package, please install it first\n (see https://pypi.python.org/pypi/rpy2/)." 
+            print "==================================="
 
+    def initialize(self, data1, data2):
+        import rpy2.robjects as robjects
+        rdata1 = robjects.FloatVector(data1)
+        rdata2 = robjects.FloatVector(data2)
+        spline = robjects.r["smooth.spline"]
+        self.sm = spline(data1,data2,cv=True)
+
+    def predict(self, xhat):
+        import rpy2.robjects as robjects
+        rxhat = robjects.FloatVector(xhat)
+        predict = robjects.r["predict"]
+        predicted_data = predict(self.sm, rxhat)
+        predicted_result = numpy.array(predicted_data[1]).tolist()
+        return predicted_result
+
+class SmoothingPy:
+    """Smoothing of 2D data using generalized crossvalidation
+
+    Will call _smooth_spline_scikit internally but only at a few select
+    points. It then uses the generated smoothed spline to construct an
+    interpolated spline on which then the xhat data is evaluated.
+    """
+
+    def __init__(self):
+        import operator
+        try:
+          from scikits import datasmooth as ds
+        except ImportError:
+            print "==================================="
+            print "Cannot import the module datasmooth from scikits, \nplease download it from https://github.comtickel/scikit-datasmooth.git"
+            print "==================================="
 
     def de_duplicate_array(self, arr):
         arr_fixed = [] 
@@ -65,30 +145,6 @@ class Smoothing:
         for val, dupl in zip(arr_fixed, duplications):
             result.extend( [val for i in range(dupl) ] )
         return result
-
-    def smooth_spline_scikit_wrap(self, data1, data2, xhat, Nhat=200):
-        """Smoothing of 2D data using generalized crossvalidation
-
-        Will call _smooth_spline_scikit internally but only at a few select
-        points. It then uses the generated smoothed spline to construct an
-        interpolated spline on which then the xhat data is evaluated.
-        """
-
-        from scipy.interpolate import InterpolatedUnivariateSpline
-
-        # Create a spline with Nhat points
-        xhat = numpy.array(xhat)
-        xmin = numpy.min(xhat)
-        xmax = numpy.max(xhat)
-        xh = numpy.linspace(xmin-0.1,xmax+1.1,Nhat)
-        yhat_small = self._smooth_spline_scikit(data1, data2, xh)
-
-        # Now use that (small) smoothed spline to create a univariate spline 
-        ius = InterpolatedUnivariateSpline(xh, yhat_small)
-        yhat_new = ius(xhat)
-        # plot(xh, yhat_small)
-        # plot(xhat, yhat_new, "ow")
-        return yhat_new
 
     def _smooth_spline_scikit(self, data1, data2, xhat=None, fixNonMonotonous=False):
         """Smoothing of 2D data using generalized crossvalidation
@@ -146,53 +202,30 @@ class Smoothing:
 
         # plot(x,y,'ow',xhat_sorted,yhat_sorted,'-b', x,yhat, "or")
 
-    def smooth_spline_r(self, data1, data2, xhat):
-        """Use the smooth.spline function from R
+    def initialize(self, data1, data2, Nhat=200, xmin=None, xmax=None):
+        from scipy.interpolate import InterpolatedUnivariateSpline
 
-         data1 = c(5,7,8,9,10,15,7.1,6)
-         data2 = c(4,7,9,11,11,14,7.1,6.5)
-         data1 = sort(data1)
-         data2 = sort(data2)
-         smooth.model = smooth.spline(data1,data2,cv=T)
-         data2_pred = predict(smooth.model,data2)$y 
-         [1]  2.342662  6.615797  7.292613  7.441842 10.489440 11.858406 11.858406
-         [8] 13.482255
-         plot(data1, data2)
-         lines(data1, data2_pred, col="blue")
+        # Create a spline with Nhat points
+        if xmin is None: xmin = numpy.min(data1)
+        if xmax is None: xmax = numpy.max(data1)
+        xh = numpy.linspace(xmin-0.1,xmax+1.1,Nhat)
+        yhat_small = self._smooth_spline_scikit(data1, data2, xh)
 
+        # Now use that (small) smoothed spline to create a univariate spline 
+        self.ius = InterpolatedUnivariateSpline(xh, yhat_small)
 
-        # In python ...
-        import rpy2.robjects as robjects
-        # uses python-rpy2
-        data1 = [5,7,8,9,10,15,7.1,6]
-        data2 = [4,7,9,11,11,14,7.1,6.5]
-        rdata1 = robjects.FloatVector(data1)
-        rdata2 = robjects.FloatVector(data2)
-        spline = robjects.r["smooth.spline"]
-        sm = spline(data1,data2,cv=T)
-        predict = robjects.r["predict"]
-        predicted_data = predict(sm, rdata2)
-        numpy.array(predicted_data[1])
-        array([  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
-                11.85840597,  13.48225519,   7.44184246,   6.61579704])
+    def predict(self, xhat):
+        xhat = numpy.array(xhat)
+        yhat_new = self.ius(xhat)
+        return yhat_new
 
-        """
-        try:
-          import rpy2.robjects as robjects
-        except ImportError:
-            print "==================================="
-            print "rpy2 package, please install it first\n (see https://pypi.python.org/pypi/rpy2/)." 
-            print "==================================="
-            import sys; sys.exit(1)
+    # TODO remove
+    def _smooth_scikit_legacy(self, data1, data2, xhat, Nhat=200):
+        xhat = numpy.array(xhat)
+        xmin = numpy.min(xhat)
+        xmax = numpy.max(xhat)
 
-        rdata1 = robjects.FloatVector(data1)
-        rdata2 = robjects.FloatVector(data2)
-        rxhat = robjects.FloatVector(xhat)
-        spline = robjects.r["smooth.spline"]
-        sm = spline(data1,data2,cv=True)
-        predict = robjects.r["predict"]
-        predicted_data = predict(sm, rxhat)
-        predicted_result = numpy.array(predicted_data[1]).tolist()
-        return predicted_result
-
-
+        s = SmoothingPy()
+        s.initialize(data1, data2, Nhat, xmin = xmin, xmax = xmax)
+        yhat_new = s.predict(xhat)
+        return yhat_new
