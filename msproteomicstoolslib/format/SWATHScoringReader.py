@@ -176,6 +176,9 @@ class Precursor():
         assert len(pg_id) == 1
         self.selected_[pg_id[0]] = False
 
+    def unselect_all(self):
+        for i in range(len(self.selected_)) : self.selected_[i] = False
+
     def get_best_peakgroup(self):
         if len(self.peakgroups_) == 0: return None
         best_score = self.peakgroups_[0][1]
