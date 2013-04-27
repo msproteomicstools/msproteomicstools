@@ -161,6 +161,12 @@ class Multipeptide():
       if len(self.get_peptides()) == 0: return None
       return self.get_peptides()[0].get_id()
 
+    def more_than_fraction_selected(self, fraction):
+      # returns true if more than fraction of the peakgroups are selected
+      if len( self.get_selected_peakgroups() )*1.0 / len(self.peptides) < fraction:
+          return False
+      return True
+
     def get_decoy(self):
         if len(self.get_peptides()) == 0: return False
         return self.get_peptides()[0].get_decoy() 
@@ -178,6 +184,7 @@ class Multipeptide():
       return [p.get_selected_peakgroup() for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
 
     def find_best_peptide_pg(self):
+      # Find best peakgroup across all peptides
       best_fdr = 1.0
       for p in self.get_peptides():
         if(p.get_best_peakgroup().get_fdr_score() < best_fdr): 
@@ -240,7 +247,7 @@ class SplineAligner():
             if cnt > maxcount:
                 maxcount = cnt
                 bestrun = run.get_id()
-        print "found best run", bestrun, "with features", maxcount
+        print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, alignment_fdr_threshold)
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
     def spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
@@ -325,26 +332,39 @@ class Experiment():
         # multiprecursor.
         union_transition_groups = []
         union_proteins = []
+        union_target_transition_groups = []
         for i,r in enumerate(self.runs):
             if verbose: 
                 stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
                 stdout.flush()
-            union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_target_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
             union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
         if verbose: stdout.write("\r\r\n") # clean up
 
+        union_target_transition_groups_set = set(union_target_transition_groups[0])
         self.union_transition_groups_set = set(union_transition_groups[0])
         self.union_proteins_set = set(union_proteins[0])
         for groups in union_transition_groups:
           self.union_transition_groups_set = self.union_transition_groups_set.union( groups )
+        for groups in union_target_transition_groups:
+          union_target_transition_groups_set = union_target_transition_groups_set.union( groups )
         for proteins in union_proteins:
           self.union_proteins_set = self.union_proteins_set.union( proteins )
+
+        all_prec = sum([len(s) for s in union_transition_groups])
+        target_prec = sum([len(s) for s in union_target_transition_groups])
 
         if verbose:
             print "==================================="
             print "Finished parsing, number of precursors and peptides per run"
-            print "All target precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
+            print "All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
+            print "All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set)
             print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
+            print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
+
+        self.estimated_decoy_pcnt =  (all_prec - target_prec) * 100.0 / all_prec 
+        if all_prec - target_prec == 0: self.estimated_decoy_pcnt = None
 
         multipeptides = []
         for peptide_id in self.union_transition_groups_set:
@@ -357,7 +377,24 @@ class Experiment():
     def get_max_pg(self):
       return len(self.runs)*len(self.union_transition_groups_set)
 
-    def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff):
+    def estimate_real_fdr(self, multipeptides, fdr_cutoff, fraction_needed_selected):
+        precursors_to_be_used = [m for m in multipeptides if m.more_than_fraction_selected(fraction_needed_selected)]
+
+        # count the decoys
+        nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+                          if prec.find_best_peptide_pg().peptide.get_decoy()])
+        nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+                          if not prec.find_best_peptide_pg().peptide.get_decoy()])
+        # estimate the real fdr by calculating the decoy ratio and dividing it
+        # by the decoy ration obtained at @fdr_cutoff => which gives us the
+        # decoy in/decrease realtive to fdr_cutoff. To calculate the absolute
+        # value, we multiply by fdr_cutoff again (which was used to obtain the
+        # original estimated decoy percentage).
+        if self.estimated_decoy_pcnt is None: return 0
+        est_real_fdr = (nr_decoys * 100.0 / (nr_targets + nr_decoys) ) / self.estimated_decoy_pcnt * fdr_cutoff 
+        return est_real_fdr
+
+    def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present):
         # Do statistics and print out
         in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff)])
         proteins_in_all_runs_wo_align = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff)]))
@@ -365,12 +402,18 @@ class Experiment():
 
         print "Present in all runs", in_all_runs_wo_align
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
+
+        # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
+        # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
+        nr_decoys = len([1 for prec in precursors_in_all_runs if prec.find_best_peptide_pg().peptide.get_decoy()])
+
         nr_peptides = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs]))
         nr_proteins = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs]))
         nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = self.get_max_pg()
+        est_real_fdr = self.estimate_real_fdr(multipeptides, fdr_cutoff, fraction_present) * 100 #(nr_decoys * 100.0 / len(precursors_in_all_runs) ) / self.estimated_decoy_pcnt * fdr_cutoff * 100
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set), "peakgroups quantified in at least one run, " + \
@@ -379,6 +422,7 @@ class Experiment():
         #print "We were able to quantify", nr_peptides, "peptides and", nr_proteins, "proteins in all runs (up from", proteins_in_all_runs_wo_align, "before alignment)"
         print "We were able to quantify", nr_peptides_target, "target peptides and", nr_proteins_target, "target proteins in all runs (up from target", proteins_in_all_runs_wo_align_target, "before alignment)"
         print "Able to quantify", alignment.nr_quantified, "/", max_pg, "of which we aligned", alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
+        print "Decoy percentage of peakgroups that are fully aligned %0.4f %% which corresponds to a real FDR of %s %%" % (nr_decoys * 100.0 / len(precursors_in_all_runs), est_real_fdr)
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
@@ -482,9 +526,6 @@ class Cluster:
       for pg in self.peakgroups:
         mult = mult * pg.get_fdr_score()
       return mult
-
-    def get_median_rt(self):
-        return numpy.median([pg.get_normalized_retentiontime() for pg in self.peakgroups])
 
 # Align features goes through all multipeptides (which contains peptides from all runs) and 
 # tries to re-align them
@@ -636,6 +677,27 @@ def detect_outliers(self, multipeptides, aligned_fdr_cutoff, outlier_threshold_s
     o.nr_outliers = outliers
     return o
 
+def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
+    print "Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100)
+    for aligned_fdr_cutoff in fdr_range:
+        # do the alignment and annotate chromatograms without identified features
+        # then perform an outlier detection over multiple runs
+        # unselect all
+        for m in multipeptides:
+            for p in m.get_peptides():
+                p.unselect_all()
+        # now align
+        options.aligned_fdr_cutoff = aligned_fdr_cutoff
+        alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
+        est_fdr = this_exp.estimate_real_fdr(multipeptides, options.fdr_cutoff, options.min_frac_selected)
+        print "Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff
+        if est_fdr > options.target_fdr:
+            # Unselect the peptides again ...
+            for m in multipeptides:
+                for p in m.get_peptides():
+                    p.unselect_all()
+            return aligned_fdr_cutoff
+
 def handle_args():
     import argparse
 
@@ -651,7 +713,7 @@ def handle_args():
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
-    parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR)", metavar='0.2', type=float)
+    parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01", metavar='0.2')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0', type=float)
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall or best_cluster_score)")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
@@ -663,6 +725,7 @@ def handle_args():
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
     experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001', type=float)
+    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=0.01, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01', type=float)
 
     args = parser.parse_args(sys.argv[1:])
     return args
@@ -684,15 +747,22 @@ def main(options):
     if options.realign_runs:
         this_exp.rt_align_all_runs(multipeptides, options.alignment_score, options.use_scikit)
 
-    # do the alignment and annotate chromatograms without identified features
-    # then perform an outlier detection over multiple runs
+    try:
+        options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
+    except ValueError:
+        # We have a range, since we trust the input we dont parse it very much ...
+        exec("fdr_range = numpy.arange(%s)" % options.aligned_fdr_cutoff)
+        options.aligned_fdr_cutoff = estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range)
+
+    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff
     alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
 
     # print statistics, write output
-    this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff)
+    this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
+
     this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.matrix_outfile, options.ids_outfile, options.min_frac_selected, options.file_format)
 
 if __name__=="__main__":
