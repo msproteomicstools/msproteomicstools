@@ -132,69 +132,91 @@ multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff)
 
 class Multipeptide():
     """
-    A collection of the same precursors (chromatograms) across multiple runs
+    A collection of the same precursors (chromatograms) across multiple runs.
 
-    It has peptides as attributes.
+    It contains individual precursors that can be accessed by their run id.
     """
   
     def __init__(self):
-        self.peptides = {}
+        self._peptides = {}
         self._has_null = False
 
     def __str__(self):
-        return "Precursors of %s runs, identified by %s." % (len(self.peptides), self.peptides.values()[0].id)
+        return "Precursors of %s runs, identified by %s." % (len(self._peptides), self.get_peptides()[0].id)
   
-    def insert(self, runid, peptide):
-      if peptide is None: self._has_null = True; return
-      self.peptides[runid] = peptide
-    
-    def all_above_cutoff(self, cutoff):
-      for p in self.peptides.values():
-        if p.get_best_peakgroup().get_fdr_score() > cutoff: 
-            return False
-      return True
-  
+    # 
+    ## Getters  / Setters
+    # 
+
+    def has_peptide(self, runid):
+        return self._peptides.has_key(runid)
+
+    def get_peptide(self, runid):
+        return self._peptides[runid]
+
+    def get_peptides(self):
+      return self._peptides.values()
+
     def get_id(self):
-      return self.peptides.values()[0].get_id()
-  
-    def all_below_cutoff(self, cutoff):
-      for p in self.peptides.values():
-        if p.get_best_peakgroup().get_fdr_score() < cutoff: return False
-      return True
-  
-    def all_selected(self):
-      for p in self.peptides.values():
-          if p.get_selected_peakgroup() is None: return False
-      return True
+      if len(self.get_peptides()) == 0: return None
+      return self.get_peptides()[0].get_id()
 
     def get_decoy(self):
-        # If one is a decoy, all of them are...
-        if len(self.peptides.values()) > 1:
-            return self.peptides.values()[0].get_decoy() 
-        return False
+        if len(self.get_peptides()) == 0: return False
+        return self.get_peptides()[0].get_decoy() 
 
+    def has_null_peptides(self):
+      return self._has_null
+
+    def insert(self, runid, peptide):
+      if peptide is None: 
+          self._has_null = True 
+          return
+      self._peptides[runid] = peptide
+    
     def get_selected_peakgroups(self):
-      return [p.get_selected_peakgroup() for p in self.peptides.values() if p.get_selected_peakgroup() is not None]
+      return [p.get_selected_peakgroup() for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
 
     def find_best_peptide_pg(self):
       best_fdr = 1.0
-      for p in self.peptides.values():
+      for p in self.get_peptides():
         if(p.get_best_peakgroup().get_fdr_score() < best_fdr): 
             result = p.get_best_peakgroup()
             best_fdr = p.get_best_peakgroup().get_fdr_score() 
       return result
-
-    def has_null_peptides(self):
-      return self._has_null
   
+    # 
+    ## Methods
+    #
+
     def detect_outliers(self):
         # Uses chauvenet's criterion for outlier detection to find peptides
         # whose retention time is different from the rest.
-        rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in self.peptides.values() if p.get_selected_peakgroup() is not None]
-        runids = numpy.array([p.get_selected_peakgroup().get_run_id() for p in self.peptides.values() if p.get_selected_peakgroup() is not None])
+        rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
+        runids = numpy.array([p.get_selected_peakgroup().get_run_id() for p in self.get_peptides() if p.get_selected_peakgroup() is not None])
         if len(rts) == 1: return []
         outliers = chauvenet(numpy.array(rts),numpy.array(rts))
         return runids[~outliers]
+
+    # 
+    ## Boolean questions
+    #
+
+    def all_above_cutoff(self, cutoff):
+      for p in self.get_peptides():
+        if p.get_best_peakgroup().get_fdr_score() > cutoff: 
+            return False
+      return True
+  
+    def all_below_cutoff(self, cutoff):
+      for p in self.get_peptides():
+        if p.get_best_peakgroup().get_fdr_score() < cutoff: return False
+      return True
+
+    def all_selected(self):
+      for p in self.get_peptides():
+          if p.get_selected_peakgroup() is None: return False
+      return True
 
 class SplineAligner():
     """
@@ -228,8 +250,8 @@ class SplineAligner():
         data1 = []
         data2 = []
         for m in multipeptides:
-            ref_pep = m.peptides[bestrun.get_id()].get_best_peakgroup()
-            align_pep = m.peptides[run.get_id()].get_best_peakgroup()
+            ref_pep = m.get_peptide(bestrun.get_id()).get_best_peakgroup()
+            align_pep = m.get_peptide(run.get_id()).get_best_peakgroup()
             if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): continue
             if ref_pep.get_fdr_score() < alignment_fdr_threshold and align_pep.get_fdr_score() < alignment_fdr_threshold:
                 data1.append(ref_pep.get_normalized_retentiontime())
@@ -366,7 +388,7 @@ class Experiment():
         for m in multipeptides:
             selected_peakgroups = m.get_selected_peakgroups()
             if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-            for p in m.peptides.values():
+            for p in m.get_peptides():
                 selected_pg = p.get_selected_peakgroup()
                 if selected_pg is None: continue
                 selected_pgs.append(selected_pg)
@@ -394,8 +416,8 @@ class Experiment():
                 if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
                 for rid in run_ids:
                     pg = None
-                    if m.peptides.has_key(rid):
-                        pg = m.peptides[rid].get_selected_peakgroup()
+                    if m.has_peptide(rid):
+                        pg = m.get_peptide(rid).get_selected_peakgroup()
                     if pg is None:
                         line.extend(["NA", "NA"])
                     else:
@@ -437,7 +459,10 @@ class Cluster:
         self.peakgroups = peakgroups
 
     def select_one_per_run(self):
-      # make sure for each cluster that we only have one peakgroup from each run --> take the best one
+      """
+      Make sure for each cluster that we only have one peakgroup from each run
+      --> take the best one
+      """
       run_ids = {}
       if verb: print "len pg ", len(self.peakgroups)
       for pg in self.peakgroups:
@@ -450,6 +475,9 @@ class Cluster:
       self.peakgroups = run_ids.values()
 
     def get_total_score(self):
+      """
+      Calculate the total score of a cluster (multiplication of probabilities)
+      """
       mult = 1
       for pg in self.peakgroups:
         mult = mult * pg.get_fdr_score()
@@ -471,22 +499,22 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
     for m in multipeptides:
         # If the peptide is found in each run above the FDR, we are fine.
         # else we will try to realign some of the peakgroups.
-        if verb: print "00000000000000000000000000000000000 new peptide ", m.peptides.values()[0].sequence
+        if verb: print "00000000000000000000000000000000000 new peptide ", m.get_peptides()[0].sequence
         if m.all_above_cutoff(fdr_cutoff):
           if verb: print "all above cutoff"
-          for p in m.peptides.values():
+          for p in m.get_peptides():
               p.get_best_peakgroup().select_this_peakgroup()
               a.nr_quantified += 1
           continue
         elif method == "best_cluster_score":
             # i) get all RTs above the cutoff
 
-          for p in m.peptides.values(): # loop over runs
+          for p in m.get_peptides(): # loop over runs
               pg = p.get_best_peakgroup()
               if verb: print "best rt", pg.get_normalized_retentiontime(), pg.peptide.run.get_id(), pg.get_fdr_score()
           
           groups = []
-          for p in m.peptides.values(): # loop over runs
+          for p in m.get_peptides(): # loop over runs
               # use all peakgroups for clustering
               all_pgs = [ MinimalPeakGroup(result[0], result[1], result[2], p.selected_[index], p) for index, result in enumerate(p.peakgroups_)]
               for pg in all_pgs:
@@ -538,7 +566,7 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
           best = m.find_best_peptide_pg()
           best_rt_diff = best.get_normalized_retentiontime()
           if verb: print "=====\nFDR best", best.print_out() #best.run.get_id(), "/", best.get_id(), best.get_fdr_score(), best.get_normalized_retentiontime(), best.get_value("RT"), best.get_value("rt_score") # rt_score = delta iRT
-          for p in m.peptides.values(): # loop over runs
+          for p in m.get_peptides(): # loop over runs
               pg = p.get_best_peakgroup()
               if pg.get_fdr_score() < fdr_cutoff:
                   pg.select_this_peakgroup()
@@ -584,14 +612,14 @@ def detect_outliers(self, multipeptides, aligned_fdr_cutoff, outlier_threshold_s
     for m in multipeptides:
       out = m.detect_outliers()
       if len(out) == 0: continue
-      rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.peptides.values() if p.get_selected_peakgroup() is not None]
-      outlier_rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.peptides.values() if p.get_run_id() in out]
+      rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.get_peptides() if p.get_selected_peakgroup() is not None]
+      outlier_rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.get_peptides() if p.get_run_id() in out]
       mean_wo_outliers = numpy.mean([r for r in rts if r not in outlier_rts])
       for outlier_idx,outlier in enumerate(outlier_rts):
         if abs(outlier - mean_wo_outliers) > outlier_threshold_seconds:
             outliers += 1
             o.outlier_pg += 1
-            thispep = [pep for pep in m.peptides.values() if pep.get_run_id() == out[outlier_idx]][0]
+            thispep = [pep for pep in m.get_peptides() if pep.get_run_id() == out[outlier_idx]][0]
             newpg = thispep.find_closest_in_iRT(mean_wo_outliers)
             print "Bad", out, rts, "-> o", outlier_rts, "m", mean_wo_outliers, thispep.get_selected_peakgroup().get_normalized_retentiontime(), \
                 " => exch", newpg.get_normalized_retentiontime(), newpg.get_fdr_score(), "/", thispep.get_selected_peakgroup().get_fdr_score()
