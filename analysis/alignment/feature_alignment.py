@@ -145,7 +145,7 @@ class Multipeptide():
         self._has_null = False
 
     def __str__(self):
-        return "Precursors of % runs." % len(self.peptides)
+        return "Precursors of %s runs, identified by %s." % (len(self.peptides), self.peptides.values()[0].id)
   
     def insert(self, runid, peptide):
       if peptide is None: self._has_null = True; return
@@ -357,19 +357,22 @@ class Experiment():
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
     def write_to_file(self, multipeptides, infiles, outfile, matrix_outfile, ids_outfile, fraction_needed_selected, file_format):
+
+        selected_pgs = []
+        for m in multipeptides:
+            selected_peakgroups = m.get_selected_peakgroups()
+            if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
+            for p in m.peptides.values():
+                selected_pg = p.get_selected_peakgroup()
+                if selected_pg is None: continue
+                selected_pgs.append(selected_pg)
+        selected_ids_dict = dict( [ (pg.get_feature_id(), pg) for pg in selected_pgs] )
+
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
             id_writer = csv.writer(fh, delimiter="\t")
-            selected_ids = []
-            for m in multipeptides:
-                selected_peakgroups = m.get_selected_peakgroups()
-                if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-                for p in m.peptides.values():
-                    selected_pg = p.get_selected_peakgroup()
-                    if selected_pg is None: continue
-                    id_writer.writerow([selected_pg.get_feature_id()])
-                    selected_ids.append(selected_pg.get_feature_id())
-            selected_ids_set = set(selected_ids)
+            for pg in selected_pgs:
+                id_writer.writerow([pg.get_feature_id()])
             fh.close()
             del id_writer
 
@@ -411,9 +414,10 @@ class Experiment():
           for i,n in enumerate(header):
             header_dict[n] = i
           for row in reader:
-              if row[ header_dict["id"]] in selected_ids_set:
+              f_id = row[ header_dict["id"]]
+              if selected_ids_dict.has_key(f_id):
                   row_to_write = row
-                  row_to_write += [file_nr, f]
+                  row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                   writer.writerow(row_to_write)
   
 class Cluster:
