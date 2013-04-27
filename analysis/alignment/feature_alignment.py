@@ -121,17 +121,12 @@ infiles = [
 'strep_align/Strep0_Repl2_R03/split_hroest_K120808_all_peakgroups_aligned.xls'
 ] 
 
-
-this_exp = Experiment()
-this_exp.parse_files(infiles, "openswath", True)
+reader = SWATHScoringReader.newReader(infiles, "openswath")
+this_exp.runs = reader.parse_files(False)
 
 # Map the precursors across multiple runs, determine the number of
 # precursors in all runs without alignment.
-multipeptides = this_exp.get_all_multipeptides(0.01)
-
-this_exp.rt_align_all_runs(multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False)
-
-alignment = this_exp.align_features(multipeptides, 30, 0.01, 0.2)
+multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff)
 
 """
 
@@ -411,26 +406,27 @@ class Experiment():
         # only in openswath we have the ID and can go back to the original file ... 
         if file_format != "openswath": return
 
-        # write out the complete original files 
-        writer = csv.writer(open(outfile, "w"), delimiter="\t")
-        header_first = self.runs[0].header
-        for run in self.runs:
-            assert header_first == run.header
-        header_first += ["align_runid", "align_origfilename"]
-        writer.writerow(header_first)
+        if len(outfile) > 0:
+            # write out the complete original files 
+            writer = csv.writer(open(outfile, "w"), delimiter="\t")
+            header_first = self.runs[0].header
+            for run in self.runs:
+                assert header_first == run.header
+            header_first += ["align_runid", "align_origfilename"]
+            writer.writerow(header_first)
 
-        for file_nr, f in enumerate(infiles):
-          header_dict = {}
-          reader = csv.reader(open(f), delimiter="\t")
-          header = reader.next()
-          for i,n in enumerate(header):
-            header_dict[n] = i
-          for row in reader:
-              f_id = row[ header_dict["id"]]
-              if selected_ids_dict.has_key(f_id):
-                  row_to_write = row
-                  row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
-                  writer.writerow(row_to_write)
+            for file_nr, f in enumerate(infiles):
+              header_dict = {}
+              reader = csv.reader(open(f), delimiter="\t")
+              header = reader.next()
+              for i,n in enumerate(header):
+                header_dict[n] = i
+              for row in reader:
+                  f_id = row[ header_dict["id"]]
+                  if selected_ids_dict.has_key(f_id):
+                      row_to_write = row
+                      row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
+                      writer.writerow(row_to_write)
   
 class Cluster:
     """
@@ -501,7 +497,7 @@ def align_features(multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff
           # do the clustering
           from cluster import HierarchicalClustering
           cl = HierarchicalClustering(groups, lambda x,y: abs(x.get_normalized_retentiontime()-y.get_normalized_retentiontime()))
-          clusters_rt = cl.getlevel(rt_diff_cutoff)
+          clusters_rt = cl.getlevel(rt_diff_cutoff) # for large clusters, this is the the bottleneck! 
           clusters_rt_obj = [Cluster(c) for c in clusters_rt]
           # if there was only one group, we need to prepare a special object of size one
           if len(groups) == 1: clusters_rt_obj = [Cluster( groups )]
