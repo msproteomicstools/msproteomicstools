@@ -28,7 +28,6 @@ class Communicate(QtCore.QObject):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-
 class RunDataModel():
 
     def __init__(self, run, filename):
@@ -174,7 +173,7 @@ class PrecursorModel():
         except Exception:
             return "NA"
 
-class DataModel():
+class DataModel(object):
 
     def __init__(self):
         self.precursors = set([])
@@ -381,19 +380,6 @@ class PeptideTree(TreeModel):
         self.beginInsertRows(parent, 0, len(data) )
         self.rootElements = data
         self.endInsertRows()
-
-        # initialize super method again
-        self.initialize()
-
-    def set_precursor_data(self, data):
-        raise Exception("Not implemented - needs begin/end remove/insrt")
-        self.rootElements = []
-        for data_item in data:
-            try:
-                charge = data_item.split("/")[1].split("_")[0]
-            except Exception:
-                charge = 0
-            self.rootElements.append(ChromatogramTransition(data_item, charge, [] ) )
 
         # initialize super method again
         self.initialize()
@@ -759,15 +745,14 @@ class MainWindow(QtGui.QMainWindow):
 
         # Load the files
         self.data_model.loadFiles(pyFileList)
+        self._refresh_view()
+
+    def _refresh_view(self):
 
         # get precursors from data and set it 
         pr_list = self.data_model.get_precursor_list()
         precursor_model = self.application.get_precursor_model()
-        if "set_precursor_tree_structure" in dir(precursor_model):
-            precursor_model.set_precursor_tree_structure(self.data_model.get_precursor_tree())
-        else:
-            precursor_model.set_precursor_data(pr_list)
-
+        precursor_model.set_precursor_tree_structure(self.data_model.get_precursor_tree())
         self.statusBar().showMessage(self.data_model.getStatus())
         self.application.add_plots(self.data_model)
 
