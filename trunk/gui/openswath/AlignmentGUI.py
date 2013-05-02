@@ -15,6 +15,9 @@ from guiqwt.curve import CurveItem
 from guiqwt.builder import make
 from guiqwt.styles import CurveParam, COLORS
 
+TITLE_FONT_SIZE = 10
+AXIS_FONT_SIZE = 8
+
 class Communicate(QtCore.QObject):
     
     catch_mouse_press = QtCore.pyqtSignal() 
@@ -29,8 +32,10 @@ class Communicate(QtCore.QObject):
 class RunDataModel():
 
     def __init__(self, run, filename):
+        import os
         self._run = run
         self._filename = filename
+        self._basename = os.path.basename(filename)
         self._precursor_mapping = {}
         self._sequences_mapping = {}
 
@@ -134,6 +139,9 @@ class RunDataModel():
 
         return transitions
 
+    def get_id(self):
+        return self._basename
+
     #
     ## Getters (info)
     #
@@ -187,11 +195,15 @@ class DataModel():
             self.precursors.update(run.get_all_precursor_ids())
 
     def getStatus(self):
-        # just do it for the first run
         if len(self.runs) == 0:
             return "Ready"
 
-        return '%s Transitions, %s Peptides' % ( len(self.runs[0]._run.info['offsets']) -2, len(self.runs[0]._sequences_mapping) )
+        tr_cnt = 0
+        for r in self.runs:
+            tr_cnt += len(r._run.info['offsets']) -2
+
+        return '%s Transitions, %s Peptides (total %s Transitions)' % ( 
+            len(self.runs[0]._run.info['offsets']) -2, len(self.runs[0]._sequences_mapping), tr_cnt )
 
     def get_precursor_list(self):
         return self.precursors
@@ -566,12 +578,22 @@ class GraphArea(QtGui.QWidget):
         self.plots = []
         self.delete_all()
 
-        for run in datamodel.get_runs():
+        from guidata.qt.QtGui import QFont
+        for i, run in enumerate(datamodel.get_runs()):
 
             self.plot = MultiLinePlot(edit=False, toolbar=False, 
-                                      options=dict(xlabel="Time (s)", ylabel="Intensity"))
+                                      options=dict(xlabel="Time (s)", ylabel="Intensity") )
             self.plot.setDataModel(run)
-            self.add_new(self.plot)
+
+            # set font and title of plot
+            self.plot.get_plot().font_title.setPointSize(TITLE_FONT_SIZE)
+            self.plot.get_plot().set_title(run.get_id())
+            ax_font = self.plot.get_plot().get_axis_font("left")
+            ax_font.setPointSize(AXIS_FONT_SIZE)
+            self.plot.get_plot().set_axis_font("left", ax_font)
+            self.plot.get_plot().set_axis_font("bottom", ax_font)
+
+            self.layout.addWidget(self.plot, i % 3, int(i/3) )
             self.plots.append(self.plot)
 
     def update_all_plots(self, chr_transition):
@@ -599,9 +621,9 @@ class GraphArea(QtGui.QWidget):
 
 class ApplicationView(QtGui.QWidget):
     
-    def __init__(self):
+    def __init__(self, parent):
         super(ApplicationView, self).__init__()
-        
+        self.parent = parent
         self.initUI()
         
     def initUI(self):
@@ -648,8 +670,11 @@ class ApplicationView(QtGui.QWidget):
         assert all(x.internalPointer() == newvalue.indexes()[0].internalPointer() for x in newvalue.indexes())
 
         # selected_precursor = newvalue.indexes()[0].internalPointer().ref.getName()
-
+        import time
+        s = time.time()
         self.graph_layout.update_all_plots(newvalue.indexes()[0].internalPointer().ref)
+        self.parent.statusBar().showMessage(self.parent.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time.time() - s))
+
 
     def add_plots(self, datamodel):
         self.graph_layout.add_plots(datamodel)
@@ -684,7 +709,7 @@ class MainWindow(QtGui.QMainWindow):
         
     def initUI(self):               
         
-        self.application = ApplicationView()
+        self.application = ApplicationView(self)
         self.application.set_communication(self.c)
         self.setCentralWidget(self.application)
 
