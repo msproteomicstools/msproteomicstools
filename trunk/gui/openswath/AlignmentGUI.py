@@ -22,6 +22,7 @@ from guiqwt.transitional import QwtPlotItem
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
 USE_ANTIALIASING = True
+AUTOSCALE_Y_AXIS = True
 
 class Communicate(QtCore.QObject):
     
@@ -559,6 +560,26 @@ class MultiLinePlot(CurveDialog):
     def set_x_limits(self, xmin, xmax):
         self.get_plot().set_axis_limits('bottom', xmin, xmax)
 
+    def set_y_limits(self, ymin, ymax):
+        self.get_plot().set_axis_limits('left', ymin, ymax)
+
+    def set_y_limits_auto(self, xmin, xmax):
+        """
+        Automatically set y limits based on the data in the plot and the
+        visible range xmin, xmax.
+        """
+        allmin = []
+        allmax = []
+        for curve in self.curves:
+            data = curve.get_data()
+            filtered_data = [y for x,y in zip(data[0], data[1]) if x>xmin and x<xmax]
+            if len(filtered_data) == 0:
+                continue
+            allmin.append( min(filtered_data) )
+            allmax.append( max(filtered_data) )
+        if len(allmin) == 0 or len(allmax) == 0 : return
+        self.set_y_limits(min(allmin), max(allmax) )
+
     def update_all_curves(self, data, labels, ranges, mscore, intensity):
 
         assert len(data) == len(labels)
@@ -574,10 +595,77 @@ class MultiLinePlot(CurveDialog):
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
 
+        self.get_plot().do_autoscale()
+
     def mouseReleaseEvent(self, event):
         pass
         # TODO capture the mouse release 
         # print "mouse was released, range was ", self.myrange.get_range()
+
+class GraphEventHandler():
+    def __init__(self, parent):
+        self.plot = None
+        self.parent = parent
+
+    def panMouseMove(self, f, ev):
+        pass
+
+    def domove(self, f, ev):
+        pass
+
+    def panMousePress(self, f, ev):
+        pass
+
+    def panMouseRelease(self, f, ev):
+        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
+                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
+
+    def zoomMousePress(self, f, ev):
+        pass
+    def zoomMouseMove(self, f, ev):
+        pass
+
+    def zoomMouseRelease(self, f, ev):
+        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
+                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
+
+    def initialize(self, plot):
+        self.plot = plot
+
+        event_filter = self.plot.get_plot().filter
+        try:
+            # possible interactive choices: 
+            # SelectTool is default, RectZoomTool needs toolbar, SignalStatsTool needs toolbar
+            from guiqwt.tools import SelectTool
+            [t for t in self.plot.tools
+                if isinstance(t, SelectTool)]
+            start_state = t[0].start_state.values()[0]
+        except Exception:
+            # fallback value (1 is the first state)
+            start_state = 1
+            # see the following call chain
+            """
+            CurveDialog.__init__
+            -> CurveWidgetMixin.__init__
+              -> register_tools
+                -> register_all_curve_tools
+                  -> register_standard_tools
+                    -> add_tool
+                      -> register_plot (e.g. SelectTool which is default)
+                        -> setup_filter (e.g. SelectTool which is default)
+                          -> new_state (StatefulEventFilter)
+            """
+
+        # For the Middle Button (pan)
+        self.state0 = event_filter.add_event(start_state, event_filter.mouse_press(Qt.MidButton, Qt.NoModifier), self.panMousePress) 
+        self.state1 = event_filter.add_event(self.state0, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
+        # event_filter.add_event(self.state1, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.domove) 
+        event_filter.add_event(self.state1, event_filter.mouse_release(Qt.MidButton, Qt.NoModifier), self.panMouseRelease) 
+
+        # For the Right Button (zoom)
+        self.state10 = event_filter.add_event(start_state, event_filter.mouse_press(Qt.RightButton, Qt.NoModifier), self.zoomMousePress) 
+        self.state11 = event_filter.add_event(self.state10, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
+        event_filter.add_event(self.state11, event_filter.mouse_release(Qt.RightButton, Qt.NoModifier), self.zoomMouseRelease) 
 
 # 
 ## The widget for the Graphing area on the right
@@ -589,7 +677,6 @@ class GraphArea(QtGui.QWidget):
 
         self.initUI()
         self._wcount = 1
-        self.c = Communicate()
         self.plots = []
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
@@ -644,9 +731,13 @@ class GraphArea(QtGui.QWidget):
         from guidata.qt.QtGui import QFont
         for i, run in enumerate(datamodel.get_runs()):
 
-            self.plot = MultiLinePlot(edit=False, toolbar=False, 
+            self.plot = MultiLinePlot(edit=False, toolbar=False,
                                       options=dict(xlabel="Time (s)", ylabel="Intensity") )
             self.plot.setDataModel(run)
+
+            # start event handler which will hook itself into the guiqwt event model
+            e = GraphEventHandler(self)
+            e.initialize(self.plot)
 
             # set font and title of plot
             self.plot.get_plot().font_title.setPointSize(TITLE_FONT_SIZE)
@@ -658,6 +749,15 @@ class GraphArea(QtGui.QWidget):
 
             self.layout.addWidget(self.plot, i % 3, int(i/3) )
             self.plots.append(self.plot)
+
+    def reset_axis_all_plots(self, x_range, y_range, autoscale_y=False):
+        for i, pl in enumerate(self.plots):
+            pl.set_x_limits(x_range[0], x_range[1])
+            if autoscale_y:
+                pl.set_y_limits_auto(x_range[0], x_range[1])
+            else:
+                pl.set_y_limits(y_range[0], y_range[1])
+            pl.get_plot().replot()
 
     def update_all_plots(self, chr_transition):
         """
