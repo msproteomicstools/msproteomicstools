@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -16,7 +15,6 @@ last edited: October 2011
 
 import sys
 
-import re
 from random import random
 
 from PyQt4 import QtGui, QtCore
@@ -155,7 +153,7 @@ class RunDataModel():
     def _build_sequence_mapping(self):
         self._sequences_mapping = {}
         for precursor in self._precursor_mapping.keys():
-            seq = re.sub("[^A-Z]", "", precursor)
+            seq = precursor.split("/")[0]
             tmp = self._sequences_mapping.get(seq, [])
             tmp.append(precursor)
             self._sequences_mapping[seq] = tmp
@@ -228,7 +226,7 @@ class DataModel():
         return self._build_tree()
 
     def _build_tree(self):
-        # assume we have fully loaded
+
         peptide_sequences = set([])
         for r in self.runs:
             peptide_sequences.update( r.get_all_peptide_sequences() )
@@ -237,13 +235,16 @@ class DataModel():
         # print "pepseqs", peptide_sequences
         elements = []
         for seq in peptide_sequences:
+
             # get all precursors from all runs
             precursors = set([])
             for r in self.runs:
                 precursors.update( r.get_precursors_for_sequence(seq) )
+
             # print "found precursros", precursors
             pelements = []
             for p in precursors:
+
                 # get all transitions from all runs
                 transitions = set([])
                 for r in self.runs:
@@ -253,6 +254,7 @@ class DataModel():
                 for tr in transitions:
                     tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr,
                        peptideSequence = pm.getFullSequence(), datatype="Transition") )
+
                 pelements.append(ChromatogramTransition(p, pm.getCharge(), tr_elements, 
                        peptideSequence = pm.getFullSequence(), datatype="Precursor") )
             elements.append(ChromatogramTransition(seq, "NA", pelements, datatype="Peptide", 
@@ -734,8 +736,6 @@ class ApplicationView(QtGui.QWidget):
             self.treeView.expandMultiElementItems()
         else:
             self.treeView.collapseAll()
-
-
 
     def widgetclicked(self, value):
         print "clicked iittt"
