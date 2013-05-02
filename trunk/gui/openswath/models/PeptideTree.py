@@ -51,7 +51,7 @@ class PeptideTreeNode(TreeNode):
 
     def _getChildren(self):
         return [PeptideTreeNode(elem, self, index)
-            for index, elem in enumerate(self.ref.subelements)]
+            for index, elem in enumerate(self.ref.getSubelements())]
 
 class PeptideTree(TreeModel):
     def __init__(self, rootElements):
@@ -72,9 +72,9 @@ class PeptideTree(TreeModel):
         if role == Qt.DisplayRole and index.column() == 0:
             return QtCore.QVariant( node.ref.getPeptideSequence() )
         if role == Qt.DisplayRole and index.column() == 1:
-            return QtCore.QVariant( node.ref.charge )
+            return QtCore.QVariant( node.ref.getCharge() )
         if role == Qt.DisplayRole and index.column() == 2:
-            return QtCore.QVariant( node.ref.name )
+            return QtCore.QVariant( node.ref.getName() )
         return None
 
     def headerData(self, section, orientation, role):

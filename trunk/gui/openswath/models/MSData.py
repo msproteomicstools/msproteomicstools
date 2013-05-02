@@ -281,20 +281,26 @@ CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
 class ChromatogramTransition(object): # your internal structure
 
     def __init__(self, name, charge, subelements, peptideSequence=None, fullName=None, datatype="Precursor"):
-        self.name = name
-        self.charge = charge
-        self.fullName = fullName
-        self.peptideSequence = peptideSequence
-        self.subelements = subelements
+        self._name = name
+        self._charge = charge
+        self._fullName = fullName
+        self._peptideSequence = peptideSequence
+        self._subelements = subelements
         self.mytype = CHROMTYPES_r[datatype]
 
+    def getSubelements(self):
+        return self._subelements
+
     def getPeptideSequence(self):
-        if self.peptideSequence is None:
-            return self.name
-        return self.peptideSequence
+        if self._peptideSequence is None:
+            return self.getName()
+        return self._peptideSequence
 
     def getName(self):
-        return self.name
+        return self._name
+
+    def getCharge(self):
+        return self._charge
 
     def getType(self):
         return CHROMTYPES[self.mytype]
@@ -303,7 +309,7 @@ class ChromatogramTransition(object): # your internal structure
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_data_for_precursor(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
-            prec = run.get_precursors_for_sequence(self.name)
+            prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_data_for_precursor(prec[0]) 
             else:
@@ -329,7 +335,7 @@ class ChromatogramTransition(object): # your internal structure
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_range_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
-            prec = run.get_precursors_for_sequence(self.name)
+            prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_range_data(prec[0]) 
         return [ 0,0]
