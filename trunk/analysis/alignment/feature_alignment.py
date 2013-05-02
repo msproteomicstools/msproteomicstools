@@ -163,7 +163,7 @@ class Multipeptide():
 
     def more_than_fraction_selected(self, fraction):
       # returns true if more than fraction of the peakgroups are selected
-      if len( self.get_selected_peakgroups() )*1.0 / len(self.peptides) < fraction:
+      if len( self.get_selected_peakgroups() )*1.0 / len(self._peptides) < fraction:
           return False
       return True
 
