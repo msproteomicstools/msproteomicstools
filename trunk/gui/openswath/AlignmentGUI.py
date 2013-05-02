@@ -12,7 +12,7 @@ from PyQt4.QtCore import Qt, QModelIndex
 
 from guiqwt.plot import CurvePlot, CurveDialog
 from guiqwt.curve import CurveItem
-from guiqwt.builder import make 
+from guiqwt.builder import make
 from guiqwt.styles import CurveParam, COLORS
 
 class Communicate(QtCore.QObject):
@@ -90,7 +90,7 @@ class RunDataModel():
                 if key in ("indexList", "TIC"): continue
                 break
 
-            if len(key.split("_")) in [3,4]:
+            if len(key.split("_")) >= 3:
                 components = key.split("_")
                 trgr_nr = components[0]
                 if components[0].startswith("DECOY"):
@@ -186,12 +186,17 @@ class DataModel():
             self.runs.append(run)
             self.precursors.update(run.get_all_precursor_ids())
 
+    def getStatus(self):
+        # just do it for the first run
+        if len(self.runs) == 0:
+            return "Ready"
+
+        return '%s Transitions, %s Peptides' % ( len(self.runs[0]._run.info['offsets']) -2, len(self.runs[0]._sequences_mapping) )
+
     def get_precursor_list(self):
         return self.precursors
 
     def get_precursor_tree(self):
-        # self._build_tree()
-        # return self.precursors
         return self._build_tree()
 
     def _build_tree(self):
@@ -274,7 +279,6 @@ class ChromatogramTransition(object): # your internal structure
 
     def getData(self, run):
         if CHROMTYPES[self.mytype] == "Precursor" :
-            # Precursor type
             return run.get_data_for_precursor(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.name)
@@ -287,6 +291,23 @@ class ChromatogramTransition(object): # your internal structure
         elif CHROMTYPES[self.mytype] == "Transition" :
             return run.get_data_for_transition(self.getName()) 
         return [ [ [0], [0] ] ]
+
+    def getLabel(self, run):
+        # return only the last element
+        return [l.split("_")[-1] for l in self._getLabel(run)]
+
+    def _getLabel(self, run):
+        if CHROMTYPES[self.mytype] == "Precursor" :
+            return run.get_transitions_for_precursor(self.getName())
+        elif CHROMTYPES[self.mytype] == "Peptide" :
+            prec = run.get_precursors_for_sequence(self.name)
+            if len(prec) == 1:
+                return run.get_transitions_for_precursor(prec[0])
+            else:
+                pass
+        elif CHROMTYPES[self.mytype] == "Transition" :
+            return [self.getName()]
+        return [ "" ]
 
 # A TreeNode element
 class PeptideTreeNode(TreeNode):
@@ -439,14 +460,14 @@ class MultiLinePlot(CurveDialog):
     def setDataModel(self, run):
         self.run = run
 
-    def create_curves(self, nr):
+    def create_curves(self, labels):
 
         self.curves = []
         plot = self.get_plot()
         plot.del_all_items(except_grid=False)
-        for i in range(nr):
+        for i,l in enumerate(labels):
             param = CurveParam()
-            param.label = 'My curve'
+            param.label = str(l)
             #color = COLORS.get(self.colors[i],  self.colors[i] )
             if i >= len(self.colors):
                 color = COLORS.get(self.colors[0],  self.colors[0] )
@@ -461,6 +482,8 @@ class MultiLinePlot(CurveDialog):
             self.curves.append(curve)
 
             plot.add_item( curve )
+            l = make.legend("TR")
+            plot.add_item( l )
 
         self.myrange = make.range(0,0)
         self.myrange.itemChanged()
@@ -477,7 +500,9 @@ class MultiLinePlot(CurveDialog):
     def update_all_curves(self, chr_transition):
 
         data = chr_transition.getData(self.run) 
-        self.create_curves(len(data))
+        labels = chr_transition.getLabel(self.run) 
+        assert len(data) == len(labels)
+        self.create_curves(labels)
 
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
@@ -526,13 +551,13 @@ class GraphArea(QtGui.QWidget):
         self.plots = []
 
         self.plot = MultiLinePlot(edit=False, toolbar=False )
-        self.plot.create_curves(3)
+        self.plot.create_curves([1,2,3])
         self.add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
         self.plot2 = MultiLinePlot(edit=False, toolbar=False )
-        self.plot2.create_curves(2)
+        self.plot2.create_curves([1,2])
         self.add_new(self.plot2)
         self.plots.append(self.plot2)
 
