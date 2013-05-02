@@ -307,9 +307,20 @@ class ChromatogramTransition(object): # your internal structure
             if len(prec) == 1:
                 return run.get_data_for_precursor(prec[0]) 
             else:
-                # TODO dont just show the first one!
-                pass
-                # return run.get_data_for_precursor(prec[0]) 
+                final_data = []
+                # Sum up the data for all individual precursors
+                for p in prec:
+                    timedata = None
+                    intdata = None
+                    import numpy
+                    for data in run.get_data_for_precursor(p):
+                        if timedata is None:
+                            timedata = numpy.array(data[0])
+                            intdata = numpy.array(data[1])
+                        else:
+                            intdata = intdata + numpy.array(data[1])
+                    final_data.append( [timedata, intdata] )
+                return final_data
         elif CHROMTYPES[self.mytype] == "Transition" :
             return run.get_data_for_transition(self.getName()) 
         return [ [ [0], [0] ] ]
@@ -327,18 +338,20 @@ class ChromatogramTransition(object): # your internal structure
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_score_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
-            prec = run.get_precursors_for_sequence(self.name)
+            prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_score_data(prec[0]) 
+            else: return None
         return 1.0
 
     def getIntensity(self, run):
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_intensity_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
-            prec = run.get_precursors_for_sequence(self.name)
+            prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_intensity_data(prec[0]) 
+            else: return None
         return -1.0
 
     def getLabel(self, run):
@@ -349,11 +362,11 @@ class ChromatogramTransition(object): # your internal structure
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_transitions_for_precursor(self.getName())
         elif CHROMTYPES[self.mytype] == "Peptide" :
-            prec = run.get_precursors_for_sequence(self.name)
+            prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_transitions_for_precursor(prec[0])
             else:
-                pass
+                return prec
         elif CHROMTYPES[self.mytype] == "Transition" :
             return [self.getName()]
         return [ "" ]
