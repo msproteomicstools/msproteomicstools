@@ -68,7 +68,7 @@ INSTALL:
                 * maybe get started with http://pyqwt.sourceforge.net/download.html
 """
 
-import sys,time
+import sys,time, re
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
@@ -170,7 +170,7 @@ class GraphEventHandler():
         event_filter.add_event(self.state11, event_filter.mouse_release(Qt.RightButton, Qt.NoModifier), self.zoomMouseRelease) 
 
 # 
-## The widget for the Graphing area on the right
+## The widget for the graphing area on the right
 #
 class GraphArea(QtGui.QWidget):
 
@@ -286,46 +286,21 @@ class GraphArea(QtGui.QWidget):
             pl.get_plot().replot()
 
 #
-## Main Widget
+## Peptide Tree Widget (left side)
 # 
-class ApplicationView(QtGui.QWidget):
-    
-    def __init__(self, parent):
-        super(ApplicationView, self).__init__()
-        self.parent = parent
+class PeptideTreeWidget(QtGui.QWidget):
+
+    # Signals
+    selectionChanged = QtCore.pyqtSignal(QModelIndex)
+
+    def __init__(self):
+        super(PeptideTreeWidget, self).__init__()
         self.initUI()
-        
-    def changeReturnPressedTest(self):
-        print "return pressed with text", self.treeLineEdit.text()
-        # TODO do something here!, e.g. cycle through the elements
-
-    def changedTextTest(self, text):
-
-        # TODO also allow the column to be set!
-        # cmp source/VISUAL/SpectraViewWidget.C
-        column = 2
-
-        import re
-        s = re.compile(str(text), re.IGNORECASE)
-        m = self.treeView.model()
-        for model_idx in self.treeView.iterTopLevelElements(column):
-            display_data = m.data(model_idx, Qt.DisplayRole).toPyObject()
-            if s.match(display_data):
-                break
-            
-        if s.match(display_data):
-            selectionModel = self.treeView.selectionModel()
-            selectionModel.clearSelection()
-            selectionModel.select(model_idx, QtGui.QItemSelectionModel.Select)
-            self.treeView.setSelectionModel(selectionModel)
-            # Now scroll to the item
-            self.treeView.scrollTo(model_idx, QtGui.QAbstractItemView.PositionAtCenter)
 
     def initUI(self):
 
+        # Set up the model and the view
         self._precursor_model = PeptideTree([])
-        self._precursor_model.setHorizontalHeaderLabels([self.tr("Peptides")])
-
         self.treeView = PeptidesTreeView()
         self.treeView.setModel(self._precursor_model)
 
@@ -335,17 +310,117 @@ class ApplicationView(QtGui.QWidget):
         ## self.treeView.setModel(self.pProxyModel)
         ## self.treeView.setSortingEnabled(True)
 
-        # Do the left side (hirarchical tree)
+        searchbox_layout = QtGui.QHBoxLayout()
+        self.treeLineEdit = QtGui.QLineEdit()
+        self.treeComboBox = QtGui.QComboBox()
+        # Populate the ComboBox
+        for i in range(self._precursor_model.columnCount(self)):
+            self.treeComboBox.addItem(self._precursor_model.headerData(i, Qt.Horizontal, Qt.DisplayRole))
+
+        searchbox_layout.addWidget(self.treeLineEdit) 
+        searchbox_layout.addWidget(self.treeComboBox) 
+
+        # Combine the tree and the searchbox
         self.leftside_layout = QtGui.QVBoxLayout()
         self.leftside_layout.addWidget(self.treeView)
-        self.treeLineEdit = QtGui.QLineEdit()
-        self.leftside_layout.addWidget(self.treeLineEdit)
-        self.leftside = QtGui.QWidget()
-        self.leftside.setLayout(self.leftside_layout)
+        self.leftside_layout.addLayout(searchbox_layout)
+        self.setLayout(self.leftside_layout)
 
-        # TODO refactor to somewhere else!
+        #
+        ## Connect the Signals
+        #
         self.treeLineEdit.textChanged.connect(self.changedTextTest)
         self.treeLineEdit.returnPressed.connect(self.changeReturnPressedTest)
+        # QItemSelectionModel -> connect the tree to here
+        self.treeView.selectionModel().selectionChanged.connect(self.treeViewSelectionChanged) 
+
+    def changeReturnPressedTest(self):
+
+        if self.treeiter is None:
+            return
+
+        column =  self.treeComboBox.currentIndex()
+        try:
+            model_idx = self.treeiter.next()
+        except StopIteration:
+            # If we have reached the bottom, wrap around
+            try:
+                self.treeiter = self.generate_it(self.treeView, column, self.treeLineEdit.text())
+                model_idx = self.treeiter.next()
+            except StopIteration:
+                # No match found
+                return
+
+        self.treeView.selectAndScrollTo(model_idx)
+
+    # Iterator generator function to go through all indexes
+    def generate_it(self, treeView, column_, text_):
+        s = re.compile(str(text_), re.IGNORECASE)
+        m = treeView.model()
+        for model_idx in treeView.iterTopLevelElements(column_):
+            display_data = m.data(model_idx, Qt.DisplayRole).toPyObject()
+            if s.search(display_data):
+                yield model_idx
+
+    def changedTextTest(self, text):
+
+        column =  self.treeComboBox.currentIndex()
+        try:
+            self.treeiter = self.generate_it(self.treeView, column, text)
+            model_idx = self.treeiter.next()
+        except StopIteration:
+            # No match found
+            return
+
+        self.treeView.selectAndScrollTo(model_idx)
+
+    @QtCore.pyqtSlot(QtGui.QItemSelectionModel, QtGui.QItemSelectionModel)
+    def treeViewSelectionChanged(self, newvalue, oldvalue):
+        if len(newvalue.indexes()) == 0 :
+            return
+
+        # assert that the the underlying selected element is always the same. 
+        assert isinstance(newvalue, QtGui.QItemSelection)
+        assert all(x.internalPointer() == newvalue.indexes()[0].internalPointer() for x in newvalue.indexes())
+        self.selectionChanged.emit(newvalue.indexes()[0])
+
+    def expandLevel(self, level):
+        if level == "Peptides":
+            self.treeView.expandToDepth(0)
+        elif level == "Precursors":
+            self.treeView.expandToDepth(1)
+        elif level == "smart":
+            self.treeView.expandMultiElementItems()
+        else:
+            self.treeView.collapseAll()
+
+    def get_precursor_model(self):
+        return self._precursor_model
+
+#
+## Main Widget
+# 
+class ApplicationView(QtGui.QWidget):
+    
+    # Signals
+    plotsUpdated = QtCore.pyqtSignal(float)
+
+    def __init__(self, parent):
+        super(ApplicationView, self).__init__()
+        self.parent = None
+        self.treeiter = None
+        self.initUI()
+        
+    @QtCore.pyqtSlot(QModelIndex)
+    def treeSelectionChanged(self, idx):
+        s = time.time()
+        self.graph_layout.update_all_plots(idx.internalPointer().ref)
+        self.plotsUpdated.emit(time.time()-s)
+
+    def initUI(self):
+
+        self.leftside = PeptideTreeWidget()
+        self.leftside.selectionChanged.connect(self.treeSelectionChanged)
 
         # Do the main application (leftside/graphing area)
         self.graph_layout = GraphArea()
@@ -358,45 +433,19 @@ class ApplicationView(QtGui.QWidget):
 
         self.setLayout(hbox)
 
-        # QItemSelectionModel -> connect the tree to here
-        self.treeView.selectionModel().selectionChanged.connect(self.treeViewClicked) 
-
         # add dummy plots to the graph layout
         self.graph_layout.add_plots_dummy()
 
     def get_precursor_model(self):
-        return self._precursor_model
+        return self.leftside.get_precursor_model()
 
     def set_communication(self, c):
         self.c = c
 
-    def treeViewClicked(self, newvalue, oldvalue):
-        if len(newvalue.indexes()) == 0 :
-            return
-
-        # assert that the the underlying selected element is always the same. 
-        assert all(x.internalPointer() == newvalue.indexes()[0].internalPointer() for x in newvalue.indexes())
-
-        # selected_precursor = newvalue.indexes()[0].internalPointer().ref.getName()
-        import time
-        s = time.time()
-        self.graph_layout.update_all_plots(newvalue.indexes()[0].internalPointer().ref)
-        self.parent.statusBar().showMessage(self.parent.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time.time() - s))
-
 
     def add_plots(self, datamodel):
         self.graph_layout.add_plots(datamodel)
-        self.expandLevel("smart")
-
-    def expandLevel(self, level):
-        if level == "Peptides":
-            self.treeView.expandToDepth(0)
-        elif level == "Precursors":
-            self.treeView.expandToDepth(1)
-        elif level == "smart":
-            self.treeView.expandMultiElementItems()
-        else:
-            self.treeView.collapseAll()
+        self.leftside.expandLevel("smart")
 
     def widgetclicked(self, value):
         print "clicked iittt"
@@ -419,6 +468,7 @@ class MainWindow(QtGui.QMainWindow):
         
         self.application = ApplicationView(self)
         self.application.set_communication(self.c)
+        self.application.plotsUpdated.connect(self.plotsUpdated)
         self.setCentralWidget(self.application)
 
         ###################################
@@ -459,6 +509,10 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('OpenSWATH Alignment GUI')
         self.show()
         self.statusBar().showMessage('Ready')
+
+    @QtCore.pyqtSlot(float)
+    def plotsUpdated(self, time_taken):
+        self.statusBar().showMessage(self.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time_taken))
 
     def showDialog(self):
 

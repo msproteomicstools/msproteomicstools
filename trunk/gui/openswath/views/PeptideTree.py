@@ -61,3 +61,14 @@ class PeptidesTreeView( QtGui.QTreeView ):
         for i in range(m.rowCount(root)):
             yield m.index(i,column,root)
 
+    def selectAndScrollTo(self, model_idx):
+        if model_idx is None:
+            return
+
+        selectionModel = self.selectionModel()
+        selectionModel.clearSelection()
+        selectionModel.select(model_idx, QtGui.QItemSelectionModel.Select)
+        self.setSelectionModel(selectionModel)
+        # Now scroll to the item
+        self.scrollTo(model_idx, QtGui.QAbstractItemView.PositionAtCenter)
+
