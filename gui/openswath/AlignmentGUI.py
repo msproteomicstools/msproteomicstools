@@ -473,6 +473,23 @@ class ExamplePeptidesTreeView( QtGui.QTreeView ):
         
     def openMenu(self, position):
         pass
+
+    def expandMultiElementItems(self):
+        """
+        Expand all top elements in the tree that have more than one child
+        """
+
+        # find (fake) root and model
+        root = self.rootIndex()
+        m = self.model()
+
+        for i in range(m.rowCount(root)):
+            model_idx = m.index(i,0, root)
+            if len(model_idx.internalPointer().subnodes) > 1:
+                self.setExpanded(model_idx, True)
+
+
+
     #
     #    indexes = self.selectedIndexes()
     #    if len(indexes) > 0:
@@ -706,6 +723,19 @@ class ApplicationView(QtGui.QWidget):
 
     def add_plots(self, datamodel):
         self.graph_layout.add_plots(datamodel)
+        self.expandLevel("smart")
+
+    def expandLevel(self, level):
+        if level == "Peptides":
+            self.treeView.expandToDepth(0)
+        elif level == "Precursors":
+            self.treeView.expandToDepth(1)
+        elif level == "smart":
+            self.treeView.expandMultiElementItems()
+        else:
+            self.treeView.collapseAll()
+
+
 
     def widgetclicked(self, value):
         print "clicked iittt"
