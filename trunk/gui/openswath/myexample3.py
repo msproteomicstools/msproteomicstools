@@ -285,20 +285,11 @@ class ApplicationView(QtGui.QWidget):
 
         self.treeView = ExamplePeptidesTreeView()
         self.treeView.setModel(self.model)
-        
-        self.plot = CurveDialogView(edit=False, toolbar=False )
-        self.plot2 = CurvePlotView( self )
 
-        self.plot.add_curves(3)
-        self.plot2.add_curves(2)
-
-        graph_layout = GraphArea()
-        graph_layout.add_new(self.plot)
-        graph_layout.add_new(self.plot2)
-
+        self.graph_layout = GraphArea()
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
         horizontal_splitter.addWidget(self.treeView)
-        horizontal_splitter.addWidget(graph_layout)
+        horizontal_splitter.addWidget(self.graph_layout)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(horizontal_splitter)
@@ -306,11 +297,28 @@ class ApplicationView(QtGui.QWidget):
         self.setLayout(hbox)
 
         # connect the two
-        self.treeView.clicked.connect(self.treeViewClicked)
+        # self.treeView.clicked.connect(self.treeViewClicked)
+        # self.treeView.selectionChanged.connect(self.treeViewClicked)
+        ### self.treeView.connect(self,  QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),  self.treeViewClicked) 
+        self.treeView.selectionModel().selectionChanged.connect(self.treeViewClicked) 
 
-        # graph_layout.clicked.connect(self.widgetclicked)
+        print self.treeView.selectionModel()
 
-    def treeViewClicked(self, value):
+        self.add_plots()
+
+    def add_plots(self):
+        
+        self.plot = CurveDialogView(edit=False, toolbar=False )
+        self.plot2 = CurvePlotView( self )
+
+        self.plot.add_curves(3)
+        self.plot2.add_curves(2)
+
+        self.graph_layout.add_new(self.plot)
+        self.graph_layout.add_new(self.plot2)
+
+    def treeViewClicked(self, newvalue, oldvalue):
+        print "got value", newvalue, "old", oldvalue
         self.plot.update_all_curves(None)
         self.plot2.update_all_curves(None)
 
@@ -371,8 +379,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def showDialog(self):
 
-        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file', 
-                '/home')
+        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file')
         
         print "opened file ", fileList
         print "will open files", [str(f) for f in fileList]
