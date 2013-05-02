@@ -497,21 +497,21 @@ class MultiLinePlot(CurveDialog):
     def rangeChanged(self, data):
         print "range changed"
 
-    def update_all_curves(self, chr_transition):
+    def set_x_limits(self, xmin, xmax):
+        self.get_plot().set_axis_limits('bottom', xmin, xmax)
 
-        data = chr_transition.getData(self.run) 
-        labels = chr_transition.getLabel(self.run) 
+    def update_all_curves(self, data, labels):
+
         assert len(data) == len(labels)
         self.create_curves(labels)
 
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
+
         ## # TODO only here we can get the range ???
         ## # print "range was ", self.myrange.get_range()
         ## r = int( random() * 15)
         ## if not self.myrange is None: self.myrange.set_range(r, r+5)
-
-        self.get_plot().replot( )
 
     def mouseReleaseEvent(self, event):
         pass
@@ -568,15 +568,34 @@ class GraphArea(QtGui.QWidget):
 
         for run in datamodel.get_runs():
 
-            self.plot = MultiLinePlot(edit=False, toolbar=False)
+            self.plot = MultiLinePlot(edit=False, toolbar=False, 
+                                      options=dict(xlabel="Time (s)", ylabel="Intensity"))
             self.plot.setDataModel(run)
             self.add_new(self.plot)
             self.plots.append(self.plot)
 
     def update_all_plots(self, chr_transition):
-    
+        """
+        We update the plots for all runs.
+        """
+        # Get all data, compute overall min/max
+        xmins = []
+        xmaxs = []
+        pairs = []
         for pl in self.plots:
-            pl.update_all_curves(chr_transition)
+            data = chr_transition.getData(pl.run) 
+            labels = chr_transition.getLabel(pl.run) 
+            pairs.append( [data, labels] )
+            xmins.extend( [min(d[0]) for d in data] )
+            xmaxs.extend( [max(d[0]) for d in data] )
+
+        for i, pl in enumerate(self.plots):
+            data = pairs[i][0]
+            labels = pairs[i][1]
+            pl.update_all_curves(data, labels)
+            pl.set_x_limits(min(xmins),max(xmaxs))
+            pl.get_plot().replot()
+
 
 class ApplicationView(QtGui.QWidget):
     
@@ -724,6 +743,7 @@ class MainWindow(QtGui.QMainWindow):
         else:
             precursor_model.set_precursor_data(pr_list)
 
+        self.statusBar().showMessage(self.data_model.getStatus())
         self.application.add_plots(self.data_model)
 
     def center(self):
