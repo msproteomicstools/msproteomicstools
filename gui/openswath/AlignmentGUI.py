@@ -689,6 +689,12 @@ class ApplicationView(QtGui.QWidget):
         self.treeView = ExamplePeptidesTreeView()
         self.treeView.setModel(self._precursor_model)
 
+        ## -> this would be how to sort but it seems to be buggy
+        ## self.pProxyModel = QtGui.QSortFilterProxyModel()
+        ## self.pProxyModel.setSourceModel(self._precursor_model)
+        ## self.treeView.setModel(self.pProxyModel)
+        ## self.treeView.setSortingEnabled(True)
+
         self.graph_layout = GraphArea()
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
         horizontal_splitter.addWidget(self.treeView)
