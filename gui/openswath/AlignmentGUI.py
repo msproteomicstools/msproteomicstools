@@ -53,6 +53,43 @@ class RunDataModel():
         self.scan_for_precursor()
 
     def scan_for_precursor(self):
+        openswath_format = False
+        if len( self._run.info['offsets'] ) > 0:
+            keys = self._run.info['offsets'].keys()
+            if len(keys[0].split("_")) in [3,4]:
+                components = keys[0].split("_")
+                trgr_nr = components[0]
+                if components[0].startswith("DECOY"):
+                    trgr_nr = components[1]
+                try:
+                    trgr_nr = int(trgr_nr)
+                    openswath_format = True
+                except ValueError:
+                    openswath_format = False
+
+        if openswath_format:
+            print "is openswath format"
+            if len( self._run.info['offsets'] ) > 0:
+                for key in self._run.info['offsets'].keys():
+
+                    components = key.split("_")
+                    if key in ("indexList", "TIC"): continue
+
+                    trgr_nr = str(components[1])
+                    if components[0].startswith("DECOY"):
+                        trgr_nr = str(components[2])
+
+                    if self._precursor_mapping.has_key(trgr_nr):
+                        self._precursor_mapping[trgr_nr].append(key)
+                    else:
+                        self._precursor_mapping[trgr_nr] = [key]
+        else:
+            # TODO fallback option!!!
+            pass
+
+
+    def scan_for_precursor_by_peptide_seq(self):
+        # TODO group by id if it is present and in the correct format!!!
         for chrom in self._run:
             if chrom.has_key('precursors'):
                 # print chrom['precursors']
