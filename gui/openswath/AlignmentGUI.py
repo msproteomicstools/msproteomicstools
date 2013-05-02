@@ -37,6 +37,7 @@ class RunDataModel():
         self._basename = os.path.basename(filename)
         self._precursor_mapping = {}
         self._sequences_mapping = {}
+        self._range_mapping = {}
 
         self._group_by_precursor()
         self._group_precursors_by_sequence()
@@ -137,6 +138,9 @@ class RunDataModel():
             return [ [ [0], [0] ] ]
 
         return transitions
+
+    def get_range_data(self, precursor):
+        return self._range_mapping.get(precursor, [0,0])
 
     def get_id(self):
         return self._basename
@@ -303,6 +307,15 @@ class ChromatogramTransition(object): # your internal structure
             return run.get_data_for_transition(self.getName()) 
         return [ [ [0], [0] ] ]
 
+    def getRange(self, run):
+        if CHROMTYPES[self.mytype] == "Precursor" :
+            return run.get_range_data(self.getName()) 
+        elif CHROMTYPES[self.mytype] == "Peptide" :
+            prec = run.get_precursors_for_sequence(self.name)
+            if len(prec) == 1:
+                return run.get_range_data(prec[0]) 
+        return [ 0,0]
+
     def getLabel(self, run):
         # return only the last element
         return [l.split("_")[-1] for l in self._getLabel(run)]
@@ -458,7 +471,7 @@ class MultiLinePlot(CurveDialog):
     def setDataModel(self, run):
         self.run = run
 
-    def create_curves(self, labels):
+    def create_curves(self, labels, this_range):
 
         self.curves = []
         plot = self.get_plot()
@@ -483,7 +496,7 @@ class MultiLinePlot(CurveDialog):
             l = make.legend("TR")
             plot.add_item( l )
 
-        self.myrange = make.range(0,0)
+        self.myrange = make.range(this_range[0], this_range[1])
         self.myrange.itemChanged()
         # disp2 = make.computations(self.myrange, "TL",
         #                               [(curve, "min=%.5f", lambda x,y: y.min()),
@@ -498,10 +511,10 @@ class MultiLinePlot(CurveDialog):
     def set_x_limits(self, xmin, xmax):
         self.get_plot().set_axis_limits('bottom', xmin, xmax)
 
-    def update_all_curves(self, data, labels):
+    def update_all_curves(self, data, labels, ranges):
 
         assert len(data) == len(labels)
-        self.create_curves(labels)
+        self.create_curves(labels, ranges)
 
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
@@ -549,13 +562,13 @@ class GraphArea(QtGui.QWidget):
         self.plots = []
 
         self.plot = MultiLinePlot(edit=False, toolbar=False )
-        self.plot.create_curves([1,2,3])
+        self.plot.create_curves([1,2,3], [0,0])
         self.add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
         self.plot2 = MultiLinePlot(edit=False, toolbar=False )
-        self.plot2.create_curves([1,2])
+        self.plot2.create_curves([1,2], [0,0])
         self.add_new(self.plot2)
         self.plots.append(self.plot2)
 
@@ -592,18 +605,17 @@ class GraphArea(QtGui.QWidget):
         pairs = []
         for pl in self.plots:
             data = chr_transition.getData(pl.run) 
-            labels = chr_transition.getLabel(pl.run) 
-            pairs.append( [data, labels] )
+            pairs.append( data )
             xmins.extend( [min(d[0]) for d in data] )
             xmaxs.extend( [max(d[0]) for d in data] )
 
         for i, pl in enumerate(self.plots):
-            data = pairs[i][0]
-            labels = pairs[i][1]
-            pl.update_all_curves(data, labels)
+            data = pairs[i]
+            labels = chr_transition.getLabel(pl.run) 
+            ranges = chr_transition.getRange(pl.run) 
+            pl.update_all_curves(data, labels, ranges)
             pl.set_x_limits(min(xmins),max(xmaxs))
             pl.get_plot().replot()
-
 
 class ApplicationView(QtGui.QWidget):
     
