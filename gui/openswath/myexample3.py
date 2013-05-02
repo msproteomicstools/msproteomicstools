@@ -330,7 +330,16 @@ class MainWindow(QtGui.QMainWindow):
         application = ApplicationView()
         self.setCentralWidget(application)
 
+        ###################################
+        # Actions
+        ###################################
         icon = QtGui.QIcon("web.png")
+
+        openFile = QtGui.QAction(icon, 'Open', self)
+        openFile.setShortcut('Ctrl+O')
+        openFile.setStatusTip('Open new File')
+        openFile.triggered.connect(self.showDialog)
+
         exitAction = QtGui.QAction(icon, 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
@@ -338,12 +347,20 @@ class MainWindow(QtGui.QMainWindow):
 
         self.statusBar()
 
+        ###################################
+        # Menubar
+        ###################################
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(openFile)       
         fileMenu.addAction(exitAction)
 
+        ###################################
+        # Toolbar
+        ###################################
         toolbar = self.addToolBar('Exit')
-        toolbar.addAction(exitAction)
+        toolbar.addAction(openFile)
+        # toolbar.addAction(exitAction)
         
         # self.setGeometry(300, 300, 250, 150)
         self.resize(850, 550)
@@ -351,6 +368,25 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('Hannes example')
         self.show()
         self.statusBar().showMessage('Ready')
+
+    def showDialog(self):
+
+        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file', 
+                '/home')
+        
+        print "opened file ", fileList
+        print "will open files", [str(f) for f in fileList]
+
+        # TODO open those files and process them
+
+        # f = open(fname, 'r')
+        # 
+        # with f:        
+        #     data = f.read()
+        #     self.textEdit.setText(data) 
+
+
+
 
     def center(self):
         
