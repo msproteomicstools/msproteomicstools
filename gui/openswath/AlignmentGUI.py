@@ -56,8 +56,12 @@ class RunDataModel():
         openswath_format = False
         if len( self._run.info['offsets'] ) > 0:
             keys = self._run.info['offsets'].keys()
-            if len(keys[0].split("_")) in [3,4]:
-                components = keys[0].split("_")
+            for key in self._run.info['offsets'].keys():
+                if key in ("indexList", "TIC"): continue
+                break
+
+            if len(key.split("_")) in [3,4]:
+                components = key.split("_")
                 trgr_nr = components[0]
                 if components[0].startswith("DECOY"):
                     trgr_nr = components[1]
@@ -68,7 +72,6 @@ class RunDataModel():
                     openswath_format = False
 
         if openswath_format:
-            print "is openswath format"
             if len( self._run.info['offsets'] ) > 0:
                 for key in self._run.info['offsets'].keys():
 
@@ -86,7 +89,6 @@ class RunDataModel():
         else:
             # TODO fallback option!!!
             pass
-
 
     def scan_for_precursor_by_peptide_seq(self):
         # TODO group by id if it is present and in the correct format!!!
@@ -265,49 +267,11 @@ class ExamplePeptidesTreeView( QtGui.QTreeView ):
         
         menu.exec_(self.viewport().mapToGlobal(position))
 
-class CurvePlotView(CurvePlot):
-
-    def __init__(self, parent):
-        super(CurvePlotView, self).__init__(parent)
-        self.initialize()
-
-    def initialize(self):
-        self.colors = [
-                QtGui.QColor( 255, 0, 0),
-                QtGui.QColor( 50, 50, 50),
-                QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 0, 200, 100),
-                QtGui.QColor( 0, 0, 255),
-                QtGui.QColor( 255, 0, 80),
-                QtGui.QColor( 100, 0, 80),
-                QtGui.QColor( 100, 0, 0)
-        ]
-        self.curves = []
-
-    def create_curves(self, nr):
-
-        for i in range(nr):
-            param = CurveParam()
-            param.label = 'My curve'
-            print "try to get colors", i
-            if i >= len(self.colors):
-                color = COLORS.get(self.colors[0],  self.colors[0] )
-            else:
-                color = COLORS.get(self.colors[i],  self.colors[i] )
-            param.line.color = color
-
-            # create a new curve
-            curve = CurveItemModel(param)
-            self.curves.append(curve)
-            self.add_item( curve )
-
-    def update_all_curves(self, data):
-        for curve in self.curves:
-            curve.set_data( range( 0, 20, 2), map( lambda _: random(), range( 0, 10 ) ) )
-
-        self.replot( )
-
 class CurveDialogView(CurveDialog):
+    """For the Curve window we could use a CurveDialog or a CurvePlot. 
+
+    CurveDialog has more features and seems more advanced.
+    """
 
     def __init__(self, *args, **kwargs):
         super(CurveDialogView, self).__init__(*args, **kwargs)
@@ -397,30 +361,42 @@ class CurveItemModel(CurveItem):
         # self.curve = make.curve( [ ], [ ], "curve1", QtGui.QColor( 255, 0, 0) )
         pass
 
-# The widget for the Graphing area on the right
+# 
+## The widget for the Graphing area on the right
+#
 class GraphArea(QtGui.QWidget):
+
     def __init__(self):
         super(GraphArea, self).__init__()
 
         self.initUI()
         self._wcount = 1
         self.c = Communicate()
-        self.c.catch_mouse_press.connect(self.react_to_mouse)       
-        self.c.catch_mouse_release.connect(self.react_to_mouse_release)
+        # self.c.catch_mouse_press.connect(self.react_to_mouse)       
+        # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
+        self.plots = []
         
     def set_communicate(self, comm):
         self.c = comm
 
-    def react_to_mouse(self):
-        # print "react to mouse"
-        pass
-
-    def react_to_mouse_release(self):
-        # print "react to release mouse"
-        pass
-
     def initUI(self):
         self.layout = QtGui.QGridLayout(self)
+
+    # def react_to_mouse(self):
+    #     # print "react to mouse"
+    #     pass
+
+    # def react_to_mouse_release(self):
+    #     # print "react to release mouse"
+    #     pass
+
+    # def mousePressEvent(self, event):
+    #     
+    #     self.c.catch_mouse_press.emit()
+
+    # def mouseReleaseEvent(self, event):
+    #     
+    #     self.c.catch_mouse_release.emit()
 
     def delete_all(self):
         for i in range(self.layout.count()):
@@ -431,23 +407,38 @@ class GraphArea(QtGui.QWidget):
         self.layout.addWidget(l, self._wcount, 0)
         self._wcount += 1
 
-    def mousePressEvent(self, event):
+    def add_plots_dummy(self):
         
-        self.c.catch_mouse_press.emit()
+        self.plots = []
 
-    def mouseReleaseEvent(self, event):
+        self.plot = CurveDialogView(edit=False, toolbar=False )
+        self.plot.create_curves(3)
+        self.add_new(self.plot)
+        self.plots.append(self.plot)
+
+        #self.plot2 = CurvePlotView( self )
+        self.plot2 = CurveDialogView(edit=False, toolbar=False )
+        self.plot2.create_curves(2)
+        self.add_new(self.plot2)
+        self.plots.append(self.plot2)
+
+    def add_plots(self, datamodel):
         
-        self.c.catch_mouse_release.emit()
+        self.plots = []
+        self.delete_all()
 
-class ApplicationController:
+        for run in datamodel.get_runs():
+
+            self.plot = CurveDialogView(edit=False, toolbar=False)
+            self.plot.setDataModel(run)
+            self.add_new(self.plot)
+            self.plots.append(self.plot)
+
+    def update_all_plots(self, selected_precursor):
     
-    def __init__(self):
-        pass
-        
-    def start(self):
+        for pl in self.plots:
+            pl.update_all_curves(selected_precursor)
 
-        pass
-    
 class ApplicationView(QtGui.QWidget):
     
     def __init__(self):
@@ -474,15 +465,11 @@ class ApplicationView(QtGui.QWidget):
 
         self.setLayout(hbox)
 
-        # connect the two
-        # self.treeView.clicked.connect(self.treeViewClicked)
-        # self.treeView.selectionChanged.connect(self.treeViewClicked)
-        ### self.treeView.connect(self,  QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),  self.treeViewClicked) 
+        # QItemSelectionModel -> conect the tree to here
         self.treeView.selectionModel().selectionChanged.connect(self.treeViewClicked) 
 
-        print self.treeView.selectionModel()
-
-        self.add_plots_dummy()
+        # add dummy plots to the graph layout
+        self.graph_layout.add_plots_dummy()
 
     def get_precursor_model(self):
         return self._precursor_model
@@ -490,44 +477,23 @@ class ApplicationView(QtGui.QWidget):
     def set_communication(self, c):
         self.c = c
 
-    def add_plots_dummy(self):
-        
-        self.plots = []
-
-        self.plot = CurveDialogView(edit=False, toolbar=False )
-        self.plot.create_curves(3)
-        self.graph_layout.add_new(self.plot)
-        self.plots.append(self.plot)
-
-        self.plot2 = CurvePlotView( self )
-        self.plot2.create_curves(2)
-        self.graph_layout.add_new(self.plot2)
-        self.plots.append(self.plot2)
-
-    def add_plots(self, datamodel):
-        
-        self.plots = []
-        self.graph_layout.delete_all()
-
-        for run in datamodel.get_runs():
-
-            self.plot = CurveDialogView(edit=False, toolbar=False)
-            self.plot.setDataModel(run)
-            self.graph_layout.add_new(self.plot)
-            self.plots.append(self.plot)
-
     def treeViewClicked(self, newvalue, oldvalue):
 
         assert len(self.treeView.selectedIndexes()) == 1
         selected_precursor = self.treeView.selectedIndexes()[0].data().toPyObject()
 
-        for pl in self.plots:
-            pl.update_all_curves(selected_precursor)
+        self.graph_layout.update_all_plots(selected_precursor)
+
+    def add_plots(self, datamodel):
+        self.graph_layout.add_plots(datamodel)
 
     def widgetclicked(self, value):
         print "clicked iittt"
 
 
+#
+## Main Window
+# 
 class MainWindow(QtGui.QMainWindow):
     
     def __init__(self):
@@ -596,6 +562,7 @@ class MainWindow(QtGui.QMainWindow):
 
         pyFileList = ['/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R02_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML',
         '/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R01_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML']
+        pyFileList = ['/tmp/test.mzML']
 
         print "testst"
         
