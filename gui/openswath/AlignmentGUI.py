@@ -2,35 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-ZetCode PyQt4 tutorial 
-
-In this example, we connect a signal
-of a QtGui.QSlider to a slot 
-of a QtGui.QLCDNumber. 
-
-author: Jan Bodnar
-website: zetcode.com 
-last edited: October 2011
+OpenSwath Viewer
 """
 
 import sys
 
-from random import random
-
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
-from PyQt4 import Qwt5
-
-from guiqwt.plot import CurvePlot
+from guiqwt.plot import CurvePlot, CurveDialog
 from guiqwt.curve import CurveItem
-from guiqwt.builder import make
-from guiqwt.styles import CurveParam
-
-from guiqwt.plot import CurveDialog
-
-from guiqwt.styles import COLORS
-
+from guiqwt.builder import make 
+from guiqwt.styles import CurveParam, COLORS
 
 class Communicate(QtCore.QObject):
     
@@ -50,21 +33,60 @@ class RunDataModel():
         self._filename = filename
         self._precursor_mapping = {}
         self._sequences_mapping = {}
-        #print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
 
-        self._scan_for_precursor()
-        self._build_sequence_mapping()
+        self._group_by_precursor()
+        self._group_precursors_by_sequence()
 
-    def _scan_for_precursor(self):
+    #
+    ## Initialization
+    #
+    def _group_by_precursor(self):
         """
         Populate the mapping between precursors and the chromatogram ids.
 
-        The precursor is of type 'PEPT[xx]IDE/3' 
+        The precursor is of type 'PEPT[xx]IDE/3' with an optional (DECOY) tag
+        in front. Different modifications will generate different precursors,
+        but not different charge states.
         """
+        
+        openswath_format = self._has_openswath_format(self._run)
+        if openswath_format:
+            if len( self._run.info['offsets'] ) > 0:
+                for key in self._run.info['offsets'].keys():
+                    # specific to pymzl, we need to get rid of those two entries
+                    if key in ("indexList", "TIC"): continue
+
+                    # The precursor identifier is the second (or third for
+                    # decoys) element of the openswath format. Decoys should
+                    # get a different identifier!
+                    components = key.split("_")
+                    trgr_nr = str(components[1])
+                    if components[0].startswith("DECOY"):
+                        trgr_nr = "DECOY_" + str(components[2])
+
+                    if self._precursor_mapping.has_key(trgr_nr):
+                        self._precursor_mapping[trgr_nr].append(key)
+                    else:
+                        self._precursor_mapping[trgr_nr] = [key]
+
+        else:
+            # TODO fallback option!!!
+            pass
+            raise Exception("Could not parse chromatogram ids ... ")
+
+    def _has_openswath_format(self, run):
+        """Checks whether the chromatogram id follows a specific format which
+        could allow to map chromatograms to precursors without reading the
+        whole file.
+
+        Namely, the format is expected to be [DECOY_]\d*_.*_.* from which one
+        can infer that it is openswath format.
+        """
+
         openswath_format = False
-        if len( self._run.info['offsets'] ) > 0:
-            keys = self._run.info['offsets'].keys()
-            for key in self._run.info['offsets'].keys():
+        if len( run.info['offsets'] ) > 0:
+            keys = run.info['offsets'].keys()
+            for key in run.info['offsets'].keys():
                 if key in ("indexList", "TIC"): continue
                 break
 
@@ -75,90 +97,54 @@ class RunDataModel():
                     trgr_nr = components[1]
                 try:
                     trgr_nr = int(trgr_nr)
-                    openswath_format = True
+                    return True
                 except ValueError:
-                    openswath_format = False
+                    return False
 
-        if openswath_format:
-            if len( self._run.info['offsets'] ) > 0:
-                for key in self._run.info['offsets'].keys():
-
-                    components = key.split("_")
-                    if key in ("indexList", "TIC"): continue
-
-                    trgr_nr = str(components[1])
-                    if components[0].startswith("DECOY"):
-                        trgr_nr = "DECOY_" + str(components[2])
-
-                    if self._precursor_mapping.has_key(trgr_nr):
-                        self._precursor_mapping[trgr_nr].append(key)
-                    else:
-                        self._precursor_mapping[trgr_nr] = [key]
-        else:
-            # TODO fallback option!!!
-            pass
-
-    def _scan_for_precursor_by_peptide_seq(self):
-        # TODO group by id if it is present and in the correct format!!!
-        for chrom in self._run:
-            if chrom.has_key('precursors'):
-                # print chrom['precursors']
-                if len(chrom['precursors']) > 0:
-                    if chrom['precursors'][0]['userParams'].has_key("peptide_sequence"):
-                        this_prec = chrom['precursors'][0]['userParams']["peptide_sequence"] 
-                        r = self._precursor_mapping.get(this_prec, [])
-                        r.append(chrom['id'])
-                        self._precursor_mapping[this_prec] = r
-
-    def get_transitions_for_precursor(self, precursor):
-        return self._precursor_mapping.get(str(precursor), [])
-
-    def get_data_for_transition(self, chrom_id):
-        c = self._run[str(chrom_id)] 
-        return [ [c.time, c.i] ]
-
-    def get_data_for_precursor(self, precursor):
-
-        # print "will try to get", precursor, "from", self._run, "at", self._filename
-        # print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
-        # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == precursor
-        # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == str(precursor)
-        # print "prec mapping", self._precursor_mapping
-
-        if not self._precursor_mapping.has_key(str(precursor)):
-            # print "no precursor mapping"
-            return [ [ [0], [0] ] ]
-
-        transitions = []
-        for chrom_id in self._precursor_mapping[str(precursor)]:
-            # print "will try to get with", chrom_id
-            c = self._run[str(chrom_id)] 
-            # print c['id']
-            transitions.append([c.time, c.i])
-
-        #current_chroms = self._run[str(precursor)]
-        # current_chroms = self._run["DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3"]
-        if len(transitions) == 0: 
-            # print "transitoin len zero"
-            return [ [ [0], [0] ] ]
-        return transitions
-
-    def get_precursors_for_sequence(self, sequence):
-        return self._sequences_mapping.get(sequence, [])
-
-    def get_all_precursor_ids(self):
-        # return self._run.info['offsets'].keys() 
-        return self._precursor_mapping.keys()
-
-    def _build_sequence_mapping(self):
+    def _group_precursors_by_sequence(self):
+        """Group together precursors with the same charge state"""
         self._sequences_mapping = {}
         for precursor in self._precursor_mapping.keys():
             seq = precursor.split("/")[0]
             tmp = self._sequences_mapping.get(seq, [])
             tmp.append(precursor)
             self._sequences_mapping[seq] = tmp
-            # print "append to seq mapping", seq, tmp
-        # print "seq mapping is ", self._sequences_mapping
+
+    #
+    ## Getters (data) -> see ChromatogramTransition.getData
+    #
+    def get_data_for_transition(self, chrom_id):
+        c = self._run[str(chrom_id)] 
+        return [ [c.time, c.i] ]
+
+    def get_data_for_precursor(self, precursor):
+        """Retrieve data for a specific precursor - data will be as list of
+        pairs (timearray, intensityarray)"""
+
+        if not self._precursor_mapping.has_key(str(precursor)):
+            return [ [ [0], [0] ] ]
+
+        transitions = []
+        for chrom_id in self._precursor_mapping[str(precursor)]:
+            c = self._run[str(chrom_id)] 
+            transitions.append([c.time, c.i])
+
+        if len(transitions) == 0: 
+            return [ [ [0], [0] ] ]
+
+        return transitions
+
+    #
+    ## Getters (info)
+    #
+    def get_transitions_for_precursor(self, precursor):
+        return self._precursor_mapping.get(str(precursor), [])
+
+    def get_precursors_for_sequence(self, sequence):
+        return self._sequences_mapping.get(sequence, [])
+
+    def get_all_precursor_ids(self):
+        return self._precursor_mapping.keys()
 
     def get_all_peptide_sequences(self):
         return self._sequences_mapping.keys()
@@ -199,26 +185,6 @@ class DataModel():
             run = RunDataModel(run_, f)
             self.runs.append(run)
             self.precursors.update(run.get_all_precursor_ids())
-            ## first = run.next()
-            ## first['product']
-            ## first['precursors']
-            ## mz = first['precursors'][0]['mz']
-            ## # print mz
-            ## all_swathes[ int(mz) ] = run
-        # swath_chromatograms[ runid ] = all_swathes
-
-        # # get the chromatograms
-        # r = select_correct_swath(swath_chromatograms, current_mz)
-        # chrom_ids = pg.get_value("aggr_Fragment_Annotation").split(";")
-        # # print r, current_mz
-        # if not r.has_key(current_run.get_id()):
-        #     return ["NA"]
-        # allchroms = r[current_run.get_id()]
-        # current_chroms = [allchroms[chr_id] for chr_id in chrom_ids]
-        # alls = 0
-        # for c in current_chroms:
-        #     alls += sum( [p[1] for p in c.peaks if p[0] > this_run_lwidth and p[0] < this_run_rwidth ])
-        # return [alls]
 
     def get_precursor_list(self):
         return self.precursors
@@ -271,8 +237,9 @@ class DataModel():
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-## Generic tree models
-# from http://www.hardcoded.net/articles/using_qtreeview_with_qabstractitemmodel.htm
+# 
+## Tree Model - there are two options
+#
 from TreeModels import TreeNode
 from TreeModels import TreeModel
 
@@ -285,6 +252,7 @@ CHROMTYPES = {
 CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
 
 class ChromatogramTransition(object): # your internal structure
+
     def __init__(self, name, charge, subelements, peptideSequence=None, fullName=None, datatype="Precursor"):
         self.name = name
         self.charge = charge
@@ -329,6 +297,7 @@ class PeptideTreeNode(TreeNode):
     def _getChildren(self):
         return [PeptideTreeNode(elem, self, index)
             for index, elem in enumerate(self.ref.subelements)]
+
 
 class PeptideTree(TreeModel):
     def __init__(self, rootElements):
@@ -403,97 +372,17 @@ class PeptideTree(TreeModel):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# every model needs to have
-#  - rowCount(self, parent)
-#  - data(self, index, role)
-#  - setData (
-#  - headerData
-#  - flags  # should be editable/selectable
-
-# 
-## Tree Model - there are two options
-#
-# class ExamplePeptides_(QtCore.QAbstractItemModel):
-class ExamplePeptides_(QtCore.QAbstractListModel):
-
-    def __init__(self):
-        super(ExamplePeptides_, self).__init__()
-        self.precursor_data = [ "a", "b", "c", "d", "c"]
-
-    def rowCount(self, parent):
-        return len(self.precursor_data)
-
-    def index(self, row, column, parent):
-        # what do to
-        pass
-
-    def setHorizontalHeaderLabels(self, parent):
-        pass
-
-    def data(self, index, role):
-        # DecorationRole
-        # ToolTipRole
-        if index.isValid() and role == QtCore.Qt.DisplayRole:
-            #return QtCore.QVariant( self.precursor_data[ index.row() ] )
-            return self.precursor_data[ index.row() ]
-            
-
-        # if role == QtCore.Qt.ToolTipRole:
-        #     if index.row() == 0:
-        #         return "test Tipp"
-        #     elif index.row() == 1:
-        #         return "test Tipp middle"
-        #     else:
-        #         return "Tipp"
-
-    def headerData(self, section, orientation, role):
-        if role == QtCore.Qt.DisplayRole:
-            return "header!"
-
-    def columnCount(self, parent):
-        return 1
-
-    def set_precursor_data(self, data):
-        self.precursor_data = []
-        for data_item in data:
-            self.precursor_data.append(data_item)
-
-class ExamplePeptidesModel(QtGui.QStandardItemModel):
-
-    def __init__(self):
-        super(ExamplePeptidesModel, self).__init__()
-
-        self.initialize()
-
-    def initialize(self):
-        item = QtGui.QStandardItem("root")
-        self.appendRow(item)
-        item.appendRow( QtGui.QStandardItem("a") )
-        item.appendRow( QtGui.QStandardItem("foo") )
-        item2 = QtGui.QStandardItem("root2")
-        item2.appendRow( QtGui.QStandardItem("foo") )
-        self.appendRow(item2)
-
-    def set_precursor_data(self, data):
-        self.clear()
-        for data_item in data:
-            item = QtGui.QStandardItem(data_item)
-            self.appendRow(item)
-
 # 
 ## Tree View
 #
-class ExamplePeptidesTreeView( QtGui.QTreeView ):
+class PeptidesTreeView( QtGui.QTreeView ):
 
     def __init__(self):
-        super(ExamplePeptidesTreeView, self).__init__()
+        super(PeptidesTreeView, self).__init__()
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.openMenu)
+        # self.customContextMenuRequested.connect(self.openMenu)
         
-    def openMenu(self, position):
-        pass
-
     def expandMultiElementItems(self):
         """
         Expand all top elements in the tree that have more than one child
@@ -507,29 +396,6 @@ class ExamplePeptidesTreeView( QtGui.QTreeView ):
             model_idx = m.index(i,0, root)
             if len(model_idx.internalPointer().subnodes) > 1:
                 self.setExpanded(model_idx, True)
-
-
-
-    #
-    #    indexes = self.selectedIndexes()
-    #    if len(indexes) > 0:
-    #    
-    #        level = 0
-    #        index = indexes[0]
-    #        while index.parent().isValid():
-    #            index = index.parent()
-    #            level += 1
-    #    
-    #    # QWidget.tr == translate function
-    #    menu = QtGui.QMenu()
-    #    if level == 0:
-    #        menu.addAction(self.tr("Edit person"))
-    #    elif level == 1:
-    #        menu.addAction(self.tr("Edit object/container"))
-    #    elif level == 2:
-    #        menu.addAction(self.tr("Edit object"))
-    #    
-    #    menu.exec_(self.viewport().mapToGlobal(position))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -610,10 +476,7 @@ class MultiLinePlot(CurveDialog):
 
     def update_all_curves(self, chr_transition):
 
-        # if chr_transition.getType() == "Precursor":
-        #     precursor = chr_transition.getName()
-
-        data = chr_transition.getData(self.run) # self.run.get_data_for_precursor(precursor) 
+        data = chr_transition.getData(self.run) 
         self.create_curves(len(data))
 
         for d, curve in zip(data, self.curves):
@@ -699,12 +562,10 @@ class ApplicationView(QtGui.QWidget):
         
     def initUI(self):
 
-        # self._precursor_model = ExamplePeptides_()
-        # self._precursor_model = ExamplePeptidesModel()
         self._precursor_model = PeptideTree([])
         self._precursor_model.setHorizontalHeaderLabels([self.tr("Peptides")])
 
-        self.treeView = ExamplePeptidesTreeView()
+        self.treeView = PeptidesTreeView()
         self.treeView.setModel(self._precursor_model)
 
         ## -> this would be how to sort but it seems to be buggy
@@ -822,23 +683,11 @@ class MainWindow(QtGui.QMainWindow):
         self.show()
         self.statusBar().showMessage('Ready')
 
-        # for testing only TODO
-        self.showDialog()
-
     def showDialog(self):
 
-        ## fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file', 
-        ##                                               "/home/hr/projects/msproteomicstools/mzmls" )
-        ## 
-        ## print "opened file ", fileList
-        ## pyFileList = [str(f) for f in fileList]
+        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file')
+        pyFileList = [str(f) for f in fileList]
 
-        pyFileList = ['/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R02_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML',
-        '/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R01_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML']
-        pyFileList = ['/tmp/test.mzML']
-
-        print "testst"
-        
         # Load the files
         self.data_model.loadFiles(pyFileList)
 
@@ -851,17 +700,6 @@ class MainWindow(QtGui.QMainWindow):
             precursor_model.set_precursor_data(pr_list)
 
         self.application.add_plots(self.data_model)
-
-        # print "will open files", [str(f) for f in fileList]
-
-
-        # TODO open those files and process them
-
-        # f = open(fname, 'r')
-        # 
-        # with f:        
-        #     data = f.read()
-        #     self.textEdit.setText(data) 
 
     def center(self):
         
