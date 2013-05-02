@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+MEMORY_SAVE = True
 
 class RunDataModel():
 
@@ -257,9 +258,8 @@ class DataModel(object):
                 tr_elements = []
                 pm = PrecursorModel(p)
                 for tr in transitions:
-                    tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr,
-                       peptideSequence = pm.getFullSequence(), datatype="Transition") )
-
+                    if not MEMORY_SAVE:
+                        tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr, peptideSequence = pm.getFullSequence(), datatype="Transition") )
                 pelements.append(ChromatogramTransition(p, pm.getCharge(), tr_elements, 
                        peptideSequence = pm.getFullSequence(), datatype="Precursor") )
             elements.append(ChromatogramTransition(seq, "NA", pelements, datatype="Peptide", 
