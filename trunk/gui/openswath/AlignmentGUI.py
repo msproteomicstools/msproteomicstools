@@ -88,7 +88,7 @@ class RunDataModel():
 
                     trgr_nr = str(components[1])
                     if components[0].startswith("DECOY"):
-                        trgr_nr = str(components[2])
+                        trgr_nr = "DECOY_" + str(components[2])
 
                     if self._precursor_mapping.has_key(trgr_nr):
                         self._precursor_mapping[trgr_nr].append(key)
@@ -340,7 +340,7 @@ class PeptideTree(TreeModel):
             for index, elem in enumerate(self.rootElements)]
 
     def columnCount(self, parent):
-        return 2
+        return 3
 
     def data(self, index, role):
         if not index.isValid():
@@ -350,6 +350,8 @@ class PeptideTree(TreeModel):
             return QtCore.QVariant( node.ref.getPeptideSequence() )
         if role == Qt.DisplayRole and index.column() == 1:
             return QtCore.QVariant( node.ref.charge )
+        if role == Qt.DisplayRole and index.column() == 2:
+            return QtCore.QVariant( node.ref.name )
         return None
 
     def headerData(self, section, orientation, role):
@@ -359,6 +361,9 @@ class PeptideTree(TreeModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole \
             and section == 1:
             return 'Charge'
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole \
+            and section == 2:
+            return 'Full Name'
         return None
 
     def set_precursor_tree_structure(self, data):
