@@ -14,9 +14,14 @@ from guiqwt.plot import CurvePlot, CurveDialog
 from guiqwt.curve import CurveItem
 from guiqwt.builder import make
 from guiqwt.styles import CurveParam, COLORS
+from guiqwt.shapes import XRangeSelection
 
+from guiqwt.transitional import QwtPlotItem
+
+# global parameters
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
+USE_ANTIALIASING = True
 
 class Communicate(QtCore.QObject):
     
@@ -38,6 +43,8 @@ class RunDataModel():
         self._precursor_mapping = {}
         self._sequences_mapping = {}
         self._range_mapping = {}
+        self._score_mapping = {}
+        self._intensity_mapping = {}
 
         self._group_by_precursor()
         self._group_precursors_by_sequence()
@@ -141,6 +148,12 @@ class RunDataModel():
 
     def get_range_data(self, precursor):
         return self._range_mapping.get(precursor, [0,0])
+
+    def get_score_data(self, precursor):
+        return self._score_mapping.get(precursor, None)
+
+    def get_intensity_data(self, precursor):
+        return self._intensity_mapping.get(precursor, None)
 
     def get_id(self):
         return self._basename
@@ -316,6 +329,24 @@ class ChromatogramTransition(object): # your internal structure
                 return run.get_range_data(prec[0]) 
         return [ 0,0]
 
+    def getProbScore(self, run):
+        if CHROMTYPES[self.mytype] == "Precursor" :
+            return run.get_score_data(self.getName()) 
+        elif CHROMTYPES[self.mytype] == "Peptide" :
+            prec = run.get_precursors_for_sequence(self.name)
+            if len(prec) == 1:
+                return run.get_score_data(prec[0]) 
+        return 1.0
+
+    def getIntensity(self, run):
+        if CHROMTYPES[self.mytype] == "Precursor" :
+            return run.get_intensity_data(self.getName()) 
+        elif CHROMTYPES[self.mytype] == "Peptide" :
+            prec = run.get_precursors_for_sequence(self.name)
+            if len(prec) == 1:
+                return run.get_intensity_data(prec[0]) 
+        return -1.0
+
     def getLabel(self, run):
         # return only the last element
         return [l.split("_")[-1] for l in self._getLabel(run)]
@@ -489,15 +520,32 @@ class MultiLinePlot(CurveDialog):
 
             # create a new curve
             curve = CurveItemModel(param)
-
             self.curves.append(curve)
-
             plot.add_item( curve )
+            curve.setRenderHint(QwtPlotItem.RenderAntialiased, USE_ANTIALIASING)
             l = make.legend("TR")
             plot.add_item( l )
 
         self.myrange = make.range(this_range[0], this_range[1])
         self.myrange.itemChanged()
+        self.myrange.set_movable(False)
+        #
+        if False:
+            # make all colors black/gray
+            # check /usr/lib/python2.7/dist-packages/guiqwt/config.py for parameters
+            # 
+            from guidata.dataset.dataitems import ColorItem
+            self.myrange.shapeparam.fill = ColorItem("gray")
+            self.myrange.shapeparam.line.color = "#000000"
+            self.myrange.shapeparam.sel_line.color = "#000000"
+            self.myrange.shapeparam.symbol.facecolor = "#000000"
+            self.myrange.shapeparam.sel_symbol.facecolor = "#000000"
+            #
+            self.myrange.shapeparam.update_range(self.myrange) # creates all the above QObjects
+
+        self.myrange.set_resizable(False)
+        self.myrange.itemChanged()
+        # print self.myrange._can_move, "move"
         # disp2 = make.computations(self.myrange, "TL",
         #                               [(curve, "min=%.5f", lambda x,y: y.min()),
         #                                (curve, "max=%.5f", lambda x,y: y.max()),
@@ -511,18 +559,20 @@ class MultiLinePlot(CurveDialog):
     def set_x_limits(self, xmin, xmax):
         self.get_plot().set_axis_limits('bottom', xmin, xmax)
 
-    def update_all_curves(self, data, labels, ranges):
+    def update_all_curves(self, data, labels, ranges, mscore, intensity):
 
         assert len(data) == len(labels)
         self.create_curves(labels, ranges)
+        if mscore is not None: 
+            self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
+            self.get_plot().add_item( self.mscore_label )
+            self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
+            self.get_plot().add_item( self.l2 )
+            self.width = make.label("PeakWidth=%0.4g" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
+            self.get_plot().add_item( self.width )
 
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
-
-        ## # TODO only here we can get the range ???
-        ## # print "range was ", self.myrange.get_range()
-        ## r = int( random() * 15)
-        ## if not self.myrange is None: self.myrange.set_range(r, r+5)
 
     def mouseReleaseEvent(self, event):
         pass
@@ -613,7 +663,9 @@ class GraphArea(QtGui.QWidget):
             data = pairs[i]
             labels = chr_transition.getLabel(pl.run) 
             ranges = chr_transition.getRange(pl.run) 
-            pl.update_all_curves(data, labels, ranges)
+            mscore = chr_transition.getProbScore(pl.run) 
+            intensity = chr_transition.getIntensity(pl.run) 
+            pl.update_all_curves(data, labels, ranges, mscore, intensity)
             pl.set_x_limits(min(xmins),max(xmaxs))
             pl.get_plot().replot()
 
@@ -648,7 +700,7 @@ class ApplicationView(QtGui.QWidget):
 
         self.setLayout(hbox)
 
-        # QItemSelectionModel -> conect the tree to here
+        # QItemSelectionModel -> connect the tree to here
         self.treeView.selectionModel().selectionChanged.connect(self.treeViewClicked) 
 
         # add dummy plots to the graph layout
@@ -746,7 +798,7 @@ class MainWindow(QtGui.QMainWindow):
         # self.setGeometry(300, 300, 250, 150)
         self.resize(850, 550)
         self.center()
-        self.setWindowTitle('Hannes example')
+        self.setWindowTitle('OpenSWATH Alignment GUI')
         self.show()
         self.statusBar().showMessage('Ready')
 
