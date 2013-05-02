@@ -188,7 +188,10 @@ class DataModel():
 
     def loadFiles(self, filenames):
 
+        # load new files, clean up ...
         self.runs = []
+        self.precursors = set([])
+
         for f in filenames:
             print "read file", f
             import pymzml
@@ -359,14 +362,24 @@ class PeptideTree(TreeModel):
         return None
 
     def set_precursor_tree_structure(self, data):
+
+        # first delete all rows
+        parent = QModelIndex()
+        self.beginRemoveRows(parent, 0, len(self.rootElements) )
         self.rootElements = []
-        # print "Set with dataA", data
+        self.endRemoveRows()
+
+        # now add the new rows
+        parent = QModelIndex()
+        self.beginInsertRows(parent, 0, len(data) )
         self.rootElements = data
+        self.endInsertRows()
 
         # initialize super method again
         self.initialize()
 
     def set_precursor_data(self, data):
+        raise Exception("Not implemented - needs begin/end remove/insrt")
         self.rootElements = []
         for data_item in data:
             try:
@@ -718,11 +731,10 @@ class ApplicationView(QtGui.QWidget):
         self.c = c
 
     def treeViewClicked(self, newvalue, oldvalue):
+        if len(newvalue.indexes()) == 0 :
+            return
 
-        # assert that only one single element was selected (even if multiple
-        # columns are present) <=> more than one needs to be selected and they
-        # all need to have the same internal pointer object
-        assert len(newvalue.indexes()) > 0 
+        # assert that the the underlying selected element is always the same. 
         assert all(x.internalPointer() == newvalue.indexes()[0].internalPointer() for x in newvalue.indexes())
 
         # selected_precursor = newvalue.indexes()[0].internalPointer().ref.getName()
