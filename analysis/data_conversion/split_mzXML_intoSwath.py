@@ -92,7 +92,7 @@ def rewrite_single_scan(mybuffer, swathscan):
 
 windows = []
 for w in range(window_size):
-    windows.append( open(out_dir + 'split_' + filename + '_' + str(w) + '.mzXML', 'w') )
+    windows.append( open(out_dir + 'split_%s_%02d.mzXML' % (filename,w) , 'w') )
 if writeMs1:
     ms1map = open(out_dir + 'split_' + filename + '_' + 'ms1scan.mzXML', 'w')
 
