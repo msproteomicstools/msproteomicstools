@@ -48,7 +48,20 @@ class RunDataModel():
     def __init__(self, run, filename):
         self._run = run
         self._filename = filename
+        self._precursor_mapping = {}
         #print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
+        self.scan_for_precursor()
+
+    def scan_for_precursor(self):
+        for chrom in self._run:
+            if chrom.has_key('precursors'):
+                # print chrom['precursors']
+                if len(chrom['precursors']) > 0:
+                    if chrom['precursors'][0]['userParams'].has_key("peptide_sequence"):
+                        this_prec = chrom['precursors'][0]['userParams']["peptide_sequence"] 
+                        r = self._precursor_mapping.get(this_prec, [])
+                        r.append(chrom['id'])
+                        self._precursor_mapping[this_prec] = r
 
     def get_data_for_precursor(self, precursor):
 
@@ -56,14 +69,29 @@ class RunDataModel():
         # print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
         # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == precursor
         # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == str(precursor)
-        current_chroms = self._run[str(precursor)]
-        # current_chroms = self._run["DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3"]
-        if current_chroms is None: 
-            return [ [ [0], [0] ] ]
-        return [ [current_chroms.time, current_chroms.i] ]
+        # print "prec mapping", self._precursor_mapping
 
-    def get_all_chromatogram_ids(self):
-        return self._run.info['offsets'].keys() 
+        if not self._precursor_mapping.has_key(str(precursor)):
+            # print "no precursor mapping"
+            return [ [ [0], [0] ] ]
+
+        transitions = []
+        for chrom_id in self._precursor_mapping[str(precursor)]:
+            # print "will try to get with", chrom_id
+            c = self._run[str(chrom_id)] 
+            # print c['id']
+            transitions.append([c.time, c.i])
+
+        #current_chroms = self._run[str(precursor)]
+        # current_chroms = self._run["DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3"]
+        if len(transitions) == 0: 
+            # print "transitoin len zero"
+            return [ [ [0], [0] ] ]
+        return transitions
+
+    def get_all_display_ids(self):
+        # return self._run.info['offsets'].keys() 
+        return self._precursor_mapping.keys()
 
 class DataModel():
 
@@ -79,7 +107,7 @@ class DataModel():
             run_ = pymzml.run.Reader(f, build_index_from_scratch=True)
             run = RunDataModel(run_, f)
             self.runs.append(run)
-            self.precursors.update(run.get_all_chromatogram_ids())
+            self.precursors.update(run.get_all_display_ids())
             ## first = run.next()
             ## first['product']
             ## first['precursors']
@@ -211,9 +239,11 @@ class CurvePlotView(CurvePlot):
                 QtGui.QColor( 255, 0, 0),
                 QtGui.QColor( 50, 50, 50),
                 QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 0, 200, 100),
+                QtGui.QColor( 0, 0, 255),
+                QtGui.QColor( 255, 0, 80),
+                QtGui.QColor( 100, 0, 80),
+                QtGui.QColor( 100, 0, 0)
         ]
         self.curves = []
 
@@ -222,7 +252,11 @@ class CurvePlotView(CurvePlot):
         for i in range(nr):
             param = CurveParam()
             param.label = 'My curve'
-            color = COLORS.get(self.colors[i],  self.colors[i] )
+            print "try to get colors", i
+            if i >= len(self.colors):
+                color = COLORS.get(self.colors[0],  self.colors[0] )
+            else:
+                color = COLORS.get(self.colors[i],  self.colors[i] )
             param.line.color = color
 
             # create a new curve
@@ -249,9 +283,11 @@ class CurveDialogView(CurveDialog):
                 QtGui.QColor( 255, 0, 0),
                 QtGui.QColor( 50, 50, 50),
                 QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
-                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 0, 200, 100),
+                QtGui.QColor( 0, 0, 255),
+                QtGui.QColor( 255, 0, 80),
+                QtGui.QColor( 100, 0, 80),
+                QtGui.QColor( 100, 0, 0)
         ]
         self.curves = []
         self.ranges = []
@@ -267,7 +303,12 @@ class CurveDialogView(CurveDialog):
         for i in range(nr):
             param = CurveParam()
             param.label = 'My curve'
-            color = COLORS.get(self.colors[i],  self.colors[i] )
+            #color = COLORS.get(self.colors[i],  self.colors[i] )
+            if i >= len(self.colors):
+                color = COLORS.get(self.colors[0],  self.colors[0] )
+            else:
+                color = COLORS.get(self.colors[i],  self.colors[i] )
+ 
             param.line.color = color
 
             # create a new curve
