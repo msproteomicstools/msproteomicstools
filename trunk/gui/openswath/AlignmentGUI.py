@@ -374,7 +374,6 @@ class PeptideTreeNode(TreeNode):
         return [PeptideTreeNode(elem, self, index)
             for index, elem in enumerate(self.ref.subelements)]
 
-
 class PeptideTree(TreeModel):
     def __init__(self, rootElements):
         self.rootElements = rootElements
@@ -450,15 +449,16 @@ class PeptidesTreeView( QtGui.QTreeView ):
         """
         Expand all top elements in the tree that have more than one child
         """
+        for model_idx in self.iterTopLevelElements(0):
+            if len(model_idx.internalPointer().subnodes) > 1:
+                self.setExpanded(model_idx, True)
 
+    def iterTopLevelElements(self, column):
         # find (fake) root and model
         root = self.rootIndex()
         m = self.model()
-
         for i in range(m.rowCount(root)):
-            model_idx = m.index(i,0, root)
-            if len(model_idx.internalPointer().subnodes) > 1:
-                self.setExpanded(model_idx, True)
+            yield m.index(i,column,root)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -690,6 +690,32 @@ class ApplicationView(QtGui.QWidget):
         self.parent = parent
         self.initUI()
         
+    def changeReturnPressedTest(self):
+        print "return pressed with text", self.treeLineEdit.text()
+        # TODO do something here!, e.g. cycle through the elements
+
+    def changedTextTest(self, text):
+
+        # TODO also allow the column to be set!
+        # cmp source/VISUAL/SpectraViewWidget.C
+        column = 2
+
+        import re
+        s = re.compile(str(text), re.IGNORECASE)
+        m = self.treeView.model()
+        for model_idx in self.treeView.iterTopLevelElements(column):
+            display_data = m.data(model_idx, Qt.DisplayRole).toPyObject()
+            if s.match(display_data):
+                break
+            
+        if s.match(display_data):
+            selectionModel = self.treeView.selectionModel()
+            selectionModel.clearSelection()
+            selectionModel.select(model_idx, QtGui.QItemSelectionModel.Select)
+            self.treeView.setSelectionModel(selectionModel)
+            # Now scroll to the item
+            self.treeView.scrollTo(model_idx, QtGui.QAbstractItemView.PositionAtCenter)
+
     def initUI(self):
 
         self._precursor_model = PeptideTree([])
@@ -704,9 +730,22 @@ class ApplicationView(QtGui.QWidget):
         ## self.treeView.setModel(self.pProxyModel)
         ## self.treeView.setSortingEnabled(True)
 
+        # Do the left side (hirarchical tree)
+        self.leftside_layout = QtGui.QVBoxLayout()
+        self.leftside_layout.addWidget(self.treeView)
+        self.treeLineEdit = QtGui.QLineEdit()
+        self.leftside_layout.addWidget(self.treeLineEdit)
+        self.leftside = QtGui.QWidget()
+        self.leftside.setLayout(self.leftside_layout)
+
+        # TODO refactor to somewhere else!
+        self.treeLineEdit.textChanged.connect(self.changedTextTest)
+        self.treeLineEdit.returnPressed.connect(self.changeReturnPressedTest)
+
+        # Do the main application (leftside/graphing area)
         self.graph_layout = GraphArea()
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        horizontal_splitter.addWidget(self.treeView)
+        horizontal_splitter.addWidget(self.leftside)
         horizontal_splitter.addWidget(self.graph_layout)
 
         hbox = QtGui.QHBoxLayout()
