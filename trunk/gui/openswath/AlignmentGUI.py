@@ -3,9 +3,18 @@
 
 """
 OpenSwath Viewer
+
+Usage:
+    middle-mouse click : auto-zoom
+    middle-mouse move  : pan
+    right-mouse move   : zoom
+
+TODO: 
+    use QDockWidget
+
 """
 
-import sys
+import sys,time
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
@@ -961,16 +970,20 @@ class MainWindow(QtGui.QMainWindow):
         pyFileList = [str(f) for f in fileList]
 
         # Load the files
+        start = time.time() 
         self.data_model.loadFiles(pyFileList)
-        self._refresh_view()
+        self._refresh_view(time=time.time()-start)
 
-    def _refresh_view(self):
+    def _refresh_view(self, time=0):
 
         # get precursors from data and set it 
         pr_list = self.data_model.get_precursor_list()
         precursor_model = self.application.get_precursor_model()
         precursor_model.set_precursor_tree_structure(self.data_model.get_precursor_tree())
-        self.statusBar().showMessage(self.data_model.getStatus())
+        tmessage = ""
+        if time > 0:
+            tmessage = "Loading took %0.4fs" % time
+        self.statusBar().showMessage(self.data_model.getStatus() + tmessage)
         self.application.add_plots(self.data_model)
 
     def center(self):
