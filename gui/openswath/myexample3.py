@@ -20,10 +20,14 @@ from random import random
 
 from PyQt4 import QtGui, QtCore
 
+from PyQt4 import Qwt5
+
 from guiqwt.plot import CurvePlot
 from guiqwt.curve import CurveItem
 from guiqwt.builder import make
 from guiqwt.styles import CurveParam
+
+from guiqwt.plot import CurveDialog
 
 from guiqwt.styles import COLORS
 
@@ -110,7 +114,6 @@ class ExamplePeptidesTreeView( QtGui.QTreeView ):
         
         menu.exec_(self.viewport().mapToGlobal(position))
 
-
 class CurvePlotView(CurvePlot):
 
     def __init__(self, parent):
@@ -147,6 +150,67 @@ class CurvePlotView(CurvePlot):
 
         self.replot( )
 
+class CurveDialogView(CurveDialog):
+
+    def __init__(self, *args, **kwargs):
+        super(CurveDialogView, self).__init__(*args, **kwargs)
+        self.initialize()
+
+    def initialize(self):
+        self.colors = [
+                QtGui.QColor( 255, 0, 0),
+                QtGui.QColor( 50, 50, 50),
+                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 255, 0, 255),
+        ]
+        self.curves = []
+        self.ranges = []
+
+    def add_curves(self, nr):
+
+        plot = self.get_plot()
+        for i in range(nr):
+            param = CurveParam()
+            param.label = 'My curve'
+            color = COLORS.get(self.colors[i],  self.colors[i] )
+            param.line.color = color
+
+            # create a new curve
+            curve = CurveItemModel(param)
+
+            self.curves.append(curve)
+
+            plot.add_item( curve )
+
+        self.myrange = make.range(0,0)
+        self.myrange.itemChanged()
+        # disp2 = make.computations(self.myrange, "TL",
+        #                               [(curve, "min=%.5f", lambda x,y: y.min()),
+        #                                (curve, "max=%.5f", lambda x,y: y.max()),
+        #                                (curve, "avg=%.5f", lambda x,y: y.mean())])
+        # plot.add_item( disp2 )
+        plot.add_item( self.myrange )
+
+    def rangeChanged(self, data):
+        print "range changed"
+
+    def update_all_curves(self, data):
+        for curve in self.curves:
+            curve.set_data( range( 0, 20, 2), map( lambda _: random(), range( 0, 10 ) ) )
+        # TODO only here we can get the range ???
+        # print "range was ", self.myrange.get_range()
+        r = int( random() * 15)
+        self.myrange.set_range(r, r+5)
+
+        self.get_plot().replot( )
+
+    def mouseReleaseEvent(self, event):
+        pass
+        # TODO here i can capture the mouse release and the range !
+        # print "mouse was released, range was ", self.myrange.get_range()
+
 class CurveItemModel(CurveItem):
 
     def __init__(self, *args, **kwargs):
@@ -165,13 +229,32 @@ class GraphArea(QtGui.QWidget):
 
         self.initUI()
         self._wcount = 1
+        self.c = Communicate()
+        self.c.catch_mouse_press.connect(self.react_to_mouse)       
+        self.c.catch_mouse_release.connect(self.react_to_mouse_release)
         
+    def react_to_mouse(self):
+        # print "react to mouse"
+        pass
+
+    def react_to_mouse_release(self):
+        # print "react to release mouse"
+        pass
+
     def initUI(self):
         self.layout = QtGui.QGridLayout(self)
 
     def add_new(self, l):
         self.layout.addWidget(l, self._wcount, 0)
         self._wcount += 1
+
+    def mousePressEvent(self, event):
+        
+        self.c.catch_mouse_press.emit()
+
+    def mouseReleaseEvent(self, event):
+        
+        self.c.catch_mouse_release.emit()
 
 class ApplicationController:
     
@@ -182,6 +265,11 @@ class ApplicationController:
 
         pass
 
+class Communicate(QtCore.QObject):
+    
+    catch_mouse_press = QtCore.pyqtSignal() 
+    catch_mouse_release = QtCore.pyqtSignal() 
+    
 class ApplicationView(QtGui.QWidget):
     
     def __init__(self):
@@ -198,7 +286,7 @@ class ApplicationView(QtGui.QWidget):
         self.treeView = ExamplePeptidesTreeView()
         self.treeView.setModel(self.model)
         
-        self.plot = CurvePlotView( self )
+        self.plot = CurveDialogView(edit=False, toolbar=False )
         self.plot2 = CurvePlotView( self )
 
         self.plot.add_curves(3)
@@ -220,15 +308,49 @@ class ApplicationView(QtGui.QWidget):
         # connect the two
         self.treeView.clicked.connect(self.treeViewClicked)
 
+        # graph_layout.clicked.connect(self.widgetclicked)
+
+    def treeViewClicked(self, value):
+        self.plot.update_all_curves(None)
+        self.plot2.update_all_curves(None)
+
+    def widgetclicked(self, value):
+        print "clicked iittt"
+
+
+class MainWindow(QtGui.QMainWindow):
+    
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        
+        self.initUI()
+        
+    def initUI(self):               
+        
+        application = ApplicationView()
+        self.setCentralWidget(application)
+
+        icon = QtGui.QIcon("web.png")
+        exitAction = QtGui.QAction(icon, 'Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.close)
+
+        self.statusBar()
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAction)
+
+        toolbar = self.addToolBar('Exit')
+        toolbar.addAction(exitAction)
+        
         # self.setGeometry(300, 300, 250, 150)
         self.resize(850, 550)
         self.center()
         self.setWindowTitle('Hannes example')
         self.show()
-
-    def treeViewClicked(self, value):
-        self.plot.update_all_curves(None)
-        self.plot2.update_all_curves(None)
+        self.statusBar().showMessage('Ready')
 
     def center(self):
         
@@ -237,8 +359,7 @@ class ApplicationView(QtGui.QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
-    ex = ApplicationView()
+    ex = MainWindow()
     sys.exit(app.exec_())
