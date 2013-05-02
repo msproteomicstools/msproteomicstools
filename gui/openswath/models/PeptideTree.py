@@ -78,11 +78,9 @@ class PeptideTree(TreeModel):
         return None
 
     def headerData(self, section, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole \
-            and section == 0:
+        if section == 0:
             return 'Peptide Sequence'
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole \
-            and section == 1:
+        if section == 1:
             return 'Charge'
         if orientation == Qt.Horizontal and role == Qt.DisplayRole \
             and section == 2:
@@ -106,5 +104,3 @@ class PeptideTree(TreeModel):
         # initialize super method again
         self.initialize()
 
-    def setHorizontalHeaderLabels(self, parent):
-        pass
