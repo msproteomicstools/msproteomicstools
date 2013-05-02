@@ -12,6 +12,24 @@ Usage:
 TODO: 
     use QDockWidget
 
+INSTALL:
+    Dependencies:
+        - Python >= 2.5
+        - numpy / scipy
+        - PyQt4 >= 4.3
+        - PyQwt >= 5.2
+        - PIL (Python Imaging Library, maybe not necessary...)
+        - guidata
+        - guiqwt
+
+    Install guiqwt and you should be fine, see https://code.google.com/p/guiqwt/
+
+    - GNU/LINUX (Debian/Ubuntu/ArchLinux) should be packaged (python-guiqwt on ubuntu)
+    - RedHat: PyQwt, PyQt, scipy, numpy should be the packages
+
+    - Windows: install these dependencies:
+                * http://pythonhosted.org/guiqwt/installation.html
+                * maybe get started with http://pyqwt.sourceforge.net/download.html
 """
 
 import sys,time
@@ -612,6 +630,8 @@ class MultiLinePlot(CurveDialog):
         # print "mouse was released, range was ", self.myrange.get_range()
 
 class GraphEventHandler():
+    """This object handles the events when the user zooms or pans.
+    """
     def __init__(self, parent):
         self.plot = None
         self.parent = parent
