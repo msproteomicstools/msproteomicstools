@@ -19,6 +19,7 @@ import sys
 from random import random
 
 from PyQt4 import QtGui, QtCore
+from PyQt4.QtCore import Qt, QModelIndex
 
 from PyQt4 import Qwt5
 
@@ -178,35 +179,108 @@ class DataModel():
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+## Generic tree models
+# from http://www.hardcoded.net/articles/using_qtreeview_with_qabstractitemmodel.htm
+from TreeModels import TreeNode
+from TreeModels import TreeModel
+
+class ChromatogramTransition(object): # your internal structure
+    def __init__(self, name, subelements):
+        self.name = name
+        self.subelements = subelements
+
+class PeptideTreeNode(TreeNode):
+    def __init__(self, ref, parent, row):
+        self.ref = ref
+        TreeNode.__init__(self, parent, row)
+
+    def _getChildren(self):
+        return [PeptideTreeNode(elem, self, index)
+            for index, elem in enumerate(self.ref.subelements)]
+
+class PeptideTree(TreeModel):
+    def __init__(self, rootElements):
+        self.rootElements = rootElements
+        TreeModel.__init__(self)
+
+    def _getRootNodes(self):
+        return [PeptideTreeNode(elem, None, index)
+            for index, elem in enumerate(self.rootElements)]
+
+    def columnCount(self, parent):
+        return 1
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+        node = index.internalPointer()
+        if role == Qt.DisplayRole and index.column() == 0:
+            return node.ref.name
+        return None
+
+    def headerData(self, section, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole \
+            and section == 0:
+            return 'Name'
+        return None
+
+    def set_precursor_data(self, data):
+        self.rootElements = []
+        for data_item in data:
+            self.rootElements.append(ChromatogramTransition(data_item, [] ) )
+
+        # initialize super method again
+        self.initialize()
+
+    def setHorizontalHeaderLabels(self, parent):
+        pass
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
 # every model needs to have
 #  - rowCount(self, parent)
 #  - data(self, index, role)
+#  - setData (
+#  - headerData
+#  - flags  # should be editable/selectable
 
+# 
+## Tree Model - there are two options
+#
+# class ExamplePeptides_(QtCore.QAbstractItemModel):
 class ExamplePeptides_(QtCore.QAbstractListModel):
+
+    def __init__(self):
+        super(ExamplePeptides_, self).__init__()
+        self.precursor_data = [ "a", "b", "c", "d", "c"]
+
     def rowCount(self, parent):
-        return 5
+        return len(self.precursor_data)
+
+    def index(self, row, column, parent):
+        # what do to
+        pass
 
     def setHorizontalHeaderLabels(self, parent):
-        return 5
+        pass
 
     def data(self, index, role):
         # DecorationRole
         # ToolTipRole
-        if role == QtCore.Qt.DisplayRole:
-            if index.row() == 0:
-                return "test"
-            elif index.row() == 1:
-                return "test middle"
-            else:
-                return "test_later"
+        if index.isValid() and role == QtCore.Qt.DisplayRole:
+            #return QtCore.QVariant( self.precursor_data[ index.row() ] )
+            return self.precursor_data[ index.row() ]
+            
 
-        if role == QtCore.Qt.ToolTipRole:
-            if index.row() == 0:
-                return "test Tipp"
-            elif index.row() == 1:
-                return "test Tipp middle"
-            else:
-                return "Tipp"
+        # if role == QtCore.Qt.ToolTipRole:
+        #     if index.row() == 0:
+        #         return "test Tipp"
+        #     elif index.row() == 1:
+        #         return "test Tipp middle"
+        #     else:
+        #         return "Tipp"
 
     def headerData(self, section, orientation, role):
         if role == QtCore.Qt.DisplayRole:
@@ -214,6 +288,11 @@ class ExamplePeptides_(QtCore.QAbstractListModel):
 
     def columnCount(self, parent):
         return 1
+
+    def set_precursor_data(self, data):
+        self.precursor_data = []
+        for data_item in data:
+            self.precursor_data.append(data_item)
 
 class ExamplePeptidesModel(QtGui.QStandardItemModel):
 
@@ -237,6 +316,9 @@ class ExamplePeptidesModel(QtGui.QStandardItemModel):
             item = QtGui.QStandardItem(data_item)
             self.appendRow(item)
 
+# 
+## Tree View
+#
 class ExamplePeptidesTreeView( QtGui.QTreeView ):
 
     def __init__(self):
@@ -246,35 +328,49 @@ class ExamplePeptidesTreeView( QtGui.QTreeView ):
         self.customContextMenuRequested.connect(self.openMenu)
         
     def openMenu(self, position):
-    
-        indexes = self.selectedIndexes()
-        if len(indexes) > 0:
-        
-            level = 0
-            index = indexes[0]
-            while index.parent().isValid():
-                index = index.parent()
-                level += 1
-        
-        # QWidget.tr == translate function
-        menu = QtGui.QMenu()
-        if level == 0:
-            menu.addAction(self.tr("Edit person"))
-        elif level == 1:
-            menu.addAction(self.tr("Edit object/container"))
-        elif level == 2:
-            menu.addAction(self.tr("Edit object"))
-        
-        menu.exec_(self.viewport().mapToGlobal(position))
+        pass
+    #
+    #    indexes = self.selectedIndexes()
+    #    if len(indexes) > 0:
+    #    
+    #        level = 0
+    #        index = indexes[0]
+    #        while index.parent().isValid():
+    #            index = index.parent()
+    #            level += 1
+    #    
+    #    # QWidget.tr == translate function
+    #    menu = QtGui.QMenu()
+    #    if level == 0:
+    #        menu.addAction(self.tr("Edit person"))
+    #    elif level == 1:
+    #        menu.addAction(self.tr("Edit object/container"))
+    #    elif level == 2:
+    #        menu.addAction(self.tr("Edit object"))
+    #    
+    #    menu.exec_(self.viewport().mapToGlobal(position))
 
-class CurveDialogView(CurveDialog):
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# A single curve
+class CurveItemModel(CurveItem):
+
+    def __init__(self, *args, **kwargs):
+        super(CurveItemModel, self).__init__(*args, **kwargs)
+
+# 
+## The widget for a single plot on the right
+#
+class MultiLinePlot(CurveDialog):
     """For the Curve window we could use a CurveDialog or a CurvePlot. 
 
     CurveDialog has more features and seems more advanced.
     """
 
     def __init__(self, *args, **kwargs):
-        super(CurveDialogView, self).__init__(*args, **kwargs)
+        super(MultiLinePlot, self).__init__(*args, **kwargs)
         self.myrange = None
         self.run = None
         self.initialize()
@@ -350,17 +446,6 @@ class CurveDialogView(CurveDialog):
         # TODO here i can capture the mouse release and the range !
         # print "mouse was released, range was ", self.myrange.get_range()
 
-class CurveItemModel(CurveItem):
-
-    def __init__(self, *args, **kwargs):
-        super(CurveItemModel, self).__init__(*args, **kwargs)
-
-        # self.initialize()
-
-    def initialize():
-        # self.curve = make.curve( [ ], [ ], "curve1", QtGui.QColor( 255, 0, 0) )
-        pass
-
 # 
 ## The widget for the Graphing area on the right
 #
@@ -372,8 +457,6 @@ class GraphArea(QtGui.QWidget):
         self.initUI()
         self._wcount = 1
         self.c = Communicate()
-        # self.c.catch_mouse_press.connect(self.react_to_mouse)       
-        # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
         self.plots = []
         
     def set_communicate(self, comm):
@@ -381,22 +464,6 @@ class GraphArea(QtGui.QWidget):
 
     def initUI(self):
         self.layout = QtGui.QGridLayout(self)
-
-    # def react_to_mouse(self):
-    #     # print "react to mouse"
-    #     pass
-
-    # def react_to_mouse_release(self):
-    #     # print "react to release mouse"
-    #     pass
-
-    # def mousePressEvent(self, event):
-    #     
-    #     self.c.catch_mouse_press.emit()
-
-    # def mouseReleaseEvent(self, event):
-    #     
-    #     self.c.catch_mouse_release.emit()
 
     def delete_all(self):
         for i in range(self.layout.count()):
@@ -411,13 +478,13 @@ class GraphArea(QtGui.QWidget):
         
         self.plots = []
 
-        self.plot = CurveDialogView(edit=False, toolbar=False )
+        self.plot = MultiLinePlot(edit=False, toolbar=False )
         self.plot.create_curves(3)
         self.add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
-        self.plot2 = CurveDialogView(edit=False, toolbar=False )
+        self.plot2 = MultiLinePlot(edit=False, toolbar=False )
         self.plot2.create_curves(2)
         self.add_new(self.plot2)
         self.plots.append(self.plot2)
@@ -429,7 +496,7 @@ class GraphArea(QtGui.QWidget):
 
         for run in datamodel.get_runs():
 
-            self.plot = CurveDialogView(edit=False, toolbar=False)
+            self.plot = MultiLinePlot(edit=False, toolbar=False)
             self.plot.setDataModel(run)
             self.add_new(self.plot)
             self.plots.append(self.plot)
@@ -449,7 +516,8 @@ class ApplicationView(QtGui.QWidget):
     def initUI(self):
 
         # self._precursor_model = ExamplePeptides_()
-        self._precursor_model = ExamplePeptidesModel()
+        # self._precursor_model = ExamplePeptidesModel()
+        self._precursor_model = PeptideTree([])
         self._precursor_model.setHorizontalHeaderLabels([self.tr("Peptides")])
 
         self.treeView = ExamplePeptidesTreeView()
