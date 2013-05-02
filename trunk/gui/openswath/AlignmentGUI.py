@@ -576,7 +576,7 @@ class MultiLinePlot(CurveDialog):
 
     def mouseReleaseEvent(self, event):
         pass
-        # TODO here i can capture the mouse release and the range !
+        # TODO capture the mouse release 
         # print "mouse was released, range was ", self.myrange.get_range()
 
 # 
@@ -591,6 +591,20 @@ class GraphArea(QtGui.QWidget):
         self._wcount = 1
         self.c = Communicate()
         self.plots = []
+        # self.c.catch_mouse_press.connect(self.react_to_mouse)
+        # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
+         
+    # def react_to_mouse(self):
+    #     print "react to mouse press"
+    # 
+    # def react_to_mouse_release(self):
+    #     print "react to release mouse"
+    # 
+    # def mousePressEvent(self, event):
+    #     self.c.catch_mouse_press.emit()
+    # 
+    # def mouseReleaseEvent(self, event):
+    #     self.c.catch_mouse_release.emit()
         
     def set_communicate(self, comm):
         self.c = comm
