@@ -31,6 +31,86 @@ from guiqwt.plot import CurveDialog
 
 from guiqwt.styles import COLORS
 
+
+class Communicate(QtCore.QObject):
+    
+    catch_mouse_press = QtCore.pyqtSignal() 
+    catch_mouse_release = QtCore.pyqtSignal() 
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+
+class RunDataModel():
+
+    def __init__(self, run, filename):
+        self._run = run
+        self._filename = filename
+        #print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
+
+    def get_data_for_precursor(self, precursor):
+
+        # print "will try to get", precursor, "from", self._run, "at", self._filename
+        # print "initialize, has key", self._run.info['offsets'].has_key("DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3")
+        # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == precursor
+        # print "is equal", "DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3" == str(precursor)
+        current_chroms = self._run[str(precursor)]
+        # current_chroms = self._run["DECOY_59948_YNFSDFKIPLVGNTEANIM[147]EK/3_y3"]
+        if current_chroms is None: 
+            return [ [ [0], [0] ] ]
+        return [ [current_chroms.time, current_chroms.i] ]
+
+    def get_all_chromatogram_ids(self):
+        return self._run.info['offsets'].keys() 
+
+class DataModel():
+
+    def __init__(self):
+        self.precursors = set([])
+
+    def loadFiles(self, filenames):
+
+        self.runs = []
+        for f in filenames:
+            print "read file", f
+            import pymzml
+            run_ = pymzml.run.Reader(f, build_index_from_scratch=True)
+            run = RunDataModel(run_, f)
+            self.runs.append(run)
+            self.precursors.update(run.get_all_chromatogram_ids())
+            ## first = run.next()
+            ## first['product']
+            ## first['precursors']
+            ## mz = first['precursors'][0]['mz']
+            ## # print mz
+            ## all_swathes[ int(mz) ] = run
+        # swath_chromatograms[ runid ] = all_swathes
+
+        # # get the chromatograms
+        # r = select_correct_swath(swath_chromatograms, current_mz)
+        # chrom_ids = pg.get_value("aggr_Fragment_Annotation").split(";")
+        # # print r, current_mz
+        # if not r.has_key(current_run.get_id()):
+        #     return ["NA"]
+        # allchroms = r[current_run.get_id()]
+        # current_chroms = [allchroms[chr_id] for chr_id in chrom_ids]
+        # alls = 0
+        # for c in current_chroms:
+        #     alls += sum( [p[1] for p in c.peaks if p[0] > this_run_lwidth and p[0] < this_run_rwidth ])
+        # return [alls]
+
+    def get_precursor_list(self):
+        return self.precursors
+
+    def get_runs(self):
+        return self.runs
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
 # every model needs to have
 #  - rowCount(self, parent)
 #  - data(self, index, role)
@@ -84,6 +164,12 @@ class ExamplePeptidesModel(QtGui.QStandardItemModel):
         item2.appendRow( QtGui.QStandardItem("foo") )
         self.appendRow(item2)
 
+    def set_precursor_data(self, data):
+        self.clear()
+        for data_item in data:
+            item = QtGui.QStandardItem(data_item)
+            self.appendRow(item)
+
 class ExamplePeptidesTreeView( QtGui.QTreeView ):
 
     def __init__(self):
@@ -131,7 +217,7 @@ class CurvePlotView(CurvePlot):
         ]
         self.curves = []
 
-    def add_curves(self, nr):
+    def create_curves(self, nr):
 
         for i in range(nr):
             param = CurveParam()
@@ -154,6 +240,8 @@ class CurveDialogView(CurveDialog):
 
     def __init__(self, *args, **kwargs):
         super(CurveDialogView, self).__init__(*args, **kwargs)
+        self.myrange = None
+        self.run = None
         self.initialize()
 
     def initialize(self):
@@ -168,9 +256,14 @@ class CurveDialogView(CurveDialog):
         self.curves = []
         self.ranges = []
 
-    def add_curves(self, nr):
+    def setDataModel(self, run):
+        self.run = run
 
+    def create_curves(self, nr):
+
+        self.curves = []
         plot = self.get_plot()
+        plot.del_all_items(except_grid=False)
         for i in range(nr):
             param = CurveParam()
             param.label = 'My curve'
@@ -196,13 +289,17 @@ class CurveDialogView(CurveDialog):
     def rangeChanged(self, data):
         print "range changed"
 
-    def update_all_curves(self, data):
-        for curve in self.curves:
-            curve.set_data( range( 0, 20, 2), map( lambda _: random(), range( 0, 10 ) ) )
-        # TODO only here we can get the range ???
-        # print "range was ", self.myrange.get_range()
-        r = int( random() * 15)
-        self.myrange.set_range(r, r+5)
+    def update_all_curves(self, precursor):
+
+        data = self.run.get_data_for_precursor(precursor) 
+        self.create_curves(len(data))
+
+        for d, curve in zip(data, self.curves):
+            curve.set_data( d[0], d[1] )
+        ## # TODO only here we can get the range ???
+        ## # print "range was ", self.myrange.get_range()
+        ## r = int( random() * 15)
+        ## if not self.myrange is None: self.myrange.set_range(r, r+5)
 
         self.get_plot().replot( )
 
@@ -233,6 +330,9 @@ class GraphArea(QtGui.QWidget):
         self.c.catch_mouse_press.connect(self.react_to_mouse)       
         self.c.catch_mouse_release.connect(self.react_to_mouse_release)
         
+    def set_communicate(self, comm):
+        self.c = comm
+
     def react_to_mouse(self):
         # print "react to mouse"
         pass
@@ -243,6 +343,11 @@ class GraphArea(QtGui.QWidget):
 
     def initUI(self):
         self.layout = QtGui.QGridLayout(self)
+
+    def delete_all(self):
+        for i in range(self.layout.count()):
+            self.layout.itemAt(i).widget().close()
+        self._wcount = 1
 
     def add_new(self, l):
         self.layout.addWidget(l, self._wcount, 0)
@@ -264,11 +369,6 @@ class ApplicationController:
     def start(self):
 
         pass
-
-class Communicate(QtCore.QObject):
-    
-    catch_mouse_press = QtCore.pyqtSignal() 
-    catch_mouse_release = QtCore.pyqtSignal() 
     
 class ApplicationView(QtGui.QWidget):
     
@@ -279,12 +379,12 @@ class ApplicationView(QtGui.QWidget):
         
     def initUI(self):
 
-        self.model = ExamplePeptides_()
-        # self.model = ExamplePeptidesModel()
-        self.model.setHorizontalHeaderLabels([self.tr("Peptides")])
+        # self._precursor_model = ExamplePeptides_()
+        self._precursor_model = ExamplePeptidesModel()
+        self._precursor_model.setHorizontalHeaderLabels([self.tr("Peptides")])
 
         self.treeView = ExamplePeptidesTreeView()
-        self.treeView.setModel(self.model)
+        self.treeView.setModel(self._precursor_model)
 
         self.graph_layout = GraphArea()
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
@@ -304,23 +404,47 @@ class ApplicationView(QtGui.QWidget):
 
         print self.treeView.selectionModel()
 
-        self.add_plots()
+        self.add_plots_dummy()
 
-    def add_plots(self):
+    def get_precursor_model(self):
+        return self._precursor_model
+
+    def set_communication(self, c):
+        self.c = c
+
+    def add_plots_dummy(self):
         
+        self.plots = []
+
         self.plot = CurveDialogView(edit=False, toolbar=False )
-        self.plot2 = CurvePlotView( self )
-
-        self.plot.add_curves(3)
-        self.plot2.add_curves(2)
-
+        self.plot.create_curves(3)
         self.graph_layout.add_new(self.plot)
+        self.plots.append(self.plot)
+
+        self.plot2 = CurvePlotView( self )
+        self.plot2.create_curves(2)
         self.graph_layout.add_new(self.plot2)
+        self.plots.append(self.plot2)
+
+    def add_plots(self, datamodel):
+        
+        self.plots = []
+        self.graph_layout.delete_all()
+
+        for run in datamodel.get_runs():
+
+            self.plot = CurveDialogView(edit=False, toolbar=False)
+            self.plot.setDataModel(run)
+            self.graph_layout.add_new(self.plot)
+            self.plots.append(self.plot)
 
     def treeViewClicked(self, newvalue, oldvalue):
-        print "got value", newvalue, "old", oldvalue
-        self.plot.update_all_curves(None)
-        self.plot2.update_all_curves(None)
+
+        assert len(self.treeView.selectedIndexes()) == 1
+        selected_precursor = self.treeView.selectedIndexes()[0].data().toPyObject()
+
+        for pl in self.plots:
+            pl.update_all_curves(selected_precursor)
 
     def widgetclicked(self, value):
         print "clicked iittt"
@@ -331,12 +455,16 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         
+        self.c = Communicate()
+        self.data_model = DataModel()
+
         self.initUI()
         
     def initUI(self):               
         
-        application = ApplicationView()
-        self.setCentralWidget(application)
+        self.application = ApplicationView()
+        self.application.set_communication(self.c)
+        self.setCentralWidget(self.application)
 
         ###################################
         # Actions
@@ -377,12 +505,33 @@ class MainWindow(QtGui.QMainWindow):
         self.show()
         self.statusBar().showMessage('Ready')
 
+        # for testing only TODO
+        self.showDialog()
+
     def showDialog(self):
 
-        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file')
+        ## fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file', 
+        ##                                               "/home/hr/projects/msproteomicstools/mzmls" )
+        ## 
+        ## print "opened file ", fileList
+        ## pyFileList = [str(f) for f in fileList]
+
+        pyFileList = ['/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R02_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML',
+        '/home/hr/projects/msproteomicstools/mzmls/split_hroest_K120808_Strep10PlasmaBiolRepl1_R01_SW-Strep_10%_Plasma_Biol_Repl1_16._chrom.mzML']
+
+        print "testst"
         
-        print "opened file ", fileList
-        print "will open files", [str(f) for f in fileList]
+        # Load the files
+        self.data_model.loadFiles(pyFileList)
+
+        # get precursors from data and set it 
+        pr_list = self.data_model.get_precursor_list()
+        self.application.get_precursor_model().set_precursor_data(pr_list)
+
+        self.application.add_plots(self.data_model)
+
+        # print "will open files", [str(f) for f in fileList]
+
 
         # TODO open those files and process them
 
@@ -391,9 +540,6 @@ class MainWindow(QtGui.QMainWindow):
         # with f:        
         #     data = f.read()
         #     self.textEdit.setText(data) 
-
-
-
 
     def center(self):
         
