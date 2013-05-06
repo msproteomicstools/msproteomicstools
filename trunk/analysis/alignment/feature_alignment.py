@@ -168,8 +168,12 @@ class SplineAligner():
         data1 = []
         data2 = []
         for m in multipeptides:
-            ref_pep = m.get_peptide(bestrun.get_id()).get_best_peakgroup()
-            align_pep = m.get_peptide(run.get_id()).get_best_peakgroup()
+            try: 
+                ref_pep = m.get_peptide(bestrun.get_id()).get_best_peakgroup()
+                align_pep = m.get_peptide(run.get_id()).get_best_peakgroup()
+            except KeyError: 
+                # it is possible that for some, no peak group exists in this run
+                continue
             if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): continue
             if ref_pep.get_fdr_score() < alignment_fdr_threshold and align_pep.get_fdr_score() < alignment_fdr_threshold:
                 data1.append(ref_pep.get_normalized_retentiontime())
