@@ -61,7 +61,7 @@ INSTALL:
     Install guiqwt and you should be fine, see https://code.google.com/p/guiqwt/
 
     - GNU/LINUX (Debian/Ubuntu/ArchLinux) should be packaged (python-guiqwt on ubuntu)
-    - RedHat: PyQwt, PyQt, scipy, numpy should be the packages
+    - RedHat: PyQwt, PyQt, scipy, numpy, python-imaging should be the packages
 
     - Windows: install these dependencies:
                 * http://pythonhosted.org/guiqwt/installation.html
@@ -104,37 +104,18 @@ from views.Plot import MultiLinePlot
 #
 class GraphEventHandler():
     """This object handles the events when the user zooms or pans.
+
+    Since we have multiple graphs, the user may want to synchronize them.
     """
     def __init__(self, parent):
         self.plot = None
         self.parent = parent
 
-    def panMouseMove(self, f, ev):
-        pass
-
-    def domove(self, f, ev):
-        pass
-
-    def panMousePress(self, f, ev):
-        pass
-
-    def panMouseRelease(self, f, ev):
-        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
-                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
-
-    def zoomMousePress(self, f, ev):
-        pass
-    def zoomMouseMove(self, f, ev):
-        pass
-
-    def zoomMouseRelease(self, f, ev):
-        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
-                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
-
     def initialize(self, plot):
         self.plot = plot
 
         event_filter = self.plot.get_plot().filter
+        # We have to hook ourselves into the event filter used by guiqwt
         try:
             # possible interactive choices: 
             # SelectTool is default, RectZoomTool needs toolbar, SignalStatsTool needs toolbar
@@ -159,15 +140,41 @@ class GraphEventHandler():
             """
 
         # For the Middle Button (pan)
-        self.state0 = event_filter.add_event(start_state, event_filter.mouse_press(Qt.MidButton, Qt.NoModifier), self.panMousePress) 
-        self.state1 = event_filter.add_event(self.state0, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
-        # event_filter.add_event(self.state1, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.domove) 
-        event_filter.add_event(self.state1, event_filter.mouse_release(Qt.MidButton, Qt.NoModifier), self.panMouseRelease) 
+        self.midbutton_pressed = event_filter.add_event(start_state, event_filter.mouse_press(Qt.MidButton, Qt.NoModifier), self.panMousePress) 
+        self.midbutton_move = event_filter.add_event(self.midbutton_pressed, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
+        event_filter.add_event(self.midbutton_move, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
+        event_filter.add_event(self.midbutton_move, event_filter.mouse_release(Qt.MidButton, Qt.NoModifier), self.panMouseRelease) 
 
         # For the Right Button (zoom)
-        self.state10 = event_filter.add_event(start_state, event_filter.mouse_press(Qt.RightButton, Qt.NoModifier), self.zoomMousePress) 
-        self.state11 = event_filter.add_event(self.state10, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
-        event_filter.add_event(self.state11, event_filter.mouse_release(Qt.RightButton, Qt.NoModifier), self.zoomMouseRelease) 
+        self.rightbutton_pressed = event_filter.add_event(start_state, event_filter.mouse_press(Qt.RightButton, Qt.NoModifier), self.zoomMousePress) 
+        self.rightbutton_move = event_filter.add_event(self.rightbutton_pressed, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
+        event_filter.add_event(self.rightbutton_move, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
+        event_filter.add_event(self.rightbutton_move, event_filter.mouse_release(Qt.RightButton, Qt.NoModifier), self.zoomMouseRelease) 
+
+    def handleImageMovedEvent(self):
+        # after (moving the image), adjust and replot _all_ plots
+        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
+                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
+
+    def panMouseMove(self, f, ev):
+        # self.handleImageMovedEvent()
+        pass
+
+    def panMousePress(self, f, ev):
+        pass
+
+    def panMouseRelease(self, f, ev):
+        self.handleImageMovedEvent()
+
+    def zoomMousePress(self, f, ev):
+        pass
+
+    def zoomMouseMove(self, f, ev):
+        # self.handleImageMovedEvent()
+        pass
+
+    def zoomMouseRelease(self, f, ev):
+        self.handleImageMovedEvent()
 
 # 
 ## The widget for the graphing area on the right
