@@ -39,9 +39,7 @@ $Authors: Hannes Roest$
 from guiqwt.curve import CurveItem
 from guiqwt.plot import CurvePlot, CurveDialog
 
-from PyQt4 import QtGui 
-from PyQt4.QtCore import Qt
-from PyQt4 import QtCore
+from PyQt4 import QtGui, Qt, QtCore
 
 from guiqwt.builder import make
 from guiqwt.styles import CurveParam, COLORS
@@ -199,4 +197,158 @@ class GuiQwtMultiLinePlot(CurveDialog):
         xaxis_limits = self.get_plot().get_axis_limits("bottom")
         yaxis_limits = self.get_plot().get_axis_limits("left")
         self.zoomChanged.emit(xaxis_limits[0], xaxis_limits[1], yaxis_limits[0], yaxis_limits[1])
+
+# 
+## The widget for a single plot on the right using Qwt only
+#
+import PyQt4.Qwt5 as Qwt
+class QwtMultiLinePlot(Qwt.QwtPlot):
+    """Use Qwt Plot
+
+    Implements the same interface as the GuiQwtMultiLinePlot, but performs faster.
+    """
+
+    # Signals
+    zoomChanged = QtCore.pyqtSignal(float, float, float, float)
+
+    def __init__(self, *args, **kwargs):
+        super(QwtMultiLinePlot, self).__init__(*args)
+        self.myrange = None
+        self.run = None
+        self.initialize()
+
+    def initialize(self):
+        self.colors = [
+                QtGui.QColor( 255, 0, 0),
+                QtGui.QColor( 50, 50, 50),
+                QtGui.QColor( 255, 0, 255),
+                QtGui.QColor( 0, 200, 100),
+                QtGui.QColor( 0, 0, 255),
+                QtGui.QColor( 255, 0, 80),
+                QtGui.QColor( 100, 0, 80),
+                QtGui.QColor( 100, 0, 0)
+        ]
+        self.curves = []
+        self.ranges = []
+
+        self.setCanvasBackground(Qt.Qt.white)
+
+        picker_on = Qwt.QwtPicker.AlwaysOn
+        picker_on = Qwt.QwtPicker.AlwaysOff
+        self.zoomer = Qwt.QwtPlotZoomer(Qwt.QwtPlot.xBottom,
+                                   Qwt.QwtPlot.yLeft,
+                                   Qwt.QwtPicker.DragSelection,
+                                   picker_on,
+                                   self.canvas())
+        self.zoomer.setRubberBandPen(QtGui.QPen(Qt.Qt.black))
+        self.zoomer.setTrackerPen(QtGui.QPen(Qt.Qt.black))
+
+        self.panner = Qwt.QwtPlotPanner( self.canvas() )
+        self.panner.setMouseButton(Qt.Qt.MidButton)
+
+    def create_curves(self, labels, this_range):
+
+        # delete / detach all old curves
+        for c in self.curves:
+            c.detach()
+            
+        # create new curves
+        self.curves = []
+        for i,l in enumerate(labels):
+            curve = Qwt.QwtPlotCurve(str(l))
+            curve.attach(self)
+            curve.setPen(Qt.QPen(self.colors[i % len(self.colors)]))
+            curve.setRenderHint(QwtPlotItem.RenderAntialiased, USE_ANTIALIASING)
+            self.curves.append(curve)
+
+        self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
+        xaxis_title = Qwt.QwtText("Time (seconds)")
+        yaxis_title = Qwt.QwtText("Intensity")
+        self.setAxisTitle(Qwt.QwtPlot.xBottom, xaxis_title)
+        self.setAxisTitle(Qwt.QwtPlot.yLeft, yaxis_title)
+
+    def clearZoomStack(self):
+        """Auto scale and clear the zoom stack
+        """
+        self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
+        self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
+        self.replot()
+        self.zoomer.setZoomBase()
+
+    def setDataModel(self, run):
+        self.run = run
+
+    def setTitleFontSize(self, fontsize):
+        # TODO refactor
+        title = Qwt.QwtText(self.run.get_id() )
+        self.setTitle(title)
+
+        t = self.title()
+        tfont = t.font()
+        tfont.setPointSize(fontsize)
+        t.setFont(tfont)
+        self.setTitle(t)
+
+    def setAxisFontSize(self, fontsize):
+        ax_font = self.axisFont(Qwt.QwtPlot.xBottom)
+        ax_font.setPointSize(fontsize)
+        self.setAxisFont(Qwt.QwtPlot.xBottom, ax_font)
+        self.setAxisFont(Qwt.QwtPlot.yLeft, ax_font)
+        self.replot()
+
+    def update_all_curves(self, data, labels, ranges, mscore, intensity):
+
+        assert len(data) == len(labels)
+        # This takes about 70% of the time
+        self.create_curves(labels, ranges)
+
+        if mscore is not None and False: 
+            # TODO
+            # -- how to make label ?? !! 
+            self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
+            self.get_plot().add_item( self.mscore_label )
+            self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
+            self.get_plot().add_item( self.l2 )
+            self.width = make.label("PeakWidth=%0.4g" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
+            self.get_plot().add_item( self.width )
+
+        for d, curve in zip(data, self.curves):
+            curve.setData( d[0], d[1] )
+
+        self.replot()
+        # self.get_plot().do_autoscale()
+        self.clearZoomStack()
+
+    def set_x_limits(self, xmin, xmax):
+        self.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
+
+    def set_y_limits(self, ymin, ymax):
+        self.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
+
+    def set_y_limits_auto(self, xmin, xmax):
+        """
+        Automatically set y limits based on the data in the plot and the
+        visible range xmin, xmax.
+        """
+        allmin = []
+        allmax = []
+        for curve in self.curves:
+            data = curve.data() # QwtArrayData
+            filtered_data = [y for x,y in zip(data.xData(), data.yData()) if x>xmin and x<xmax]
+            if len(filtered_data) == 0:
+                continue
+            allmin.append( min(filtered_data) )
+            allmax.append( max(filtered_data) )
+        if len(allmin) == 0 or len(allmax) == 0 : return
+        self.set_y_limits(min(allmin), max(allmax) )
+
+    def mousePressEvent(self, event):
+        pass
+
+    def mouseReleaseEvent(self, event):
+        xmin = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound()
+        xmax = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
+        ymin = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
+        ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+        self.zoomChanged.emit(xmin, xmax, ymin, ymax)
 

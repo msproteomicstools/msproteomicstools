@@ -73,14 +73,11 @@ import sys,time, re
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
-from guiqwt.builder import make
-from guiqwt.styles import CurveParam, COLORS
-from guiqwt.transitional import QwtPlotItem
-
 # global parameters
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
 AUTOSCALE_Y_AXIS = True
+USE_GUIQWT = True
 
 class Communicate(QtCore.QObject):
     
@@ -97,7 +94,10 @@ from models.PeptideTree import PeptideTree
 ## Views for the plots and the peptide tree (on the right)
 #
 from views.PeptideTree import PeptidesTreeView
-from views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
+if USE_GUIQWT:
+    from views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
+else:
+    from views.Plot import QwtMultiLinePlot as MultiLinePlot
 
 # 
 ## The widget for the graphing area on the right
@@ -198,6 +198,7 @@ class GraphArea(QtGui.QWidget):
         xmins = []
         xmaxs = []
         pairs = []
+        # loading the data takes about 3-4 ms per plot
         for pl in self.plots:
             data = chr_transition.getData(pl.run) 
             pairs.append( data )
@@ -210,6 +211,7 @@ class GraphArea(QtGui.QWidget):
             ranges = chr_transition.getRange(pl.run) 
             mscore = chr_transition.getProbScore(pl.run) 
             intensity = chr_transition.getIntensity(pl.run) 
+            # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
             pl.update_all_curves(data, labels, ranges, mscore, intensity)
             pl.set_x_limits(min(xmins),max(xmaxs))
             pl.replot()
