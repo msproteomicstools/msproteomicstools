@@ -41,6 +41,7 @@ from guiqwt.plot import CurvePlot, CurveDialog
 
 from PyQt4 import QtGui 
 from PyQt4.QtCore import Qt
+from PyQt4 import QtCore
 
 from guiqwt.builder import make
 from guiqwt.styles import CurveParam, COLORS
@@ -57,14 +58,17 @@ class CurveItemModel(CurveItem):
 # 
 ## The widget for a single plot on the right
 #
-class MultiLinePlot(CurveDialog):
+class GuiQwtMultiLinePlot(CurveDialog):
     """For the Curve window we could use a CurveDialog or a CurvePlot. 
 
     CurveDialog has more features and seems more advanced.
     """
 
+    # Signals
+    zoomChanged = QtCore.pyqtSignal(float, float, float, float)
+
     def __init__(self, *args, **kwargs):
-        super(MultiLinePlot, self).__init__(*args, **kwargs)
+        super(GuiQwtMultiLinePlot, self).__init__(*args, **kwargs)
         self.myrange = None
         self.run = None
         self.initialize()
@@ -86,6 +90,16 @@ class MultiLinePlot(CurveDialog):
     def setDataModel(self, run):
         self.run = run
 
+    def setTitleFontSize(self, fontsize):
+        self.get_plot().font_title.setPointSize(fontsize)
+        self.get_plot().set_title(self.run.get_id())
+
+    def setAxisFontSize(self, fontsize):
+        ax_font = self.get_plot().get_axis_font("left")
+        ax_font.setPointSize(fontsize)
+        self.get_plot().set_axis_font("left", ax_font)
+        self.get_plot().set_axis_font("bottom", ax_font)
+
     def create_curves(self, labels, this_range):
 
         self.curves = []
@@ -94,12 +108,7 @@ class MultiLinePlot(CurveDialog):
         for i,l in enumerate(labels):
             param = CurveParam()
             param.label = str(l)
-            #color = COLORS.get(self.colors[i],  self.colors[i] )
-            if i >= len(self.colors):
-                color = COLORS.get(self.colors[0],  self.colors[0] )
-            else:
-                color = COLORS.get(self.colors[i],  self.colors[i] )
- 
+            color = COLORS.get(self.colors[i % len(self.colors)],  self.colors[i % len(self.colors)] )
             param.line.color = color
 
             # create a new curve
@@ -182,4 +191,12 @@ class MultiLinePlot(CurveDialog):
 
     def mouseReleaseEvent(self, event):
         pass
+
+    def replot(self):
+        self.get_plot().replot()
+
+    def mouseReleaseEvent(self, event):
+        xaxis_limits = self.get_plot().get_axis_limits("bottom")
+        yaxis_limits = self.get_plot().get_axis_limits("left")
+        self.zoomChanged.emit(xaxis_limits[0], xaxis_limits[1], yaxis_limits[0], yaxis_limits[1])
 
