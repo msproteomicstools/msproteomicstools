@@ -636,21 +636,29 @@ def handle_args():
     return args
 
 def main(options):
+    import time
+
     # Read the files
     this_exp = Experiment()
     #this_exp.parse_files(options.infiles, options.file_format, options.realign_runs)
 
     #import SWATHScoringReader
+    start = time.time()
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format)
     this_exp.runs = reader.parse_files(options.realign_runs)
+    print("Reading the input files took %ss" % (time.time() - start) )
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
+    start = time.time()
     multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=True)
+    print("Mapping the precursors took %ss" % (time.time() - start) )
 
     # If we want to align runs
     if options.realign_runs:
+        start =time.time()
         this_exp.rt_align_all_runs(multipeptides, options.alignment_score, options.use_scikit)
+        print("Aligning the runs took %ss" % (time.time() - start) )
 
     try:
         options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
@@ -660,14 +668,18 @@ def main(options):
         options.aligned_fdr_cutoff = estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range)
 
     print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff
+    start = time.time()
     alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
+    print("Re-aligning peak groups took %ss" % (time.time() - start) )
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
     
     # print statistics, write output
+    start = time.time()
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
     trafo_fnames = this_exp.write_to_file(multipeptides, options)
+    print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
     options = handle_args()
