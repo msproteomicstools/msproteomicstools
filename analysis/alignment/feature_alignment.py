@@ -437,7 +437,15 @@ class Experiment():
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
-    def write_to_file(self, multipeptides, infiles, outfile, matrix_outfile, ids_outfile, fraction_needed_selected, file_format):
+    def write_to_file(self, multipeptides, options):
+
+        infiles = options.infiles
+        outfile = options.outfile
+        matrix_outfile = options.matrix_outfile
+        yaml_outfile = options.yaml_outfile
+        ids_outfile = options.ids_outfile
+        fraction_needed_selected = options.min_frac_selected
+        file_format = options.file_format
 
         selected_pgs = []
         for m in multipeptides:
@@ -484,6 +492,7 @@ class Experiment():
                 matrix_writer.writerow(line)
             del matrix_writer
 
+
         # only in openswath we have the ID and can go back to the original file ... 
         if file_format != "openswath": return
 
@@ -518,6 +527,19 @@ class Experiment():
           trafo_fnames.append(filename)
           self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
           self.transformation_collection.readTransformationData(filename)
+
+        if len(yaml_outfile) > 0:
+            import yaml
+            myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
+                      "ReferenceRun" : self.transformation_collection.reference_run_id }
+            for current_run in self.runs:
+                current_id = current_run.get_id()
+                ref_id = self.transformation_collection.reference_run_id 
+                filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
+                dirpath = os.path.realpath(os.path.dirname(current_run.orig_filename))
+                this = {"id" : current_id, "directory" : dirpath, "trafo_file" : os.path.realpath(filename)}
+                myYaml["RawData"].append(this)
+            open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
         return trafo_fnames
   
@@ -736,6 +758,7 @@ def handle_args():
     parser.add_argument("--out", dest="outfile", default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
+    parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01", metavar='0.2')
@@ -787,8 +810,7 @@ def main(options):
     
     # print statistics, write output
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
-
-    this_exp.write_to_file(multipeptides, options.infiles, options.outfile, options.matrix_outfile, options.ids_outfile, options.min_frac_selected, options.file_format)
+    trafo_fnames = this_exp.write_to_file(multipeptides, options)
 
 if __name__=="__main__":
     options = handle_args()
