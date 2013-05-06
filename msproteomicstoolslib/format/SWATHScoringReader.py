@@ -112,7 +112,106 @@ class MinimalPeakGroup():
         self.selected_ = False
         self.peptide.unselect_pg(self.id)
 
-class Precursor():
+class GeneralPeakGroupOpenSwath():
+
+    def __init__(self, row, run, peptide):
+      self.row = row
+      self.run = run
+      self.peptide = peptide
+      self.selected = False
+  
+    def get_value(self, value):
+      return self.row[self.run.header_dict[value]]
+
+    def get_fdr_score(self):
+      return float(self.get_value("m_score"))
+
+    def get_normalized_retentiontime(self):
+      return float(self.get_value("RT"))
+
+
+class PrecursorBase():
+    def __init__(self, this_id, run):
+        raise NotImplemented
+
+    def get_id(self):
+        return self.id 
+  
+    def get_decoy(self):
+        return self._decoy
+
+    def set_decoy(self, decoy):
+        if decoy == "FALSE":
+            self._decoy = False
+        elif decoy == "TRUE":
+            self._decoy = True
+        else:
+            raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
+  
+    # store information about the peakgroup - tuples (e.g. whether they are selected)
+    def select_pg(self, this_id):
+        raise NotImplemented
+
+    def unselect_pg(self, id):
+        raise NotImplemented
+
+    def get_best_peakgroup(self):
+        raise NotImplemented
+
+    def get_selected_peakgroup(self):
+        raise NotImplemented
+
+    def get_all_peakgroups(self):
+        raise NotImplemented
+  
+    def find_closest_in_iRT(self, delta_assay_rt):
+        raise NotImplemented
+
+class GeneralPrecursor(PrecursorBase):
+    # A collection of peakgroups that belong to the same precursor and belong
+    # to one run.
+    # A peptide can return its best transition group, the selected peakgroup,
+    # or can return the transition group that is closest to a given iRT time.
+    def __init__(self, this_id, run):
+        self.id = this_id
+        self.peakgroups = []
+        self.run = run
+        self._decoy = False
+  
+    def add_peakgroup(self, peakgroup):
+        self.peakgroups.append(peakgroup)
+  
+    def get_run_id(self):
+      return self.run.get_id()
+  
+    def append(self, transitiongroup):
+        assert self.id == transitiongroup.get_id()
+        self.peakgroups.append(transitiongroup)
+  
+    def get_best_peakgroup(self):
+        if len(self.peakgroups) == 0: return None
+        best_score = self.peakgroups[0].get_fdr_score()
+        result = self.peakgroups[0]
+        for peakgroup in self.peakgroups:
+            if peakgroup.get_fdr_score() <= best_score:
+                best_score = peakgroup.get_fdr_score()
+                result = peakgroup
+        return result
+  
+    def get_selected_peakgroup(self):
+        # return the selected peakgroup of this peptide, we can only select 1 or
+        # zero groups per chromatogram!
+        selected = [peakgroup for peakgroup in self.peakgroups if peakgroup.selected]
+        assert len(selected) < 2
+        if len(selected) == 1:
+          return selected[0]
+        else: 
+            return None
+  
+    def find_closest_in_iRT(self, delta_assay_rt):
+      return min(self.peakgroups , key=lambda x: abs(float(x.get_value(diff_from_assay_in_sec_name)) - float(delta_assay_rt)))
+
+class Precursor(PrecursorBase):
     """
     A collection of peakgroups that belong to the same precursor and belong
     to one run.
@@ -259,7 +358,6 @@ class Run():
         for peptide in self.all_peptides.values():
             yield peptide
 
-
 #
 # The Readers of the Scoring files
 #
@@ -273,12 +371,12 @@ class SWATHScoringReader:
         raise Exception("Abstract method")
 
     @staticmethod
-    def newReader(infiles, filetype):
+    def newReader(infiles, filetype, readmethod="minimal"):
         """Factory to create a new reader"""
         if filetype  == "openswath": 
-            return OpenSWATH_SWATHScoringReader(infiles)
+            return OpenSWATH_SWATHScoringReader(infiles, readmethod)
         elif filetype  == "peakview": 
-            return Peakview_SWATHScoringReader(infiles)
+            return Peakview_SWATHScoringReader(infiles, readmethod)
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
@@ -299,13 +397,17 @@ class SWATHScoringReader:
           header_dict[n] = i
         stdout.write("\rReading file %s" % (str(f)) )
         stdout.flush()
-        # There may be multiple runs in one csv file, we use the run number as
-        # well as the file number to find unique runs
         for this_row in reader:
-            # check if we have a new run
+            # There may be multiple runs in one csv file, we use the run number
+            # as well as the file number to find unique runs -> not if we have
+            # an aligned run id which means we already computed a unique id for
+            # each run.
             runnr = this_row[header_dict[self.run_id_name]]
             runid = runnr + "_" + str(file_nr)
+            if header_dict.has_key(self.aligned_run_id_name):
+                runid = this_row[header_dict[self.aligned_run_id_name]]
             current_run = [r for r in runs if r.get_id() == runid]
+            # check if we have a new run
             if len(current_run) == 0:
                 current_run = Run(header, header_dict, runid, f)
                 runs.append(current_run)
@@ -323,9 +425,16 @@ class SWATHScoringReader:
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles):
+    def __init__(self, infiles, readmethod="minimal"):
         self.infiles = infiles
         self.run_id_name = "run_id"
+        self.readmethod = readmethod
+        self.aligned_run_id_name = "align_runid"
+        if readmethod == "minimal":
+            self.Precursor = Precursor
+        else:
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GeneralPeakGroupOpenSwath
 
     def parse_row(self, run, this_row, do_realignment):
         decoy_name = "decoy"
@@ -361,20 +470,31 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         run_id = int(this_row[run.header_dict[run_id_name]])
 
         if not run.all_peptides.has_key(trgr_id):
-          p = Precursor(trgr_id, run)
+          p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.run_id = run_id
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
-        peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
-        run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+        if self.readmethod == "minimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+        else:
+          peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles):
+    def __init__(self, infiles, readmethod="minimal"):
         self.infiles = infiles
         self.run_id_name = "Sample"
+        self.aligned_run_id_name = "align_runid"
+        self.readmethod = readmethod
+        if readmethod == "minimal":
+            self.Precursor = Precursor
+        else:
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GeneralPeakGroupPeakView
 
     def parse_row(self, run, this_row, do_realignment):
         decoy_name = "Decoy"
@@ -425,15 +545,17 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         run_id = this_row[run.header_dict[run_id_name]]
 
         if not run.all_peptides.has_key(trgr_id):
-          p = Precursor(trgr_id, run)
+          p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.run_id = run_id
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
           if verb: print "add peptide", trgr_id
-        peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
-        if verb: print "append tuple", peakgroup_tuple
-        run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+        if self.readmethod == "minimal":
+          if verb: print "append tuple", peakgroup_tuple
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
+          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+        else: raise NotImplemented
 
 
