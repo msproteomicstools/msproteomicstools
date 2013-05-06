@@ -97,84 +97,7 @@ from models.PeptideTree import PeptideTree
 ## Views for the plots and the peptide tree (on the right)
 #
 from views.PeptideTree import PeptidesTreeView
-from views.Plot import MultiLinePlot
-
-# 
-## The event handler if someone clicks on the graph 
-#
-class GraphEventHandler():
-    """This object handles the events when the user zooms or pans.
-
-    Since we have multiple graphs, the user may want to synchronize them.
-    """
-    def __init__(self, parent):
-        self.plot = None
-        self.parent = parent
-
-    def initialize(self, plot):
-        self.plot = plot
-
-        event_filter = self.plot.get_plot().filter
-        # We have to hook ourselves into the event filter used by guiqwt
-        try:
-            # possible interactive choices: 
-            # SelectTool is default, RectZoomTool needs toolbar, SignalStatsTool needs toolbar
-            from guiqwt.tools import SelectTool
-            [t for t in self.plot.tools
-                if isinstance(t, SelectTool)]
-            start_state = t[0].start_state.values()[0]
-        except Exception:
-            # fallback value (1 is the first state)
-            start_state = 1
-            # see the following call chain
-            """
-            CurveDialog.__init__
-            -> CurveWidgetMixin.__init__
-              -> register_tools
-                -> register_all_curve_tools
-                  -> register_standard_tools
-                    -> add_tool
-                      -> register_plot (e.g. SelectTool which is default)
-                        -> setup_filter (e.g. SelectTool which is default)
-                          -> new_state (StatefulEventFilter)
-            """
-
-        # For the Middle Button (pan)
-        self.midbutton_pressed = event_filter.add_event(start_state, event_filter.mouse_press(Qt.MidButton, Qt.NoModifier), self.panMousePress) 
-        self.midbutton_move = event_filter.add_event(self.midbutton_pressed, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
-        event_filter.add_event(self.midbutton_move, event_filter.mouse_move(Qt.MidButton, Qt.NoModifier), self.panMouseMove) 
-        event_filter.add_event(self.midbutton_move, event_filter.mouse_release(Qt.MidButton, Qt.NoModifier), self.panMouseRelease) 
-
-        # For the Right Button (zoom)
-        self.rightbutton_pressed = event_filter.add_event(start_state, event_filter.mouse_press(Qt.RightButton, Qt.NoModifier), self.zoomMousePress) 
-        self.rightbutton_move = event_filter.add_event(self.rightbutton_pressed, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
-        event_filter.add_event(self.rightbutton_move, event_filter.mouse_move(Qt.RightButton, Qt.NoModifier), self.zoomMouseMove) 
-        event_filter.add_event(self.rightbutton_move, event_filter.mouse_release(Qt.RightButton, Qt.NoModifier), self.zoomMouseRelease) 
-
-    def handleImageMovedEvent(self):
-        # after (moving the image), adjust and replot _all_ plots
-        self.parent.reset_axis_all_plots(self.plot.get_plot().get_axis_limits("bottom"),
-                                         self.plot.get_plot().get_axis_limits("left"), AUTOSCALE_Y_AXIS)
-
-    def panMouseMove(self, f, ev):
-        # self.handleImageMovedEvent()
-        pass
-
-    def panMousePress(self, f, ev):
-        pass
-
-    def panMouseRelease(self, f, ev):
-        self.handleImageMovedEvent()
-
-    def zoomMousePress(self, f, ev):
-        pass
-
-    def zoomMouseMove(self, f, ev):
-        # self.handleImageMovedEvent()
-        pass
-
-    def zoomMouseRelease(self, f, ev):
-        self.handleImageMovedEvent()
+from views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
 
 # 
 ## The widget for the graphing area on the right
@@ -190,6 +113,11 @@ class GraphArea(QtGui.QWidget):
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
          
+    @QtCore.pyqtSlot(float, float, float, float)
+    def plotZoomChanged(self, xmin, xmax, ymin, ymax):
+        # after (moving the image), adjust and replot _all_ plots
+        self.reset_axis_all_plots([xmin, xmax], [ymin, ymax], AUTOSCALE_Y_AXIS)
+
     # def react_to_mouse(self):
     #     print "react to mouse press"
     # 
@@ -244,17 +172,11 @@ class GraphArea(QtGui.QWidget):
                                       options=dict(xlabel="Time (s)", ylabel="Intensity") )
             self.plot.setDataModel(run)
 
-            # start event handler which will hook itself into the guiqwt event model
-            e = GraphEventHandler(self)
-            e.initialize(self.plot)
-
             # set font and title of plot
-            self.plot.get_plot().font_title.setPointSize(TITLE_FONT_SIZE)
-            self.plot.get_plot().set_title(run.get_id())
-            ax_font = self.plot.get_plot().get_axis_font("left")
-            ax_font.setPointSize(AXIS_FONT_SIZE)
-            self.plot.get_plot().set_axis_font("left", ax_font)
-            self.plot.get_plot().set_axis_font("bottom", ax_font)
+            self.plot.setTitleFontSize(TITLE_FONT_SIZE)
+            self.plot.setAxisFontSize(AXIS_FONT_SIZE)
+
+            self.plot.zoomChanged.connect(self.plotZoomChanged) 
 
             self.layout.addWidget(self.plot, i % 3, int(i/3) )
             self.plots.append(self.plot)
@@ -266,7 +188,7 @@ class GraphArea(QtGui.QWidget):
                 pl.set_y_limits_auto(x_range[0], x_range[1])
             else:
                 pl.set_y_limits(y_range[0], y_range[1])
-            pl.get_plot().replot()
+            pl.replot()
 
     def update_all_plots(self, chr_transition):
         """
@@ -290,7 +212,7 @@ class GraphArea(QtGui.QWidget):
             intensity = chr_transition.getIntensity(pl.run) 
             pl.update_all_curves(data, labels, ranges, mscore, intensity)
             pl.set_x_limits(min(xmins),max(xmaxs))
-            pl.get_plot().replot()
+            pl.replot()
 
 #
 ## Peptide Tree Widget (left side)
