@@ -362,7 +362,7 @@ class TransformationCollection():
       r = self.getTransformationData(s_from, s_to)
       if r is None: 
           f = open(filename, "w")
-          f.write("#Transformation Null")
+          f.write("#Transformation Null\t%s" % s_from)
           f.close()
           return
 
@@ -375,7 +375,7 @@ class TransformationCollection():
     def readTransformationData(self, filename):
       f = open(filename, "r")
       header = f.next().split("\t")
-      if header[0] == "#Transformation Null":
+      if header[0].startswith( "#Transformation Null" ):
           # read the (or a) null transformation
           return
       s_from = header[1]
@@ -545,9 +545,11 @@ class Experiment():
             for r in self.runs:
                 header.extend(["Intensity_%s" % r.get_id(), "RT_%s" % r.get_id()])
                 print("Run id %s corresponds to %s" % (r.get_id(), r.orig_filename))
+            header.extend(["RT_mean", "RT_std"])
             matrix_writer.writerow(header)
             for m in multipeptides:
                 line = [m.get_id(), m.find_best_peptide_pg().peptide.protein_name]
+                rts = []
                 selected_peakgroups = m.get_selected_peakgroups()
                 if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
                 for rid in run_ids:
@@ -558,6 +560,8 @@ class Experiment():
                         line.extend(["NA", "NA"])
                     else:
                         line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
+                        rts.append(pg.get_normalized_retentiontime())
+                line.extend([numpy.mean(rts), numpy.std(rts)])
                 matrix_writer.writerow(line)
             del matrix_writer
 
@@ -585,6 +589,18 @@ class Experiment():
                       row_to_write = row
                       row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                       writer.writerow(row_to_write)
+
+        # Print out trafo data
+        trafo_fnames = []
+        for current_run in self.runs:
+          current_id = current_run.get_id()
+          ref_id = self.transformation_collection.reference_run_id 
+          filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
+          trafo_fnames.append(filename)
+          self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
+          self.transformation_collection.readTransformationData(filename)
+
+        return trafo_fnames
   
 class Cluster:
     """
@@ -849,19 +865,7 @@ def main(options):
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
-
-    # Print out trafo data
-    trafo_fnames = []
-    for current_run in this_exp.runs:
-      current_id = current_run.get_id()
-      ref_id = this_exp.transformation_collection.reference_run_id 
-      filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
-      trafo_fnames.append(filename)
-      this_exp.transformation_collection.writeTransformationData(filename, current_id, ref_id)
-      this_exp.transformation_collection.readTransformationData(filename)
-
-
-
+    
     # print statistics, write output
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
 
