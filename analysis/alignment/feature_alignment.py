@@ -35,7 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import sys, csv
+import os, sys, csv
 import numpy
 from msproteomicstoolslib.math.chauvenet import chauvenet
 from msproteomicstoolslib.format.SWATHScoringReader import *
@@ -251,9 +251,12 @@ class SplineAligner():
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
     def spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
+        """Will align run against bestrun"""
         import msproteomicstoolslib.math.Smoothing as smoothing
 
         # get those peptides we want to use for alignment => for this use the mapping
+        # data1 = reference data (master)
+        # data2 = data to be aligned (slave)
         data1 = []
         data2 = []
         for m in multipeptides:
@@ -265,6 +268,8 @@ class SplineAligner():
                 data2.append(align_pep.get_normalized_retentiontime())
 
         print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
+        # from run to bestrun
+        self.transformation_collection.addTransformationData([data2, data1], run.get_id(), bestrun.get_id() )
 
         all_pg = []
         for pep in run.all_peptides.values():
@@ -272,8 +277,8 @@ class SplineAligner():
 
         rt_eval = [ pg[0] for pg in all_pg]
 
-        # data1 is master, data2 is slave. Since we want to predict how to
-        # convert from slave to master, slave is first and master is second
+        # Since we want to predict how to convert from slave to master, slave
+        # is first and master is second.
         try:
             if use_scikit: import dummydummy # forces to use scikit
             sm = smoothing.SmoothingR()
@@ -304,6 +309,72 @@ class SplineAligner():
                 i += 1
             pep.peakgroups_ = [ tuple(m) for m in mutable]
 
+class TransformationCollection():
+    def __init__(self):
+      self.transformations = {}
+      self.transformation_data = {}
+      self.reference_run_id = None
+
+    def addTransformation(self, trafo, s_from, s_to):
+      d = self.transformations.get(s_from, {})
+      d[s_to] = trafo
+      self.transformations[s_from] = d
+
+    def getTransformation(self, s_from, s_to):
+      try:
+          return self.transformations[s_from][s_to]
+      except KeyError:
+          return None
+
+    def addTransformationData(self, data, s_from, s_to):
+      d = self.transformation_data.get(s_from, {})
+      d[s_to] = data
+      self.transformation_data[s_from] = d
+
+    def getTransformationData(self, s_from, s_to):
+      try:
+          return self.transformation_data[s_from][s_to]
+      except KeyError:
+          return None
+
+    def printTransformationData(self, s_from, s_to):
+      r = self.getTransformationData(s_from, s_to)
+      if r is None: return
+      print "This data is able to transform from %s to %s" % (s_from, s_to)
+
+    def writeTransformationData(self, filename, s_from, s_to):
+      r = self.getTransformationData(s_from, s_to)
+      if r is None: 
+          f = open(filename, "w")
+          f.write("#Transformation Null")
+          f.close()
+          return
+
+      f = open(filename, "w")
+      f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self.reference_run_id) )
+      for a,b in zip(r[0],r[1]):
+          f.write("%s\t%s\n" % (a,b) )
+      f.close()
+
+    def readTransformationData(self, filename):
+      f = open(filename, "r")
+      header = f.next().split("\t")
+      if header[0] == "#Transformation Null":
+          # read the (or a) null transformation
+          return
+      s_from = header[1]
+      s_to = header[3]
+      if self.reference_run_id is None:
+        self.reference_run_id = header[5].strip()
+      assert self.reference_run_id == header[5].strip()
+      data1 = []
+      data2 = []
+      for line in f:
+          d = line.split("\t")
+          data1.append(float(d[0]))
+          data2.append(float(d[1]))
+      print "read data from %s to %s " %(s_from, s_to), [data1, data2]
+
 class Experiment():
     """
     An Experiment is a container for multiple experimental runs - some of which may contain the same precursors.
@@ -311,6 +382,7 @@ class Experiment():
 
     def __init__(self):
         self.runs = []
+        self.transformation_collection = TransformationCollection()
 
     def rt_align_all_runs(self, multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False):
 
@@ -319,6 +391,9 @@ class Experiment():
 
         # get the best run (e.g. the one with the most ids below threshold)
         bestrun = spl_aligner.determine_best_run(self, alignment_fdr_threshold)
+
+        spl_aligner.transformation_collection = self.transformation_collection
+        spl_aligner.transformation_collection.reference_run_id = bestrun.get_id()
 
         # go through all runs and align two runs at a time
         for run in self.runs:
@@ -759,6 +834,16 @@ def main(options):
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
+
+    # Print out trafo data
+    for current_run in this_exp.runs:
+      current_id = current_run.get_id()
+      ref_id = this_exp.transformation_collection.reference_run_id 
+      filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
+      this_exp.transformation_collection.writeTransformationData(filename, current_id, ref_id)
+      this_exp.transformation_collection.readTransformationData(filename)
+
+
 
     # print statistics, write output
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
