@@ -107,6 +107,18 @@ class SmoothingR:
         predicted_result = numpy.array(predicted_data[1]).tolist()
         return predicted_result
 
+class SmoothingNull:
+    """Null smoother that performs a null operation """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        pass
+
+    def predict(self, xhat):
+        return xhat
+
 class SmoothingPy:
     """Smoothing of 2D data using generalized crossvalidation
 

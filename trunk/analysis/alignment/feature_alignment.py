@@ -37,7 +37,9 @@ $Authors: Hannes Roest$
 
 import os, sys, csv
 import numpy
+import argparse
 from msproteomicstoolslib.math.chauvenet import chauvenet
+import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from sys import stdout
 
@@ -252,7 +254,6 @@ class SplineAligner():
 
     def spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
         """Will align run against bestrun"""
-        import msproteomicstoolslib.math.Smoothing as smoothing
 
         # get those peptides we want to use for alignment => for this use the mapping
         # data1 = reference data (master)
@@ -321,10 +322,25 @@ class TransformationCollection():
       self.transformations[s_from] = d
 
     def getTransformation(self, s_from, s_to):
+      if s_from == s_to: return smoothing.SmoothingNull()
       try:
           return self.transformations[s_from][s_to]
       except KeyError:
           return None
+
+    def initialize_from_data(self, reverse=False):
+        # use the data in self.transformation_data to create the trafos
+        for s_from, darr in self.transformation_data.iteritems():
+            self.transformations[s_from] = {}
+            for s_to, data in darr.iteritems():
+                sm = smoothing.get_smooting_operator()
+                sm.initialize(data[0], data[1])
+                self.transformations[s_from][s_to] = sm
+
+                if not reverse: continue
+                sm_rev = smoothing.get_smooting_operator()
+                sm_rev.initialize(data[1], data[0])
+                self.addTransformation(sm_rev, s_to, s_from)
 
     def addTransformationData(self, data, s_from, s_to):
       d = self.transformation_data.get(s_from, {})
@@ -373,7 +389,8 @@ class TransformationCollection():
           d = line.split("\t")
           data1.append(float(d[0]))
           data2.append(float(d[1]))
-      print "read data from %s to %s " %(s_from, s_to), [data1, data2]
+      # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
+      self.addTransformationData([data1, data2], s_from, s_to)
 
 class Experiment():
     """
@@ -774,8 +791,6 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
             return aligned_fdr_cutoff
 
 def handle_args():
-    import argparse
-
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
     usage += "\nThis program will select all peakgroups below the FDR cutoff in all files and try to align them to each other."
     usage += "\nIf only one file is given, it will act as peakgroup selector (best by m_score)" + \
@@ -836,10 +851,12 @@ def main(options):
     else: outlier_detection = None
 
     # Print out trafo data
+    trafo_fnames = []
     for current_run in this_exp.runs:
       current_id = current_run.get_id()
       ref_id = this_exp.transformation_collection.reference_run_id 
       filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
+      trafo_fnames.append(filename)
       this_exp.transformation_collection.writeTransformationData(filename, current_id, ref_id)
       this_exp.transformation_collection.readTransformationData(filename)
 
