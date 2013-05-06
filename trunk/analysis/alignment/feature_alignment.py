@@ -41,6 +41,7 @@ import argparse
 from msproteomicstoolslib.math.chauvenet import chauvenet
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.format.SWATHScoringReader import *
+from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 from sys import stdout
 
 verb = True
@@ -309,88 +310,6 @@ class SplineAligner():
                 mutable[k][2] = aligned_result[i]
                 i += 1
             pep.peakgroups_ = [ tuple(m) for m in mutable]
-
-class TransformationCollection():
-    def __init__(self):
-      self.transformations = {}
-      self.transformation_data = {}
-      self.reference_run_id = None
-
-    def addTransformation(self, trafo, s_from, s_to):
-      d = self.transformations.get(s_from, {})
-      d[s_to] = trafo
-      self.transformations[s_from] = d
-
-    def getTransformation(self, s_from, s_to):
-      if s_from == s_to: return smoothing.SmoothingNull()
-      try:
-          return self.transformations[s_from][s_to]
-      except KeyError:
-          return None
-
-    def initialize_from_data(self, reverse=False):
-        # use the data in self.transformation_data to create the trafos
-        for s_from, darr in self.transformation_data.iteritems():
-            self.transformations[s_from] = {}
-            for s_to, data in darr.iteritems():
-                sm = smoothing.get_smooting_operator()
-                sm.initialize(data[0], data[1])
-                self.transformations[s_from][s_to] = sm
-
-                if not reverse: continue
-                sm_rev = smoothing.get_smooting_operator()
-                sm_rev.initialize(data[1], data[0])
-                self.addTransformation(sm_rev, s_to, s_from)
-
-    def addTransformationData(self, data, s_from, s_to):
-      d = self.transformation_data.get(s_from, {})
-      d[s_to] = data
-      self.transformation_data[s_from] = d
-
-    def getTransformationData(self, s_from, s_to):
-      try:
-          return self.transformation_data[s_from][s_to]
-      except KeyError:
-          return None
-
-    def printTransformationData(self, s_from, s_to):
-      r = self.getTransformationData(s_from, s_to)
-      if r is None: return
-      print "This data is able to transform from %s to %s" % (s_from, s_to)
-
-    def writeTransformationData(self, filename, s_from, s_to):
-      r = self.getTransformationData(s_from, s_to)
-      if r is None: 
-          f = open(filename, "w")
-          f.write("#Transformation Null\t%s" % s_from)
-          f.close()
-          return
-
-      f = open(filename, "w")
-      f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self.reference_run_id) )
-      for a,b in zip(r[0],r[1]):
-          f.write("%s\t%s\n" % (a,b) )
-      f.close()
-
-    def readTransformationData(self, filename):
-      f = open(filename, "r")
-      header = f.next().split("\t")
-      if header[0].startswith( "#Transformation Null" ):
-          # read the (or a) null transformation
-          return
-      s_from = header[1]
-      s_to = header[3]
-      if self.reference_run_id is None:
-        self.reference_run_id = header[5].strip()
-      assert self.reference_run_id == header[5].strip()
-      data1 = []
-      data2 = []
-      for line in f:
-          d = line.split("\t")
-          data1.append(float(d[0]))
-          data2.append(float(d[1]))
-      # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
-      self.addTransformationData([data1, data2], s_from, s_to)
 
 class Experiment():
     """
