@@ -288,13 +288,14 @@ class Experiment(AlignmentExperiment):
         est_real_fdr = self.estimate_real_fdr(multipeptides, fdr_cutoff, fraction_present) * 100 #(nr_decoys * 100.0 / len(precursors_in_all_runs) ) / self.estimated_decoy_pcnt * fdr_cutoff * 100
         print "="*75
         print "="*75
-        print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set), "peakgroups quantified in at least one run, " + \
+        print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set), "peakgroups quantified in at least one run above FDR %s%%" % (fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", nr_precursors_in_all, "/", len(self.union_transition_groups_set), "precursors in all runs (up from", in_all_runs_wo_align, "before alignment)"
         #print "We were able to quantify", nr_peptides, "peptides and", nr_proteins, "proteins in all runs (up from", proteins_in_all_runs_wo_align, "before alignment)"
         print "We were able to quantify", nr_peptides_target, "target peptides and", nr_proteins_target, "target proteins in all runs (up from target", proteins_in_all_runs_wo_align_target, "before alignment)"
         print "Able to quantify", alignment.nr_quantified, "/", max_pg, "of which we aligned", alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
-        print "Decoy percentage of peakgroups that are fully aligned %0.4f %% which corresponds to a real FDR of %s %%" % (nr_decoys * 100.0 / len(precursors_in_all_runs), est_real_fdr)
+        if len(precursors_in_all_runs) > 0:
+            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% which corresponds to a real FDR of %s %%" % (nr_decoys * 100.0 / len(precursors_in_all_runs), est_real_fdr)
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 

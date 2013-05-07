@@ -177,10 +177,13 @@ class AlignmentExperiment(object):
             print "All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
             print "All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set)
             print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
-            print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
+            if all_prec > 0:
+                print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
 
-        self.estimated_decoy_pcnt =  (all_prec - target_prec) * 100.0 / all_prec 
-        if all_prec - target_prec == 0: self.estimated_decoy_pcnt = None
+        if all_prec > 0 and all_prec - target_prec != 0:
+            self.estimated_decoy_pcnt =  (all_prec - target_prec) * 100.0 / all_prec 
+        else:
+            self.estimated_decoy_pcnt = None
 
         multipeptides = []
         for peptide_id in self.union_transition_groups_set:
