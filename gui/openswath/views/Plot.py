@@ -185,7 +185,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
             self.get_plot().add_item( self.mscore_label )
             self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
             self.get_plot().add_item( self.l2 )
-            self.width = make.label("PeakWidth=%0.4g" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
+            self.width = make.label("PeakWidth=%0.3fs" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
             self.get_plot().add_item( self.width )
 
         for d, curve in zip(data, self.curves):
@@ -221,6 +221,8 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         self.myrange = None
         self.run = None
         self.initialize()
+        self.has_mscore = False
+        self.labels = []
 
     def initialize(self):
         self.colors = [
@@ -301,21 +303,86 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         self.setAxisFont(Qwt.QwtPlot.yLeft, ax_font)
         self.replot()
 
+    def drawCanvas(self, painter):
+        super(QwtMultiLinePlot, self).drawCanvas(painter)
+        if not self.has_mscore: 
+            return
+
+        # add the labels
+        current_height = 0
+        for label_txt in self.labels:
+            painter.drawStaticText ( 10, 10 + current_height, label_txt);
+            current_height +=  label_txt.size().height()
+
+        # add the range
+        self.draw_range(painter, self.l_width, self.r_width)
+
+    def draw_range(self, painter, l_width, r_width): 
+        #, xMap, yMap, canvasRect):
+        xMap = self.canvasMap(Qwt.QwtPlot.xBottom)
+        yMap = self.canvasMap(Qwt.QwtPlot.yLeft)
+        rct = self.canvas().contentsRect()
+
+        rct2 = QtCore.QRectF(rct)
+        rct2.setLeft(xMap.transform(l_width))
+        rct2.setRight(xMap.transform(r_width))
+
+        # TODO abstract this
+        transparency = 40 # alpha channel  / transparency
+        col =  QtGui.QColor( 255, 0, 0, transparency)   
+        self.brush = QtGui.QBrush(col)
+        pen = QtGui.QPen(col)
+
+        # paint the filling rectable and the two lines left/right
+        painter.fillRect(rct2, self.brush)
+        painter.setPen(pen)
+        painter.drawLine(rct2.topRight(), rct2.bottomRight())
+        painter.drawLine(rct2.topLeft(), rct2.bottomLeft())
+
+        # draw dashed line in the center
+        dash = QtGui.QPen(pen)
+        dash.setStyle(QtCore.Qt.DashLine)
+        dash.setWidth(1)
+        painter.setPen(dash)
+        painter.drawLine(rct2.center().x(), rct2.top(),
+                         rct2.center().x(), rct2.bottom())
+        painter.setPen(pen)
+
+        # draw two ellipses
+        if True:
+            diam = 5
+            ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+            rect3 = QtCore.QRectF(rct)
+            rect3.setLeft(xMap.transform(self.l_width) -  diam/2.0)
+            rect3.setTop(yMap.transform(ymax/2) )
+            rect3.setHeight(diam)
+            rect3.setWidth(diam)
+            painter.drawEllipse(rect3.toRect())
+
+            rect3.setLeft(xMap.transform(self.r_width) -  diam/2.0)
+            rect3.setWidth(diam)
+            painter.drawEllipse(rect3.toRect())
+
     def update_all_curves(self, data, labels, ranges, mscore, intensity):
 
         assert len(data) == len(labels)
         # This takes about 70% of the time
         self.create_curves(labels, ranges)
 
-        if mscore is not None and False: 
-            # TODO
-            # -- how to make label ?? !! 
-            self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
-            self.get_plot().add_item( self.mscore_label )
-            self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
-            self.get_plot().add_item( self.l2 )
-            self.width = make.label("PeakWidth=%0.4g" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
-            self.get_plot().add_item( self.width )
+        self.labels = []
+        self.has_mscore = False
+        if mscore is not None: 
+            self.labels = []
+            self.has_mscore = True
+
+            self.l_width = ranges[0]
+            self.r_width = ranges[1]
+
+            # create and add labels -> see drawCanvas
+            mscore_txt = QtGui.QStaticText ("mscore %0.4g" % mscore);
+            intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
+            width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
+            self.labels.extend([mscore_txt, intensity_txt, width_txt])
 
         for d, curve in zip(data, self.curves):
             curve.setData( d[0], d[1] )
