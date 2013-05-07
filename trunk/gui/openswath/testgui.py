@@ -103,16 +103,21 @@ class DataModelNew(DataModel):
             pg = m.find_best_peptide_pg()
             peakgroup_map[ pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")] = m
 
-        for r in self.runs:
-            intersection = set(r._precursor_mapping.keys()).intersection( peakgroup_map.keys() )
-            r._precursor_mapping = dict( [(k,r._precursor_mapping[k]) for k in intersection] )
-            r._group_precursors_by_sequence()
-            r._range_mapping = {}
-            for key in r._precursor_mapping.keys():
+        for rundatamodel in self.runs:
+            print rundatamodel
+            intersection = set(rundatamodel._precursor_mapping.keys()).intersection( peakgroup_map.keys() )
+            rundatamodel._precursor_mapping = dict( [(k,rundatamodel._precursor_mapping[k]) for k in intersection] )
+            rundatamodel._group_precursors_by_sequence()
+            for key in rundatamodel._precursor_mapping.keys():
                 m = peakgroup_map[ key ]
-                if m.has_peptide(r.runid):
-                    pg = m.get_peptide(r.runid).get_best_peakgroup()
-                    r._range_mapping[key] = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
+                if m.has_peptide(rundatamodel.runid):
+                    pg = m.get_peptide(rundatamodel.runid).get_best_peakgroup()
+                    try:
+                        rundatamodel._range_mapping[key] = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
+                        rundatamodel._score_mapping[key] = float(pg.get_value("m_score"))
+                        rundatamodel._intensity_mapping[key] = float(pg.get_value("Intensity"))
+                    except Exception: 
+                        pass
 
 
 class MainWindowNew(MainWindow):
