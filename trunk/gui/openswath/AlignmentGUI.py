@@ -452,7 +452,10 @@ class MainWindow(QtGui.QMainWindow):
 
         # Load the files
         start = time.time() 
-        self.data_model.loadFiles(pyFileList)
+        if len(pyFileList) == 1 and pyFileList[0].endswith(".yaml"):
+            self.data_model.load_from_yaml(pyFileList[0])
+        else:
+            self.data_model.loadFiles(pyFileList)
         self._refresh_view(time=time.time()-start)
 
     def _refresh_view(self, time=0):
