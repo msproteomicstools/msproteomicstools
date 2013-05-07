@@ -36,14 +36,20 @@ $Authors: Hannes Roest$
 """
 
 
-from guiqwt.curve import CurveItem
-from guiqwt.plot import CurvePlot, CurveDialog
-
 from PyQt4 import QtGui, Qt, QtCore
+from PyQt4.Qwt5 import QwtPlotItem
+import PyQt4.Qwt5 as Qwt
 
-from guiqwt.builder import make
-from guiqwt.styles import CurveParam, COLORS
-from guiqwt.transitional import QwtPlotItem
+try:
+    from guiqwt.curve import CurveItem
+    from guiqwt.plot import CurvePlot, CurveDialog
+    from guiqwt.builder import make
+    from guiqwt.styles import CurveParam, COLORS
+    from guiqwt.transitional import QwtPlotItem
+except ImportError:
+    print "Could not import guiqwt, will try to use Qwt only."
+    class CurveItem: pass
+    class CurveDialog: pass
 
 USE_ANTIALIASING = True
 
@@ -201,7 +207,6 @@ class GuiQwtMultiLinePlot(CurveDialog):
 # 
 ## The widget for a single plot on the right using Qwt only
 #
-import PyQt4.Qwt5 as Qwt
 class QwtMultiLinePlot(Qwt.QwtPlot):
     """Use Qwt Plot
 
