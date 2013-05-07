@@ -11,25 +11,103 @@ from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
 
 # options
-realign_runs = True
-fdr_cutoff = 0.01
+REALIGN_RUNS = True
+FDR_CUTOFF = 0.01
 ONLY_SHOW_QUANTIFIED = False
 ONLY_SHOW_QUANTIFIED = True
 
 class SwathRun(object):
-    def __init__(self, files):
+    """Data model for an individual SWATH injection, may contain multiple mzML files.
+    """
+    def __init__(self, files, runid=None):
         self.all_swathes = {}
-        self.files = files
-        for f in self.files:
+        self._files = files
+        self.runid = runid
+        self._in_memory = False
+        for f in self._files:
             import pymzml
+            print "Load file", f
             run_ = pymzml.run.Reader(f, build_index_from_scratch=True)
             run_.original_file = f
             first = run_.next()
             mz = first['precursors'][0]['mz']
-            self.all_swathes[ int(mz) ] = run_
+            self.all_swathes[ int(mz) ] = RunDataModel(run_, f)
+
+        self._initialize()
+
+        # extra info
+        self._range_mapping = {}
+        self._score_mapping = {}
+        self._intensity_mapping = {}
+
+    def _initialize(self):
+        self._precursor_run_map = {}
+        self._sequences_mapping = {}
+        self._chrom_id_run_map = {}
+        for run_key, run in self.all_swathes.iteritems():
+            for key in run._precursor_mapping:
+                self._precursor_run_map[key] = run_key
+            for key in run._sequences_mapping:
+                # self._sequence_run_map[key] = run_key
+                tmp = self._sequences_mapping.get(key, [])
+                tmp.extend( run._sequences_mapping[key] )
+                self._sequences_mapping[key] = tmp
+
+    def remove_precursors(self, toremove):
+        for run_key, run in self.all_swathes.iteritems():
+            for key in toremove:
+                run._precursor_mapping.pop(key, None)
+                self._precursor_run_map.pop(key, None)
+            run._group_precursors_by_sequence()
+
+    #
+    ## Getters (info)
+    #
+    def get_precursors_for_sequence(self, sequence):
+        return self._sequences_mapping.get(sequence, [])
+
+    def get_transitions_for_precursor(self, precursor):
+        run = self._precursor_run_map.get( str(precursor), None)
+        if run is None:
+            return []
+        return self.all_swathes[run].get_transitions_for_precursor(precursor)
+
+    def get_all_precursor_ids(self):
+        return self._precursor_run_map.keys()
+
+    def get_all_peptide_sequences(self):
+        res = set([])
+        for m in self.all_swathes.values():
+            res.update( m._sequences_mapping.keys() )
+        return res
 
     def getAllSwathes(self):
         return self.all_swathes
+
+    #
+    ## Getters (data) -> see ChromatogramTransition.getData
+    #
+    def get_data_for_transition(self, chrom_id):
+        raise Exception("Not implemented")
+
+    def getTransitionCount(self):
+        return sum([r.getTransitionCount() for r in self.all_swathes.values()] )
+
+    def get_data_for_precursor(self, precursor):
+        run = self._precursor_run_map[str(precursor)]
+        return self.all_swathes[run].get_data_for_precursor(precursor)
+
+    def get_range_data(self, precursor):
+        return self._range_mapping.get(precursor, [0,0])
+
+    def get_score_data(self, precursor):
+        return self._score_mapping.get(precursor, None)
+
+    def get_intensity_data(self, precursor):
+        return self._intensity_mapping.get(precursor, None)
+
+    def get_id(self):
+        return self.runid
 
 class SwathRunCollection(object):
     def __init__(self):
@@ -45,7 +123,7 @@ class SwathRunCollection(object):
         for runid, dname in runid_mapping.iteritems():
             import glob
             files = glob.glob(os.path.join(dname + "/*.mzML") )
-            self.swath_chromatograms[ runid ] = SwathRun(files)
+            self.swath_chromatograms[ runid ] = SwathRun(files, runid)
 
     def initialize_from_files(self, filenames):
         """Initialize from individual files, setting the runid as increasing
@@ -59,6 +137,8 @@ class SwathRunCollection(object):
     def getSwathFiles(self):
         return self.swath_chromatograms
 
+    def getRunIds(self):
+        return self.swath_chromatograms.keys()
 
 class DataModelNew(DataModel):
 
@@ -66,46 +146,42 @@ class DataModelNew(DataModel):
         super(DataModelNew, self).__init__()
         pass
 
-    def loadFiles(self, trafo_filenames, aligned_pg_files):
+    def loadFiles_with_peakgroups(self, trafo_filenames, aligned_pg_files):
 
-        # load new files, clean up ...
-        self.runs = []
-        self.precursors = set([])
+        # Read the chromatograms
+        swathfiles = SwathRunCollection()
+        swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in trafo_filenames] ) )
+        self.runs = [run for run in swathfiles.getSwathFiles().values()]
+        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
 
-        reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="complete")
-        new_exp = Experiment()
-        new_exp.runs = reader.parse_files(realign_runs)
-        multipeptides = new_exp.get_all_multipeptides(fdr_cutoff, verbose=False)
+        self.read_trafo(trafo_filenames)
+        self.map_this(aligned_pg_files, swathfiles)
 
+    def read_trafo(self, trafo_filenames):
         # Read the transformations
         transformation_collection_ = TransformationCollection()
         for filename in [d["trafo_file"] for d in trafo_filenames]:
           transformation_collection_.readTransformationData(filename)
         transformation_collection_.initialize_from_data(reverse=True)
 
-        # Read the chromatograms
-        swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in trafo_filenames] ) )
-        for runid,fileobj in swathfiles.getSwathFiles().iteritems():
-            for mz,run_ in fileobj.getAllSwathes().iteritems():
-                run = RunDataModel(run_, run_.original_file)
-                self.precursors.update(run.get_all_precursor_ids())
-                run.runid = runid
-                self.runs.append(run)
-
+    def map_this(self, aligned_pg_files, swathfiles):
         # map the read-in peakgroups
+        reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="complete")
+        new_exp = Experiment()
+        new_exp.runs = reader.parse_files(REALIGN_RUNS)
+        multipeptides = new_exp.get_all_multipeptides(FDR_CUTOFF, verbose=False)
+
         peakgroup_map = {}
         for m in multipeptides:
             pg = m.find_best_peptide_pg()
             peakgroup_map[ pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")] = m
 
-        for rundatamodel in self.runs:
-            print rundatamodel
+        for rundatamodel in swathfiles.getSwathFiles().values():
             if ONLY_SHOW_QUANTIFIED:
-                intersection = set(rundatamodel._precursor_mapping.keys()).intersection( peakgroup_map.keys() )
-                rundatamodel._precursor_mapping = dict( [(k,rundatamodel._precursor_mapping[k]) for k in intersection] )
-            rundatamodel._group_precursors_by_sequence()
-            for key in rundatamodel._precursor_mapping.keys():
+                intersection = set(rundatamodel.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
+                todelete = set(rundatamodel.get_all_precursor_ids()).difference(intersection)
+                rundatamodel.remove_precursors(todelete)
+            for key in rundatamodel.get_all_precursor_ids():
                 if not peakgroup_map.has_key(key): continue
                 m = peakgroup_map[ key ]
                 if m.has_peptide(rundatamodel.runid):
@@ -123,7 +199,7 @@ class DataModelNew(DataModel):
         data = yaml.load(open(yamlfile) )["AlignedSwathRuns"]
         alignment_files = data["PeakGroupData"]
         trafo_fnames = [d["trafo_file"] for d in data["RawData"]]
-        self.loadFiles(data["RawData"], alignment_files)
+        self.loadFiles_with_peakgroups(data["RawData"], alignment_files)
 
 class MainWindowNew(MainWindow):
     
