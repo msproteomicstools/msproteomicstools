@@ -339,8 +339,8 @@ class Experiment(AlignmentExperiment):
             run_ids = [r.get_id() for r in self.runs]
             header = ["Peptide", "Protein"]
             for r in self.runs:
-                header.extend(["Intensity_%s" % r.get_id(), "RT_%s" % r.get_id()])
-                print("Run id %s corresponds to %s" % (r.get_id(), r.orig_filename))
+                fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
+                header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
             header.extend(["RT_mean", "RT_std"])
             matrix_writer.writerow(header)
             for m in multipeptides:
