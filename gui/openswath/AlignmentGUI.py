@@ -458,7 +458,6 @@ class MainWindow(QtGui.QMainWindow):
     def _refresh_view(self, time=0):
 
         # get precursors from data and set it 
-        pr_list = self.data_model.get_precursor_list()
         precursor_model = self.application.get_precursor_model()
         precursor_model.set_precursor_tree_structure(self.data_model.get_precursor_tree())
         tmessage = ""

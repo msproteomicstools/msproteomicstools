@@ -261,14 +261,22 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             
         # create new curves
         self.curves = []
-        for i,l in enumerate(labels):
-            curve = Qwt.QwtPlotCurve(str(l))
+        for i,curve_label in enumerate(labels):
+
+            # Create legend item and set font
+            curve_label_t = Qwt.QwtText(str(curve_label))
+            f = curve_label_t.font()
+            f.setPointSize(8)
+            curve_label_t.setFont(f)
+
+            curve = Qwt.QwtPlotCurve(curve_label_t)
             curve.attach(self)
             curve.setPen(Qt.QPen(self.colors[i % len(self.colors)]))
             curve.setRenderHint(QwtPlotItem.RenderAntialiased, USE_ANTIALIASING)
             self.curves.append(curve)
 
-        self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
+        legend = Qwt.QwtLegend()
+        self.insertLegend(legend, Qwt.QwtPlot.BottomLegend);
         xaxis_title = Qwt.QwtText("Time (seconds)")
         yaxis_title = Qwt.QwtText("Intensity")
         self.setAxisTitle(Qwt.QwtPlot.xBottom, xaxis_title)
@@ -286,15 +294,11 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         self.run = run
 
     def setTitleFontSize(self, fontsize):
-        # TODO refactor
         title = Qwt.QwtText(self.run.get_id() )
+        titlefont = title.font()
+        titlefont.setPointSize(fontsize)
+        title.setFont(titlefont)
         self.setTitle(title)
-
-        t = self.title()
-        tfont = t.font()
-        tfont.setPointSize(fontsize)
-        t.setFont(tfont)
-        self.setTitle(t)
 
     def setAxisFontSize(self, fontsize):
         ax_font = self.axisFont(Qwt.QwtPlot.xBottom)
