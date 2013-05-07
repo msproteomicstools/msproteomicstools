@@ -375,6 +375,8 @@ class SWATHScoringReader:
         """Factory to create a new reader"""
         if filetype  == "openswath": 
             return OpenSWATH_SWATHScoringReader(infiles, readmethod)
+        elif filetype  == "mprophet": 
+            return mProphet_SWATHScoringReader(infiles, readmethod)
         elif filetype  == "peakview": 
             return Peakview_SWATHScoringReader(infiles, readmethod)
         else:
@@ -468,6 +470,71 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
         run_id = int(this_row[run.header_dict[run_id_name]])
+
+        if not run.all_peptides.has_key(trgr_id):
+          p = self.Precursor(trgr_id, run)
+          p.protein_name = protein_name
+          p.sequence = sequence
+          p.run_id = run_id
+          p.set_decoy(decoy)
+          run.all_peptides[trgr_id] = p
+        if self.readmethod == "minimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+        else:
+          peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
+
+class mProphet_SWATHScoringReader(SWATHScoringReader):
+
+    def __init__(self, infiles, readmethod="minimal"):
+        self.infiles = infiles
+        self.run_id_name = "run_id"
+        self.readmethod = readmethod
+        self.aligned_run_id_name = "align_runid"
+        if readmethod == "minimal":
+            self.Precursor = Precursor
+        else:
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GeneralPeakGroupOpenSwath
+
+    def parse_row(self, run, this_row, do_realignment):
+        decoy_name = "decoy"
+        fdr_score_name = "m_score"
+        unique_peakgroup_id_name = "transition_group_id"
+        # diff_from_assay_in_sec_name = "delta_rt"
+        run_id_name = "run_id"
+        protein_id_col = "protein"
+        sequence_col = "transition_group_pepseq"
+        intensity_name = "log10_max_apex_intensity"
+        decoy = "FALSE"
+
+        # use the aligned retention time if it is available!
+        if "aligned_rt" in run.header_dict: 
+            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+        # if we want to re-do the re-alignment, we just use the "regular" retention time
+        if do_realignment: 
+            diff_from_assay_in_sec_name = "Tr" 
+            diff_from_assay_seconds = float(this_row[run.header_dict["Tr"]]) 
+        else:
+            diff_from_assay_seconds = float(this_row[run.header_dict["iRT_empirical"]]) - float(this_row[run.header_dict["iRT_prediced"]])
+
+        # create some id
+        import uuid 
+        thisid = str(uuid.uuid1() )
+        # thisid = this_row[run.header_dict[unique_feature_id_name]]
+
+        trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
+        protein_name = this_row[run.header_dict[protein_id_col]]
+        sequence = this_row[run.header_dict[sequence_col]]
+        fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+        unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
+        intensity = -1
+        if run.header_dict.has_key(intensity_name):
+            intensity = float(this_row[run.header_dict[intensity_name]])
+        if "decoy" in run.header_dict:
+            decoy = this_row[run.header_dict[decoy_name]]
+        run_id = this_row[run.header_dict[run_id_name]]
 
         if not run.all_peptides.has_key(trgr_id):
           p = self.Precursor(trgr_id, run)
