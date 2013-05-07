@@ -6,12 +6,15 @@ import os
 from AlignmentGUI import *
 from models.MSData import RunDataModel
 
+from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
+from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
+
 # options
-testoutfile = "/home/hr/projects/msproteomicstools/testout_all.csv"
-testoutfile = "/tmp/testout.csv"
 realign_runs = True
 fdr_cutoff = 0.01
-
+ONLY_SHOW_QUANTIFIED = False
+ONLY_SHOW_QUANTIFIED = True
 
 class SwathRun(object):
     def __init__(self, files):
@@ -32,19 +35,12 @@ class SwathRunCollection(object):
     def __init__(self):
         self.swath_chromatograms = {}
 
-    def initialize_from_trafofiles(self, trafo_filenames):
-        res  = {}
-        for filename in trafo_filenames:
-            # get the run id
-            f = open(filename, "r")
-            header = f.next().split("\t")
-            f.close()
-            runid = header[1]
-            dname = os.path.dirname(filename)
-            res[runid] = dname
-        self.initialize_from_directories(res)
-
     def initialize_from_directories(self, runid_mapping):
+        """Initialize from a directory, assuming that all .mzML files in the
+        same directory are from the same run.
+
+        Requires a dictionary of form { run_id : directory }
+        """
         self.swath_chromatograms = {}
         for runid, dname in runid_mapping.iteritems():
             import glob
@@ -52,8 +48,12 @@ class SwathRunCollection(object):
             self.swath_chromatograms[ runid ] = SwathRun(files)
 
     def initialize_from_files(self, filenames):
+        """Initialize from individual files, setting the runid as increasing
+        integers.  
+        """
         self.swath_chromatograms = {}
         for i,f in enumerate(filenames):
+            runid = i
             self.swath_chromatograms[ runid ] = SwathRun([f])
 
     def getSwathFiles(self):
@@ -66,30 +66,26 @@ class DataModelNew(DataModel):
         super(DataModelNew, self).__init__()
         pass
 
-    def loadFiles(self, trafo_filenames):
+    def loadFiles(self, trafo_filenames, aligned_pg_files):
 
         # load new files, clean up ...
         self.runs = []
         self.precursors = set([])
 
-        sys.path.append("/home/hr/projects/msproteomicstools")
-        from feature_alignment import Experiment, TransformationCollection
-        from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
-
-        reader = SWATHScoringReader.newReader([testoutfile], "openswath", readmethod="complete")
+        reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="complete")
         new_exp = Experiment()
         new_exp.runs = reader.parse_files(realign_runs)
         multipeptides = new_exp.get_all_multipeptides(fdr_cutoff, verbose=False)
 
         # Read the transformations
         transformation_collection_ = TransformationCollection()
-        for filename in trafo_filenames:
+        for filename in [d["trafo_file"] for d in trafo_filenames]:
           transformation_collection_.readTransformationData(filename)
         transformation_collection_.initialize_from_data(reverse=True)
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_trafofiles(trafo_filenames)
+        swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in trafo_filenames] ) )
         for runid,fileobj in swathfiles.getSwathFiles().iteritems():
             for mz,run_ in fileobj.getAllSwathes().iteritems():
                 run = RunDataModel(run_, run_.original_file)
@@ -105,10 +101,12 @@ class DataModelNew(DataModel):
 
         for rundatamodel in self.runs:
             print rundatamodel
-            intersection = set(rundatamodel._precursor_mapping.keys()).intersection( peakgroup_map.keys() )
-            rundatamodel._precursor_mapping = dict( [(k,rundatamodel._precursor_mapping[k]) for k in intersection] )
+            if ONLY_SHOW_QUANTIFIED:
+                intersection = set(rundatamodel._precursor_mapping.keys()).intersection( peakgroup_map.keys() )
+                rundatamodel._precursor_mapping = dict( [(k,rundatamodel._precursor_mapping[k]) for k in intersection] )
             rundatamodel._group_precursors_by_sequence()
             for key in rundatamodel._precursor_mapping.keys():
+                if not peakgroup_map.has_key(key): continue
                 m = peakgroup_map[ key ]
                 if m.has_peptide(rundatamodel.runid):
                     pg = m.get_peptide(rundatamodel.runid).get_best_peakgroup()
@@ -118,7 +116,14 @@ class DataModelNew(DataModel):
                         rundatamodel._intensity_mapping[key] = float(pg.get_value("Intensity"))
                     except Exception: 
                         pass
+                    
+    def load_from_yaml(self, yamlfile):
 
+        import yaml
+        data = yaml.load(open(yamlfile) )["AlignedSwathRuns"]
+        alignment_files = data["PeakGroupData"]
+        trafo_fnames = [d["trafo_file"] for d in data["RawData"]]
+        self.loadFiles(data["RawData"], alignment_files)
 
 class MainWindowNew(MainWindow):
     
@@ -130,14 +135,23 @@ class MainWindowNew(MainWindow):
 
         self.initUI()
 
-trafo_fnames = ['analysis/alignment/strep_align/Strep0_Repl1_R02/transformation-0_0-0_1.tr', 'analysis/alignment/strep_align/Strep0_Repl2_R02/transformation-0_1-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl1_R02/transformation-0_2-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl2_R02/transformation-0_3-0_1.tr']
-trafo_fnames = ['/home/hr/projects/msproteomicstools/' + f for f in trafo_fnames]
+"""
+Sample Yaml file:
 
-
+AlignedSwathRuns:
+  PeakGroupData: [/path/peakgroups.csv]
+  RawData:
+  - {directory: /path/Strep0_Repl1_R02, id: '0_0', trafo_file:  /path/Strep0_Repl1_R02/transformation-0_0-0_1.tr}
+  - {directory: /path/Strep0_Repl2_R02, id: '0_1', trafo_file:  /path/Strep0_Repl2_R02/transformation-0_1-0_1.tr}
+  - {directory: /path/Strep10_Repl1_R02, id: '0_2', trafo_file: /path/Strep10_Repl1_R02/transformation-0_2-0_1.tr}
+  - {directory: /path/Strep10_Repl2_R02, id: '0_3', trafo_file: /path/Strep10_Repl2_R02/transformation-0_3-0_1.tr}
+  ReferenceRun: '0_1'
+"""
 
 app = QtGui.QApplication(sys.argv)
 ex = MainWindowNew()
-ex.data_model.loadFiles(trafo_fnames)
+ex.data_model.load_from_yaml("/home/hr/projects/msproteomicstools/test100align.yaml")
+# ex.data_model.load_from_yaml("/home/hr/projects/msproteomicstools/allAlign.yaml")
 ex._refresh_view()
 sys.exit(app.exec_())
 
