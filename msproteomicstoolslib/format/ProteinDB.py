@@ -38,12 +38,15 @@ import os
 import csv
 import sys
 import getopt
+import re
+from itertools import izip
 
+from ..data_structures import aminoacides
 
 class Protein :
 	"""Represents a protein which may be stored in a ProteinDB instance"""
 	
-	def __init__(self , proteindetails = None) :
+	def __init__(self , proteindetails = None, calWeight = False) :
 		self.code1 = ''
 		self.code2 = ''
 		self.modres = ''
@@ -58,7 +61,54 @@ class Protein :
 			if 'ncbi_tax_id'	in proteindetails : self.ncbi_tax_id	= proteindetails['ncbi_tax_id']
 			if 'description'	in proteindetails : self.description	= proteindetails['description']
 			if 'sequence'		in proteindetails : self.sequence		= proteindetails['sequence']
+		
+		if calWeight : self.weight = self.proteinWeight()
 
+	def digest(self, cleavageRules = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}):
+		peptides = []
+		run_seq = 1
+		if cleavageRules['terminus'] == 'N' : run_seq = -1
+		
+		grouped = lambda iterable,n : izip(*[iter(iterable)]*n)
+		
+		#Build the regular expression
+		cleaveregex = '' 
+		for cleave in cleavageRules['cleave'] :
+			this_regex = '(' + cleave + ')'
+			for excep in cleavageRules['exceptions'] :
+				if cleave in excep :
+					if excep.find(cleave) == 0 : this_regex = this_regex + '(?!' + excep[1:] + ')'  #It is a C-terminus exception (i.e. a proline AFTER the cleavage site)
+					else : this_regex = '(?!' + excep[:-1] + ')' + this_regex #It is an N-terminus exception
+					excep_cleave = cleavageRules['exceptions']
+			if len(cleaveregex) > 0 : cleaveregex = cleaveregex + '|' 
+			cleaveregex = cleaveregex + this_regex
+
+		mm = re.split(cleaveregex, self.sequence)
+		while None in mm : mm.remove(None)
+		
+		for x,y in grouped(mm[::run_seq],2) :
+			this_peptide = ''
+			if run_seq == 1  : this_peptide = x+y
+			if run_seq == -1 : this_peptide = y+x  
+			peptides.append( this_peptide )
+		
+		pos_remaining = len(mm) - 1 
+		if run_seq == -1 : pos_remaining = 0
+		if mm[pos_remaining] not in cleavageRules['cleave'] :  peptides.append( mm[pos_remaining] )
+
+		return peptides
+		
+		
+	def proteinWeight(self) :
+		weight = 0.0
+		aaLib = aminoacides.Aminoacides()
+		for aa1 in self.sequence[:] :
+			for aa2 in aaLib.list :
+				if aa2.code == aa1 : 
+					weight += aa2.deltaMass
+					break
+		return weight
+	
 	def pseudoreverse(self,decoytag = "DECOY_") :
 
 		cleaveage_aa = ['K','R']
