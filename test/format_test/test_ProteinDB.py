@@ -67,7 +67,7 @@ class TestUnitProtein(unittest.TestCase):
 		self.db = pdb.ProteinDB()
 		self.db.readFasta(self.fastafile)
 		self.P31946 = self.db.proteinDictionary['P31946']
-		self.trypsin = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'PR']}
+		self.trypsin = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}
 		self.Lys_N = {'terminus' : 'N' , 'cleave' : ['K'], 'exceptions' : []}
 		self.pep_tryp1 = 'TAFDEAIAELDTLNEESYK'
 		self.pep_Lys_N = 'KGDYFRYLSEVASGDN'
