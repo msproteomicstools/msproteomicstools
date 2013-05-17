@@ -2,7 +2,7 @@
 # -*- coding: utf-8  -*-
 """
 =========================================================================
-        msproteomicstools -- Mass Spectrometry Proteomics Tools
+		msproteomicstools -- Mass Spectrometry Proteomics Tools
 =========================================================================
 
 Copyright (c) 2013, ETH Zurich
@@ -42,15 +42,33 @@ import msproteomicstoolslib.format.ProteinDB as pdb
 
 class TestUnitProteinDB(unittest.TestCase):
 
-    def setUp(self):
-        self.fastafile = '../data/smallDB.fasta'
-        self.db = pdb.ProteinDB()
-        self.db.readFasta(self.fastafile)
-        
-    def test_get_proteins_containing_peptide(self): #To-Do : test with some peptides present and not present. Also shared peptides. 
+	def setUp(self):
+		self.fastafile = '../data/smallDB.fasta'
+		self.db = pdb.ProteinDB()
+		self.db.readFasta(self.fastafile)
+		self.P31946 = self.db.proteinDictionary['P31946']
+
+	def test_readFasta(self) :
+		
+		self.code1 = self.P31946.code1
+		self.code2 = self.P31946.code2
+		self.modres = self.P31946.modres
+		self.ncbi_tax_id = self.P31946.ncbi_tax_id
+		self.description = self.P31946.description
+		self.sequence = self.P31946.sequence
+		
+		print self.code1
+		print self.code2
+		print self.modres
+		print self.ncbi_tax_id
+		print self.description
+		print self.sequence
+
+		
+	def test_get_proteins_containing_peptide(self): #To-Do : test with some peptides present and not present. Also shared peptides. 
 	   pass
 	  
-    def test_pseudoreverseDB(self): #To-Do : Pseudo-reverse and check a couple of reversed proteins. Pseudo-reverse the DB twice, and check the DB is equal. 
+	def test_pseudoreverseDB(self): #To-Do : Pseudo-reverse and check a couple of reversed proteins. Pseudo-reverse the DB twice, and check the DB is equal. 
  	   pass
 
 class TestUnitProtein(unittest.TestCase):
@@ -74,6 +92,7 @@ class TestUnitProtein(unittest.TestCase):
 
 	def test_proteinWeight(self) :
 		pass
+
 	
 	def test_digest(self) :
 		
@@ -88,4 +107,4 @@ class TestUnitProtein(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
