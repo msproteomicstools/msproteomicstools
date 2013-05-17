@@ -43,6 +43,7 @@ from elements import Formulas
 from types import *
 import random
 import sys
+import itertools
 
 class Peptide:
 	def __init__(self, sequence,  modifications={}, protein=""): 
@@ -59,13 +60,74 @@ class Peptide:
 		self.labelings = ['N15', '15N', 'AQUA_KR', 'SILAC_K6R10', 'no_labeling', 'SILAC_K8R10', 'SILAC_K8R6']
 		self.iontypes = ['a', 'b', 'c', 'x', 'y', 'z']
 
-	# To-Do : adapt this method to several kinds of outputs (ProteinPilot, Unimod, TPP...)
+
+	def comparePeptideFragments(self, otherPeptidesList, ionseries = None, fragmentlossgains = [0,], precision = 1e-8) :
+		'''
+		This returns a tuple of lists: (CommonFragments, differentialFragments). The differentialFragmentMasses are the masses
+		of the __self__ peptide are not shared with any of the peptides listed in the otherPeptidesList. otherPeptidesList must be a list of
+		Peptide objects. The fragments are reported as a tuple : (ionserie,ion_number,ion_charge,frqgmentlossgain,mass)
+		'''
+		if not ionseries : ionseries = self.iontypes
+		
+		ions_selfPep = []
+		ions_others  = [] 
+		
+		for ion_type in ionseries :
+			for ion_number in range(1,len(self.sequence)) :
+				for ion_charge in [1,2] :
+					for lossgain in fragmentlossgains :
+						ions_selfPep.append( ( ion_type, ion_number, ion_charge, lossgain, self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain) ) ) 
+		
+		for othPep in otherPeptidesList :
+			for ion_type in ionseries :
+				for ion_number in range(1,len(othPep.sequence)) :
+					for ion_charge in [1,2] :
+						for lossgain in fragmentlossgains :
+							ions_others.append(( ion_type, ion_number, ion_charge, lossgain, othPep.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain=lossgain) ) )
+		
+		shared_ions = []
+		unmatched_ions = [] 
+		for (ion_type, ion_number, ion_charge, fragmentlossgain, mass1) in ions_selfPep :
+			is_mass_match = False
+			for (_,_,_,_,mass2) in ions_others :
+				if abs(mass1-mass2) <= precision : 
+					shared_ions.append((ion_type, ion_number, ion_charge, fragmentlossgain, mass1))
+					is_mass_match = True
+			if not is_mass_match : unmatched_ions.append((ion_type, ion_number, ion_charge, fragmentlossgain, mass1))
+		
+		return (shared_ions, unmatched_ions)
+	
+	def calIsoforms(self, switchingModification, modLibrary) :
+		'''This returns the full list of peptide species of the same peptide family (isobaric, same composition, different 
+		modification site. The list is given as a list of Peptide objects. switchingModification must be given as a Modification object.
+		'''
+		peptide_family = []
+		#Count the number of switching modifications 
+		num_of_switchMods = 0
+		for _, mod in self.modifications.iteritems() :
+			if mod.unimodAccession == switchingModification.unimodAccession : num_of_switchMods += 1
+		#Store the position of the available modification sites of the peptide
+		modSites = []
+		for site,aa in enumerate(self.sequence[:]) :
+			for mod in modLibrary.list :
+				#print mod.unimodAccession , switchingModification.unimodAccession 
+				if mod.unimodAccession == switchingModification.unimodAccession :
+					if mod.aminoacid == aa : modSites.append(site)  
+		
+		for subset in itertools.combinations(modSites, num_of_switchMods) :
+			newmods = {}
+			for idx in subset : newmods[idx+1] = switchingModification
+			isoform = Peptide(self.sequence, newmods)
+			peptide_family.append(isoform)
+		
+		return peptide_family
+
 	def getSequenceWithMods(self, code) :
 		seqMods = ''
 		
 		for i, aa in enumerate(self.sequence[:]):
 			if i + 1 in self.modifications:
-				seqMods += self.modifications[i + 1].getcode(code)
+				seqMods += aa + self.modifications[i + 1].getcode(code)[1:]
 			else : seqMods += aa
 			
 		return seqMods
@@ -448,8 +510,17 @@ def test():
 	from modifications import Modifications
 
 	mods = Modifications()
-	mypep  = Peptide('LMGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['M[147]'] , 2 : mods.mods_TPPcode['M[147]']}) #M[147]
-	mypep2 = Peptide('LMGPTSVVMGR')
+	mypep2  = Peptide('LMGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['M[147]']}) #M[147]
+	mypep = Peptide('LMGPTSVVMGR')
+	
+	matched , unmatched = mypep.comparePeptideFragments([mypep2,], ['y','b'], precision = 1e-2)
+	print "Matched ions : " , matched
+	print "Unmatched ions : ", unmatched
+	
+	my_isoforms = mypep2.calIsoforms(mods.mods_TPPcode['M[147]'], mods)
+	print "isoforms of %s" % mypep2.getSequenceWithMods('unimod') 
+	for iso in my_isoforms :
+		print  iso.getSequenceWithMods('unimod')
 	
 	for pep in [mypep, mypep2] : 
 			
