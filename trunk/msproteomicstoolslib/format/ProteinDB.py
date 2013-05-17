@@ -64,7 +64,7 @@ class Protein :
 		
 		if calWeight : self.weight = self.proteinWeight()
 
-	def digest(self, cleavageRules = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}):
+	def digest(self, cleavageRules = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}, minLength = 0):
 		peptides = []
 		run_seq = 1
 		if cleavageRules['terminus'] == 'N' : run_seq = -1
@@ -90,11 +90,12 @@ class Protein :
 			this_peptide = ''
 			if run_seq == 1  : this_peptide = x+y
 			if run_seq == -1 : this_peptide = y+x  
-			peptides.append( this_peptide )
+			if len(this_peptide) > minLength :  peptides.append( this_peptide )
 		
 		pos_remaining = len(mm) - 1 
 		if run_seq == -1 : pos_remaining = 0
-		if mm[pos_remaining] not in cleavageRules['cleave'] :  peptides.append( mm[pos_remaining] )
+		if mm[pos_remaining] not in cleavageRules['cleave'] : 
+			 if len(mm[pos_remaining]) > minLength : peptides.append( mm[pos_remaining] )
 
 		return peptides
 		
