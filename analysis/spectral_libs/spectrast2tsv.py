@@ -41,6 +41,7 @@ import csv
 import getopt
 from configobj		import ConfigObj
 
+from msproteomicstoolslib.data_structures.aminoacides 	import Aminoacides
 from msproteomicstoolslib.data_structures.modifications	import	 Modifications
 from msproteomicstoolslib.format.ProteinDB				import	 ProteinDB  
 import msproteomicstoolslib.format.speclib_db_lib		as		 speclib_db_lib  
@@ -247,7 +248,7 @@ def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
 	return spectrumOK
 
 
-def get_iso_species(sptxtfile, switchingModification, modificationsLib) :
+def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = None) :
 	'''It reads a spectraST file, and gets a dictionary of peptides containing a dictionary of isoforms of the peptide. 
 	The values of the latter dictionary are the file offset in which the related species are located at the spectraST file. If
 	the specie is not located (it has only been theoretically defined), the offset value is -1. 
@@ -271,7 +272,7 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib) :
 		sequence = spectrum.name.split('/')[0]
 		z_parent = float(spectrum.name.split('/')[1])
 		#Get the possible modification switching sites. If there is only one possibility, discard the peptide for the dictionary
-		pep = modificationsLib.translateModificationsFromSequence(sequence, 'TPP')
+		pep = modificationsLib.translateModificationsFromSequence(sequence, 'TPP', aaLib = aaLib)
 		isobaric_peptides = []
 		if len(pep.modifications) == 0 : continue
 		#Count the number of switching mods
@@ -302,7 +303,7 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib) :
 
 def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary, 
 						useMinutes, searchEngineconfig, masslimits, key, precision,  
-						writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance) :
+						writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance, aaLib = None) :
 	'''
 	This returns the (specific!) transitions of all the isoforms of the peptides present in the spectraST library. If there is no
 	spectraST reference for an isoform, transitions are chosen randomly, respecting the established filter rules, and a dummy 
@@ -315,23 +316,33 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 	filteredtransitions = []
 	transition_cnt = 0
 	precursor_cnt  = 0
-
+	
+	print "A total of %s peptide families have been found."  % len(isobaric_species) 
+	
+	pepfamily_cnt = 0
+	fut_progress = 0.01
 	for pepfamily , isoforms in isobaric_species.iteritems() :
-		print pepfamily, isoforms
+		pepfamily_cnt += 1
+		progress = float(pepfamily_cnt) / float(len(isobaric_species))
+		if progress >= fut_progress and progress > 0.005 : 
+			print fut_progress*100 ,  "% of peptide families written."
+			fut_progress += 0.01 
+		
+		#print pepfamily, isoforms
 		precursor_cnt  += 1
 		protein_code1 = pepfamily
 		protein_desc  = pepfamily
-		for isoform, offset in isoforms.iteritems() :
-			print "%s : %s"  % (isoform , offset)
+		#for isoform, offset in isoforms.iteritems() :
+		#	print "%s : %s"  % (isoform , offset)
 		for isoform_,offset in isoforms.iteritems() :
 			spectrum = None
-			isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod')
+			isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
 			
 			if offset > 0 :  _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
 			#Get the shared and unshared ions of this isoform to all its family
 			otherIsoforms = []
 			for isof in isoforms.iterkeys() : 
-				if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod'))
+				if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
 			
 			shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
 		
@@ -403,7 +414,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 
 
 	#print  filteredtransitions
-	return filteredtransitions
+	return 0
 
 def main(argv) :
 
@@ -428,6 +439,7 @@ def main(argv) :
 	key				= 'peakview'
 	outputfile = None
 	switchingModification = None
+	aaLib = Aminoacides()
 	
 
 	csv_headers_peakview =	 [	'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
@@ -605,19 +617,19 @@ def main(argv) :
 		#write the headers
 		writer.writerow( csv_headers )
 
-		filteredtransitions = []
 		#If a switching modification has been defined, a dictionary containing isobaric species must be created
 		if switchingModification :
 			#Check whether the switching modification is actually present in the modifications lib.
 			if switchingModification not in modificationsLib.mods_unimods :
 				raise Exception("Error: the switching modification given by the user is not in the modifications library!")
 			switchingMod = modificationsLib.mods_unimods[switchingModification]
-			isobaric_species = get_iso_species(sptxtfile, switchingModification, modificationsLib)
-			filteredtransitions = transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, 
-						useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02)
+			isobaric_species = get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = aaLib)
+			transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, 
+						useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, aaLib = aaLib)
 			print "done!"
 			sys.exit()
 
+		filteredtransitions = []
 
 		library_key = 99
 		spectrastlib = speclib_db_lib.Library(library_key)
@@ -644,7 +656,7 @@ def main(argv) :
 			#print sequence, z_parent
 
 			#Declare the peptide
-			pep = modificationsLib.translateModificationsFromSequence(sequence, modification_code)
+			pep = modificationsLib.translateModificationsFromSequence(sequence, modification_code, aaLib = aaLib)
 			
 			irt_sequence = -100
 			RT_experimental = 0.0
