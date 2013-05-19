@@ -35,7 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-#from elements import Elements
+from elements import Elements
 from elements import Formulas
 
 class Aminoacides:
@@ -105,7 +105,8 @@ class Aminoacid:
         self.code3 = code3
         self.composition = {}
         self.composition = composition
-        self.deltaMass = Formulas.mass(self.composition) #self.calDeltaMass()
+        self.elementsLib = Elements()
+        self.deltaMass = Formulas.mass(self.composition, elementsLib = self.elementsLib) #self.calDeltaMass()
     
     
 if __name__ == "__main__":

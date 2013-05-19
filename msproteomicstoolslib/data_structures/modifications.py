@@ -122,61 +122,61 @@ class Modifications:
             self.appendModification(mod)
 
 
-    def translateModificationsFromSequence(self, sequence, code) :
-        '''Returns a Peptide object, given a sequence with modifications in any of the available codes.
-        The code (TPP, Unimod,...) to be translated must be given.'''
-        
-        if code not in Modification.codes : 
-            #Throw an Exception
-            print "The following nomenclature (code) is not recognized : " , code
-            sys.exit(5)
-        
-        aminoacides_with_mods = []
-        terminal_mods = []
-        if code == 'unimod' :
-            aminoacides_with_mods     = re.findall('([A-Z]\([^\)]*\)|[A-Z])', sequence )
-        else :
-            aminoacides_with_mods     = re.findall('([A-Z]\[\d*\]|[A-Z])', sequence )
-            #Warning : this will only work for TPP unfortunately. It is though the most common operation we'll do
-            if code == 'TPP' : terminal_mods = re.findall('([a-z]\[\d*\]|[a-z])', sequence) 
-                    
-        #mods_peptide is a dictionary wich uses the position of the modification as key, and a Modification object as value:
-        #example : GGGGMoxDDCDK  -> mods_peptide = { 5 : Modification1 , 8 : Modification2 }
-        mods_peptide = {}
-        sequence_no_mods = ''
-        for i,aa in enumerate(aminoacides_with_mods) :
-            #clean the sequence (basically, take the first letter of the aminoacides_with_mods)
-            if len(aa) > 0 : sequence_no_mods += aa[0]
-            if len(aa) > 1 : #search for the modification
-                modification_found = False
-                for modif in self.list :
-                    if aa == modif.getcode(code) :
-                        #add the modification to the mods_peptide dictionary
-                        mods_peptide[i+1] = modif
-                        modification_found = True
-                if not modification_found :
-                    #Throw an Exception
-                    print "This modification has not been recognized : " , aa
-                    print "Found in the following sequence : " , sequence
-                    print "The code used to interpret it was : " , code
-                    sys.exit(4) 
-        
-        for i, mod in enumerate(terminal_mods) :
-            modification_found = False
-            for modif in self.list :
-                if mod == modif.getcode(code) :
-                    modification_found = True
-                    if modif.is_Nterminal : mods_peptide[0] = modif
-                    if modif.is_Cterminal : mods_peptide[len(sequence_no_mods)+1] = modif
-            if not modification_found :
-                #Throw an Exception
-                print "This modification has not been recognized : " , aa
-                print "Found in the following sequence : " , sequence
-                print "The code used to interpret it was : " , code
-                sys.exit(4) 
-        
-        return Peptide(sequence_no_mods, mods_peptide)
-        
+	def translateModificationsFromSequence(self, sequence, code, aaLib = None) :
+		'''Returns a Peptide object, given a sequence with modifications in any of the available codes.
+		The code (TPP, Unimod,...) to be translated must be given.'''
+		
+		if code not in Modification.codes : 
+			#Throw an Exception
+			print "The following nomenclature (code) is not recognized : " , code
+			sys.exit(5)
+		
+		aminoacides_with_mods = []
+		terminal_mods = []
+		if code == 'unimod' :
+			aminoacides_with_mods 	= re.findall('([A-Z]\([^\)]*\)|[A-Z])', sequence )
+		else :
+			aminoacides_with_mods 	= re.findall('([A-Z]\[\d*\]|[A-Z])', sequence )
+			#Warning : this will only work for TPP unfortunately. It is though the most common operation we'll do
+			if code == 'TPP' : terminal_mods = re.findall('([a-z]\[\d*\]|[a-z])', sequence) 
+					
+		#mods_peptide is a dictionary wich uses the position of the modification as key, and a Modification object as value:
+		#example : GGGGMoxDDCDK  -> mods_peptide = { 5 : Modification1 , 8 : Modification2 }
+		mods_peptide = {}
+		sequence_no_mods = ''
+		for i,aa in enumerate(aminoacides_with_mods) :
+			#clean the sequence (basically, take the first letter of the aminoacides_with_mods)
+			if len(aa) > 0 : sequence_no_mods += aa[0]
+			if len(aa) > 1 : #search for the modification
+				modification_found = False
+				for modif in self.list :
+					if aa == modif.getcode(code) :
+						#add the modification to the mods_peptide dictionary
+						mods_peptide[i+1] = modif
+						modification_found = True
+				if not modification_found :
+					#Throw an Exception
+					print "This modification has not been recognized : " , aa
+					print "Found in the following sequence : " , sequence
+					print "The code used to interpret it was : " , code
+					sys.exit(4) 
+		
+		for i, mod in enumerate(terminal_mods) :
+			modification_found = False
+			for modif in self.list :
+				if mod == modif.getcode(code) :
+					modification_found = True
+					if modif.is_Nterminal : mods_peptide[0] = modif
+					if modif.is_Cterminal : mods_peptide[len(sequence_no_mods)+1] = modif
+			if not modification_found :
+				#Throw an Exception
+				print "This modification has not been recognized : " , aa
+				print "Found in the following sequence : " , sequence
+				print "The code used to interpret it was : " , code
+				sys.exit(4) 
+		
+		return Peptide(sequence_no_mods, mods_peptide, aminoacidLib = aaLib)
+		
 class Modification:
     
     codes = ['TPP', 'unimod', 'ProteinPilot']
