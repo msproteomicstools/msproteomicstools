@@ -46,10 +46,12 @@ import sys
 import itertools
 
 class Peptide:
-	def __init__(self, sequence,  modifications={}, protein=""): 
+	def __init__(self, sequence,  modifications={}, protein="", aminoacidLib = None): 
 		self.sequence = sequence
 		#self.modifications is a dictionary wich uses the position of the modification as key, and a Modification object as value:
 		#example : GGGGMoxDDCDK  -> self.modifications = { 5 : ModificationObject1 , 8 : ModificationObject2 }
+		self.aaList = aminoacidLib
+		if self.aaList == None : self.aaList = Aminoacides()
 		self.modifications = {}
 		if len(modifications) > 0 : self.modifications = modifications
 		self.composition = self._getComposition()
@@ -59,7 +61,6 @@ class Peptide:
 		self.proteins = protein
 		self.labelings = ['N15', '15N', 'AQUA_KR', 'SILAC_K6R10', 'no_labeling', 'SILAC_K8R10', 'SILAC_K8R6']
 		self.iontypes = ['a', 'b', 'c', 'x', 'y', 'z']
-
 
 	def comparePeptideFragments(self, otherPeptidesList, ionseries = None, fragmentlossgains = [0,], precision = 1e-8) :
 		'''
@@ -134,11 +135,11 @@ class Peptide:
 
 
 	def _getMassFromSequence(self):
-		aaList = Aminoacides()
+		#self.aaList = Aminoacides()
 
 		mass = 0
 		for aa in self.sequence[:]:
-			for ac in aaList.list:
+			for ac in self.aaList.list:
 				if aa == ac.code:
 					mass += ac.deltaMass
 		
@@ -154,11 +155,11 @@ class Peptide:
 		
 	def getDeltaMassFromSequence(self, sequence):
 		
-		aaList = Aminoacides()
+		#self.aaList = Aminoacides()
 		
 		mass = 0
 		for aa in sequence[:]:
-			for ac in aaList.list:
+			for ac in self.aaList.list:
 				if aa == ac.code:
 					mass += ac.deltaMass
 	   
@@ -223,11 +224,11 @@ class Peptide:
 		return q3_decoy
 	
 	def _getComposition(self):
-		aaList = Aminoacides()
+		#aaList = Aminoacides()
 		composition = {}
 		
 		for aa in self.sequence[:]:
-			for ac in aaList.list:
+			for ac in self.aaList.list:
 				if aa == ac.code:
 					for elem, num in ac.composition.items():
 						if elem not in composition:
@@ -243,11 +244,11 @@ class Peptide:
 		return composition
 	
 	def _getCompositionSeq(self, sequence, modifications = {}):
-		aaList = Aminoacides()
+		#aaList = Aminoacides()
 		composition = {}
 		
 		for aa in sequence[:]:
-			for ac in aaList.list:
+			for ac in self.aaList.list:
 				if aa == ac.code:
 					for elem, num in ac.composition.items():
 						if elem not in composition:
@@ -265,7 +266,7 @@ class Peptide:
 	
 	def _getAminoacidList(self, fullList=False):
 		
-		aminoacides = Aminoacides()
+		aminoacides = self.aaList
 		aaList = {}
 		
 		if fullList:			

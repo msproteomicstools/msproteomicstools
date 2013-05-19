@@ -60,8 +60,9 @@ class Formulas :
         pass
         
     @staticmethod
-    def mass(formula):
-        elements = Elements()
+    def mass(formula, elementsLib = None):
+        elements = elementsLib
+        if elementsLib == None : elements = Elements()
         deltaMass=0
         
         for el , numatoms in formula.iteritems() : 
