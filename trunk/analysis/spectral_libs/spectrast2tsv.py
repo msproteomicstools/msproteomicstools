@@ -321,6 +321,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 	
 	pepfamily_cnt = 0
 	fut_progress = 0.01
+	
 	for pepfamily , isoforms in isobaric_species.iteritems() :
 		pepfamily_cnt += 1
 		progress = float(pepfamily_cnt) / float(len(isobaric_species))
@@ -371,7 +372,6 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 
 			if searchenginefiltered : peaks = []
 			
-			#print shared
 			
 			for (frg_serie,frg_nr,frg_z,gainloss,fragment_mz) in unshared :
 				#Check whether we have the fragment in the spectrum	
@@ -390,7 +390,9 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 					'''
 					if abs(float(peak.peak) - fragment_mz) < precision : 
 						is_in_spectrum = True 
-						rel_intensity = peak.intensity
+						rel_intensity = float(peak.intensity)
+						break
+				#print isoform.getSequenceWithMods('unimod') , frg_serie, frg_nr, frg_z, fragment_mz, is_in_spectrum, rel_intensity
 				
 				code = 'ProteinPilot'
 				if key == 'openswath'	 : code = 'unimod'
@@ -406,12 +408,11 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 					transition = [precursorMZ, fragment_mz, RT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
 							rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
 							"%s_%s_%s" %(frg_serie, frg_z, frg_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, frg_serie, frg_z, frg_nr ]
-				
 				filteredtransitions.append(transition)
 			
 			#For each isoform, filtering and write
 			do_filtering_and_write(filteredtransitions, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02)
-
+			filteredtransitions = []
 
 	#print  filteredtransitions
 	return 0
