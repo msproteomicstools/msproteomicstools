@@ -2,7 +2,7 @@
 # -*- coding: utf-8  -*-
 """
 =========================================================================
-        msproteomicstools -- Mass Spectrometry Proteomics Tools
+		msproteomicstools -- Mass Spectrometry Proteomics Tools
 =========================================================================
 
 Copyright (c) 2013, ETH Zurich
@@ -35,10 +35,10 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-#from elements       import Elements
-from elements       import Formulas        
-from aminoacides    import Aminoacides
-from peptide        import Peptide
+#from elements	   import Elements
+from elements	   import Formulas		
+from aminoacides	import Aminoacides
+from peptide		import Peptide
 
 import csv
 import ast
@@ -46,80 +46,80 @@ import re
 import sys
 
 class Modifications:
-    
-    def __init__(self):
-        self.list= []
-        self.mods_TPPcode = {}   # a more confortable way to store the modifications, if you want just to declare them elsewhere in a sequence
-        self.mods_unimods = {}
-        self._initModifications()
-    
-    def _initModifications(self):
-        
-        CAM             = Modification('C'      ,   'C[160]',   4,  '[CAM]',    False,    {'H': 3 ,'C': 2 ,'N':1 , 'O': 1 })
-        Ox              = Modification('M'      ,   'M[147]',  35,  '[Oxi]',    False,    {'O': 1 })
-        heavyK          = Modification('K'      ,   'K[136]', 259,  '[+08]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -2 , '15N' : 2 } )
-        heavyR          = Modification('R'      ,   'R[166]', 267,  '[+10]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -4 , '15N' : 4 } )  
-        EpyroGlu        = Modification('E'      ,   'E[111]',  27,  '[PGE]',    False,    {'H' : -2, 'O' : -1 })  
-        QpyroGlu        = Modification('Q'      ,   'Q[111]',  28,  '[PGQ]',    False,    {'H' : -3, 'N' : -1 })
-        CcarboxiMet     = Modification('C'      ,   'C[143]',  26,  '[PCm]',    False,    {'C' : 2, 'O' : 1})
-        NtermCarbamyl   = Modification('N-term' ,   'n[43]',    5,  '[CRM]',    False,    {'C' : 1, 'H' : 1,'N' : 1,'O' : 1 })
-        SPho            = Modification('S'      ,   'S[167]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        TPho            = Modification('T'      ,   'T[181]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        YPho            = Modification('Y'      ,   'Y[243]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        NDea            = Modification('N'      ,   'N[115]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
-    
-        self.appendModification(CAM)
-        self.appendModification(Ox)
-        self.appendModification(heavyK)
-        self.appendModification(heavyR)
-        self.appendModification(EpyroGlu)
-        self.appendModification(QpyroGlu)
-        self.appendModification(CcarboxiMet)
-        self.appendModification(NtermCarbamyl)
-        self.appendModification(SPho)
-        self.appendModification(TPho)
-        self.appendModification(YPho)
-        self.appendModification(NDea)
-    
-    def appendModification(self, modification) :
-        self.list.append(modification)
-        self.mods_TPPcode[modification.TPP_Mod] = modification
-        self.mods_unimods [modification.unimodAccession] = modification
-        
-    def is_bool(self,expression) :
-        return expression.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh', 'por supuesto', 'of course']
-    
-    def printModifications(self) :
-        
-        for mymod in self.list:
-            print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
-        
-    def readModificationsFile(self, modificationsfile) :
-        '''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications 
-        of this class.
-        Tsv file headers & an example:
-        modified-AA    TPP-nomenclature    Unimod-Accession    ProteinPilot-nomenclature    is_a_labeling    composition-dictionary
-        S    S[167]    21    [Pho]    False    {'H' : 1,'O' : 3, 'P' : 1}
-        '''
-        reader = csv.reader(open(modificationsfile,'r'),dialect="excel-tab")
-        headers = ['modified-AA'   , 'TPP-nomenclature' ,   'Unimod-Accession'  ,  'ProteinPilot-nomenclature'  ,  'is_a_labeling' ,   
-                   'composition-dictionary']
-         
-        header_found = False    
-         
-        for row in reader : 
-            if row[0] in headers : 
-                header_found = True
-                header_d = dict([ (l,i) for i,l in enumerate(row)])
-                continue
-           
-            if not header_found : continue
-        
-            mod = Modification(row[header_d['modified-AA']], row[header_d['TPP-nomenclature']], int(row[header_d['Unimod-Accession']]), 
-                               row[header_d['ProteinPilot-nomenclature']], self.is_bool(row[header_d['is_a_labeling']]), 
-                               ast.literal_eval(row[header_d['composition-dictionary']]) )
-                        
-            self.appendModification(mod)
+	
+	def __init__(self):
+		self.list= []
+		self.mods_TPPcode = {}   # a more confortable way to store the modifications, if you want just to declare them elsewhere in a sequence
+		self.mods_unimods = {}
+		self._initModifications()
+	
+	def _initModifications(self):
+		
+		CAM			 = Modification('C'	  ,   'C[160]',   4,  '[CAM]',	False,	{'H': 3 ,'C': 2 ,'N':1 , 'O': 1 })
+		Ox			  = Modification('M'	  ,   'M[147]',  35,  '[Oxi]',	False,	{'O': 1 })
+		heavyK		  = Modification('K'	  ,   'K[136]', 259,  '[+08]',	True,	{'C' : -6 , '13C' : 6 , 'N' : -2 , '15N' : 2 } )
+		heavyR		  = Modification('R'	  ,   'R[166]', 267,  '[+10]',	True,	{'C' : -6 , '13C' : 6 , 'N' : -4 , '15N' : 4 } )  
+		EpyroGlu		= Modification('E'	  ,   'E[111]',  27,  '[PGE]',	False,	{'H' : -2, 'O' : -1 })  
+		QpyroGlu		= Modification('Q'	  ,   'Q[111]',  28,  '[PGQ]',	False,	{'H' : -3, 'N' : -1 })
+		CcarboxiMet	 = Modification('C'	  ,   'C[143]',  26,  '[PCm]',	False,	{'C' : 2, 'O' : 1})
+		NtermCarbamyl   = Modification('N-term' ,   'n[43]',	5,  '[CRM]',	False,	{'C' : 1, 'H' : 1,'N' : 1,'O' : 1 })
+		SPho			= Modification('S'	  ,   'S[167]',  21,  '[Pho]',	False,  {'H' : 1, 'O' : 3, 'P' : 1})
+		TPho			= Modification('T'	  ,   'T[181]',  21,  '[Pho]',	False,  {'H' : 1, 'O' : 3, 'P' : 1})
+		YPho			= Modification('Y'	  ,   'Y[243]',  21,  '[Pho]',	False,  {'H' : 1, 'O' : 3, 'P' : 1})
+		NDea			= Modification('N'	  ,   'N[115]',   7,  '[Dea]',	False,  {'H' : -1, 'N': -1, "O": 1})
+	
+		self.appendModification(CAM)
+		self.appendModification(Ox)
+		self.appendModification(heavyK)
+		self.appendModification(heavyR)
+		self.appendModification(EpyroGlu)
+		self.appendModification(QpyroGlu)
+		self.appendModification(CcarboxiMet)
+		self.appendModification(NtermCarbamyl)
+		self.appendModification(SPho)
+		self.appendModification(TPho)
+		self.appendModification(YPho)
+		self.appendModification(NDea)
+	
+	def appendModification(self, modification) :
+		self.list.append(modification)
+		self.mods_TPPcode[modification.TPP_Mod] = modification
+		self.mods_unimods [modification.unimodAccession] = modification
+		
+	def is_bool(self,expression) :
+		return expression.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh', 'por supuesto', 'of course']
+	
+	def printModifications(self) :
+		
+		for mymod in self.list:
+			print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
+		
+	def readModificationsFile(self, modificationsfile) :
+		'''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications 
+		of this class.
+		Tsv file headers & an example:
+		modified-AA	TPP-nomenclature	Unimod-Accession	ProteinPilot-nomenclature	is_a_labeling	composition-dictionary
+		S	S[167]	21	[Pho]	False	{'H' : 1,'O' : 3, 'P' : 1}
+		'''
+		reader = csv.reader(open(modificationsfile,'r'),dialect="excel-tab")
+		headers = ['modified-AA'   , 'TPP-nomenclature' ,   'Unimod-Accession'  ,  'ProteinPilot-nomenclature'  ,  'is_a_labeling' ,   
+				   'composition-dictionary']
+		 
+		header_found = False	
+		 
+		for row in reader : 
+			if row[0] in headers : 
+				header_found = True
+				header_d = dict([ (l,i) for i,l in enumerate(row)])
+				continue
+		   
+			if not header_found : continue
+		
+			mod = Modification(row[header_d['modified-AA']], row[header_d['TPP-nomenclature']], int(row[header_d['Unimod-Accession']]), 
+							   row[header_d['ProteinPilot-nomenclature']], self.is_bool(row[header_d['is_a_labeling']]), 
+							   ast.literal_eval(row[header_d['composition-dictionary']]) )
+						
+			self.appendModification(mod)
 
 
 	def translateModificationsFromSequence(self, sequence, code, aaLib = None) :
@@ -178,63 +178,63 @@ class Modifications:
 		return Peptide(sequence_no_mods, mods_peptide, aminoacidLib = aaLib)
 		
 class Modification:
-    
-    codes = ['TPP', 'unimod', 'ProteinPilot']
-    
-    def __init__(self, aminoacid, tpp_Mod, unimodAccession, peakViewAccession, is_labeling, composition):
-        #self.aminoacid = Aminoacid()
-        self.aminoacid            = aminoacid
-        self.is_Nterminal = False
-        self.is_Cterminal = False
-        if self.aminoacid == 'N-term' : self.is_Nterminal = True
-        if self.aminoacid == 'C-term' : self.is_Cterminal = True
-        self.unimodAccession     = unimodAccession
-        self.peakviewAccession     = peakViewAccession
-        self.TPP_Mod             = tpp_Mod
-        self.composition         = composition
-        self.is_labeling         = is_labeling
-        #if deltaMass        : self.deltamass = deltaMass
-        self.deltamass             = Formulas.mass(composition) #self._getMass()
-        self.id                 = aminoacid + str(int(round(self.deltamass,0)))
+	
+	codes = ['TPP', 'unimod', 'ProteinPilot']
+	
+	def __init__(self, aminoacid, tpp_Mod, unimodAccession, peakViewAccession, is_labeling, composition):
+		#self.aminoacid = Aminoacid()
+		self.aminoacid			= aminoacid
+		self.is_Nterminal = False
+		self.is_Cterminal = False
+		if self.aminoacid == 'N-term' : self.is_Nterminal = True
+		if self.aminoacid == 'C-term' : self.is_Cterminal = True
+		self.unimodAccession	 = unimodAccession
+		self.peakviewAccession	 = peakViewAccession
+		self.TPP_Mod			 = tpp_Mod
+		self.composition		 = composition
+		self.is_labeling		 = is_labeling
+		#if deltaMass		: self.deltamass = deltaMass
+		self.deltamass			 = Formulas.mass(composition) #self._getMass()
+		self.id				 = aminoacid + str(int(round(self.deltamass,0)))
 
-    def getcode(self, code):
-        if code not in Modification.codes :
-            print "Can't process the requested modification code : " , code
-            print "Available codes are: " , Modification.codes
-            sys.exit(5)
-        
-        if code == 'TPP' :             return self.TPP_Mod
-        if code == 'unimod' :        return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
-        if code == 'ProteinPilot' :    return "%s%s" % (self.aminoacid, self.peakviewAccession)
-        
+	def getcode(self, code):
+		if code not in Modification.codes :
+			print "Can't process the requested modification code : " , code
+			print "Available codes are: " , Modification.codes
+			sys.exit(5)
+		
+		if code == 'TPP' :			 return self.TPP_Mod
+		if code == 'unimod' :		return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
+		if code == 'ProteinPilot' :	return "%s%s" % (self.aminoacid, self.peakviewAccession)
+		
 
 def test(args):
-    mods = Modifications()
+	mods = Modifications()
 
-    if len(args) > 0 :
-        for arg in args :
-            mods.readModificationsFile(arg)
+	if len(args) > 0 :
+		for arg in args :
+			mods.readModificationsFile(arg)
 
-    for mymod in mods.list:
-        print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
+	for mymod in mods.list:
+		print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
 
-        
-    #Translate some peptide sequences
-    from peptide import Peptide
-    sequences =['PEPTIMEK' , 'PEPTIM[147]EK', 'n[43]PEPTIMEK']
-    peptides = []
-    for sequence in sequences :
-        peptide = mods.translateModificationsFromSequence(sequence, "TPP")
-        print "peptide sequence : " , peptide.sequence
-        print "peptide modifications :" 
-        for mod in peptide.modifications.itervalues() :
-            print mod.id , mod.deltamass
-        print "peptide mass : " , peptide.mass
+		
+	#Translate some peptide sequences
+	from peptide import Peptide
+	sequences =['PEPTIMEK' , 'PEPTIM[147]EK', 'n[43]PEPTIMEK']
+	peptides = []
+	for sequence in sequences :
+		peptide = mods.translateModificationsFromSequence(sequence, "TPP")
+		print "peptide sequence : " , peptide.sequence
+		print "peptide modifications :" 
+		for mod in peptide.modifications.itervalues() :
+			print mod.id , mod.deltamass
+		print "peptide mass : " , peptide.mass
 
-        
+		
 
 if __name__ == "__main__":
-    import sys
-    test(sys.argv[1:])
-    sys.exit(2)
-    
+	import sys
+	test(sys.argv[1:])
+	sys.exit(2)
+	
