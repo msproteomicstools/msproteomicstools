@@ -105,8 +105,11 @@ class Peptide:
 		peptide_family = []
 		#Count the number of switching modifications 
 		num_of_switchMods = 0
-		for _, mod in self.modifications.iteritems() :
+		fixed_modifications = {}
+		for key, mod in self.modifications.iteritems() :
 			if mod.unimodAccession == switchingModification.unimodAccession : num_of_switchMods += 1
+			else : fixed_modifications[key] = mod
+			
 		#Store the position of the available modification sites of the peptide
 		modSites = []
 		for site,aa in enumerate(self.sequence[:]) :
@@ -116,7 +119,7 @@ class Peptide:
 					if mod.aminoacid == aa : modSites.append(site)  
 		
 		for subset in itertools.combinations(modSites, num_of_switchMods) :
-			newmods = {}
+			newmods = { key : mod for key, mod in fixed_modifications.iteritems() }  #Keep the fixed modifications!
 			for idx in subset : newmods[idx+1] = switchingModification
 			isoform = Peptide(self.sequence, newmods)
 			peptide_family.append(isoform)
