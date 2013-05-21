@@ -39,6 +39,7 @@ import sys
 import os
 import csv
 import getopt
+import multiprocessing
 from configobj		import ConfigObj
 
 from msproteomicstoolslib.data_structures.aminoacides 	import Aminoacides
@@ -301,27 +302,8 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = 
 				if isopep.getSequenceWithMods('unimod') == specie : iso_species[specie_family][specie] = last_offset 
 	return iso_species
 
-def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary, 
-						useMinutes, searchEngineconfig, masslimits, key, precision,  
-						writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance, aaLib = None) :
-	'''
-	This returns the (specific!) transitions of all the isoforms of the peptides present in the spectraST library. If there is no
-	spectraST reference for an isoform, transitions are chosen randomly, respecting the established filter rules, and a dummy 
-	relative intensity value is given.
-	'''
-	library_key = 99
-	spectrastlib = speclib_db_lib.Library(library_key)
-	switchingModification = modLibrary.mods_unimods[switchingModification_]
-	
-	filteredtransitions = []
-	transition_cnt = 0
-	precursor_cnt  = 0
-	
-	print "A total of %s peptide families have been found."  % len(isobaric_species) 
-	
-	pepfamily_cnt = 0
-	fut_progress = 0.01
-	
+def isoform_writer(isobaric_species, lock):
+
 	for pepfamily , isoforms in isobaric_species.iteritems() :
 		pepfamily_cnt += 1
 		progress = float(pepfamily_cnt) / float(len(isobaric_species))
@@ -347,6 +329,168 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 			
 			shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
 		
+			#if there is a spectrum for the isoform, use it. Otherwise, use dummy data
+			z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
+			sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
+			irt_sequence = -100
+			RT_experimental = -100000.0
+			searchenginefiltered = False
+			peaks = []
+			if spectrum : 
+				z_parent = float(spectrum.name.split('/')[1])
+				if spectrum.RetTime_detected != -1 :
+					RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+				if not useMinutes : RT_experimental = RT_experimental * 60
+				try :
+					for searchengine in searchEngineconfig :
+						if not filterBySearchEngineParams(spectrum.searchEngineInfo, searchEngineconfig[searchengine] ) :
+							searchenginefiltered = True
+							continue
+				except AttributeError :
+					pass
+				peaks = spectrum.get_peaks()
+			precursorMZ = isoform.getMZ(z_parent, label ='')
+			
+
+			if searchenginefiltered : peaks = []
+			
+			
+			for (frg_serie,frg_nr,frg_z,gainloss,fragment_mz) in unshared :
+				#Check whether we have the fragment in the spectrum	
+				rel_intensity = 1 #Dummy value in case there's no spectrum
+				is_in_spectrum = False
+				for peak in peaks :
+					''' These filters are not useful in this use case, since they will be filtered in a previous step
+					if peak.is_unknown : continue
+					if peak.frg_is_isotope	: continue
+					if peak.frg_z not in frgchargestate : continue
+					if hasattr(peak, 'mass_error') :
+						if abs(peak.mass_error) > precision : continue
+					#Filter by mass range
+					if fragment_mz < masslimits[0] : continue
+					if fragment_mz > masslimits[1] : continue
+					'''
+					if abs(float(peak.peak) - fragment_mz) < precision : 
+						is_in_spectrum = True 
+						rel_intensity = float(peak.intensity)
+						break
+				#print isoform.getSequenceWithMods('unimod') , frg_serie, frg_nr, frg_z, fragment_mz, is_in_spectrum, rel_intensity
+				
+				code = 'ProteinPilot'
+				if key == 'openswath'	 : code = 'unimod'
+				if key == 'peakview'	 : code = 'ProteinPilot'
+
+				transition = []
+				transition_cnt += 1
+				if key == 'peakview' :
+					transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
+									rel_intensity , isoform.sequence , isoform.getSequenceWithMods(code) , int(z_parent) ,
+									frg_serie , frg_z , frg_nr , irt_sequence , protein_code1 , 'FALSE']
+				if key == 'openswath' :
+					transition = [precursorMZ, fragment_mz, RT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
+							rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
+							"%s_%s_%s" %(frg_serie, frg_z, frg_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, frg_serie, frg_z, frg_nr ]
+				filteredtransitions.append(transition)
+			
+			#For each isoform, filtering and write
+			lock.acquire()
+			do_filtering_and_write(filteredtransitions, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02)
+			lock.release()
+			filteredtransitions = []
+			
+
+
+def mp_isoform_writer(isobaric_species, nprocs):
+	def worker(pepfamilies, lock, out_q):
+		""" The worker function, invoked in a process. 'nums' is a
+			list of numbers to factor. The results are placed in
+			a dictionary that's pushed to a queue.
+		"""
+		outdict = {}
+		for n in pepfamilies:
+			outdict[n] = isoform_writer(n, lock)
+		out_q.put(outdict)
+
+	# Each process will get 'chunksize' nums and a queue to put his out
+	# dict into
+	out_q = multiprocessing.Queue()
+	chunksize = int(math.ceil(len(isobaric_species) / float(nprocs)))
+	procs = []
+	lock = multiprocessing.Lock()
+	
+	for i in range(nprocs):
+		p = multiprocessing.Process(
+				target=worker,
+				args=(isobaric_species[chunksize * i:chunksize * (i + 1)], lock,
+					  out_q))
+		procs.append(p)
+		p.start()
+		#out_q.put(p)
+
+	# Collect all results into a single result dict. We know how many dicts
+	# with results to expect.
+	resultdict = {}
+	for i in range(nprocs):
+		resultdict.update(out_q.get())
+
+	# Wait for all worker processes to finish
+	for p in procs:
+		p.join()
+
+	return resultdict
+
+
+def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary, 
+						useMinutes, searchEngineconfig, masslimits, key, precision,  
+						writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance, aaLib = None) :
+	'''
+	This returns the (specific!) transitions of all the isoforms of the peptides present in the spectraST library. If there is no
+	spectraST reference for an isoform, transitions are chosen randomly, respecting the established filter rules, and a dummy 
+	relative intensity value is given.
+	'''
+	library_key = 99
+	spectrastlib = speclib_db_lib.Library(library_key)
+	switchingModification = modLibrary.mods_unimods[switchingModification_]
+	
+	filteredtransitions = []
+	transition_cnt = 0
+	precursor_cnt  = 0
+	
+	print "A total of %s peptide families have been found."  % len(isobaric_species) 
+	
+	pepfamily_cnt = 0
+	fut_progress = 0.01
+	
+	
+	#Multiprocess this part of the code
+	
+	for pepfamily , isoforms in isobaric_species.iteritems() :
+		#print pepfamily, [ isof for isof in isoforms]
+		pepfamily_cnt += 1
+		progress = float(pepfamily_cnt) / float(len(isobaric_species))
+		if progress >= fut_progress and progress > 0.005 : 
+			print fut_progress*100 ,  "% of peptide families written."
+			fut_progress += 0.01 
+		
+		#print pepfamily, isoforms
+		precursor_cnt  += 1
+		protein_code1 = pepfamily
+		protein_desc  = pepfamily
+		#for isoform, offset in isoforms.iteritems() :
+		#	print "%s : %s"  % (isoform , offset)
+		for isoform_,offset in isoforms.iteritems() :
+			spectrum = None
+			isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
+			
+			if offset > 0 :  _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
+			#Get the shared and unshared ions of this isoform to all its family
+			otherIsoforms = []
+			for isof in isoforms.iterkeys() : 
+				if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
+			
+			shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
+			#print shared
+			#print unshared
 			#if there is a spectrum for the isoform, use it. Otherwise, use dummy data
 			z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
 			sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
