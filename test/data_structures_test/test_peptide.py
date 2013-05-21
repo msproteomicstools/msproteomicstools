@@ -46,15 +46,22 @@ import msproteomicstoolslib.data_structures.modifications as modifications
 class TestUnitPeptide(unittest.TestCase):
 
 	def setUp(self):
-		self.mods = modifications.Modifications()
-		self.phospho = self.mods.mods_unimods[21]
+		self.mods 		= modifications.Modifications()
+		self.phospho 	= self.mods.mods_unimods[21]
+		self.oxi		= self.mods.mods_unimods[35]
 		
-		self.mypep = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] }) #M[147] 
-		self.mypep2 = peptide.Peptide('LIGPTSVVMGR')
-		self.mypep3 = peptide.Peptide('ELVISLIVESS', modifications = { 5 : self.phospho , 10 : self.phospho })
-		self.isoform1 = peptide.Peptide('ELVISLIVESS', modifications = { 5 : self.phospho , 11 : self.phospho })
-		self.isoform2 = peptide.Peptide('ELVISLIVESS', modifications = { 10 : self.phospho , 11 : self.phospho })
-	
+		self.mypep    	 = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] }) #M[147] 
+		self.mypep2   	 = peptide.Peptide('LIGPTSVVMGR')
+		self.mypep3   	 = peptide.Peptide('ELVISLIVESS', modifications = { 5 : self.phospho , 10 : self.phospho })
+		self.isoform1 	 = peptide.Peptide('ELVISLIVESS', modifications = { 5 : self.phospho , 11 : self.phospho })
+		self.isoform2 	 = peptide.Peptide('ELVISLIVESS', modifications = { 10 : self.phospho , 11 : self.phospho })
+		self.mypep4   	 = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 5 : self.phospho })
+		self.isoform4_1  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 5 : self.phospho })
+		self.isoform4_2  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 12 : self.phospho })
+		self.isoform4_3  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 13 : self.phospho })
+		self.isoform4_4  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 14 : self.phospho })
+		self.notisoform4 = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 14 : self.phospho })
+		
 	def test_create_peptide(self):
 		p = peptide.Peptide('PEPTIDE')
 
@@ -119,7 +126,17 @@ class TestUnitPeptide(unittest.TestCase):
 		self.assertEqual(len(self.isoforms), 3)
 		self.assertIn(self.mypep3.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Original peptide not in the isoforms list")
 		self.assertIn(self.isoform1.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform1 not in the isoforms list")
-		self.assertIn(self.isoform2.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform2 not in the isoforms list")		
+		self.assertIn(self.isoform2.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform2 not in the isoforms list")	
+		
+		self.isoforms = self.mypep4.calIsoforms(self.phospho, self.mods)
+		self.isoforms_seqmods = [ isoform.getSequenceWithMods('unimod') for isoform in self.isoforms ]
+		self.assertEqual(len(self.isoforms), 4, "Number of estimated isoforms doesn't match!")
+		self.assertIn(self.mypep4.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Original peptide not in the isoforms list")
+		self.assertIn(self.isoform4_1.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform1 not in the isoforms list")
+		self.assertIn(self.isoform4_2.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform2 not in the isoforms list")	
+		self.assertIn(self.isoform4_3.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform3 not in the isoforms list")
+		self.assertIn(self.isoform4_4.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform4 not in the isoforms list")	
+		self.assertNotIn(self.notisoform4.getSequenceWithMods('unimod'), self.isoforms_seqmods, "This should not be in the isoforms list")
 
 	def test_comparePeptideFragments(self):
 		self.matched , self.unmatched = self.isoform1.comparePeptideFragments([self.isoform2], ['y','b'], precision = 1e-5)
