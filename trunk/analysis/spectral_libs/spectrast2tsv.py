@@ -528,16 +528,16 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 					if peak.frg_z not in frgchargestate : continue
 					if hasattr(peak, 'mass_error') :
 						if abs(peak.mass_error) > precision : continue
-					#Filter by mass range
-					if fragment_mz < masslimits[0] : continue
-					if fragment_mz > masslimits[1] : continue
 					'''
 					if abs(float(peak.peak) - fragment_mz) < precision : 
 						is_in_spectrum = True 
 						rel_intensity = float(peak.intensity)
 						break
 				#print isoform.getSequenceWithMods('unimod') , frg_serie, frg_nr, frg_z, fragment_mz, is_in_spectrum, rel_intensity
-				
+				#Filter by mass range
+				if fragment_mz < masslimits[0] : continue
+				if fragment_mz > masslimits[1] : continue
+					
 				code = 'ProteinPilot'
 				if key == 'openswath'	 : code = 'unimod'
 				if key == 'peakview'	 : code = 'ProteinPilot'
