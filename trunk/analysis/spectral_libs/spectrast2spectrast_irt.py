@@ -151,7 +151,7 @@ class sptxtio:
           rt.append(self.rt[spectrum][peptide])
           irt.append(self.irt[spectrum][peptide])
           rt_run_median.append(spectrum+":"+str(lmedian(self.rt_run[spectrum][peptide])))
-	  rt_run_mean.append(spectrum+":"+str(mean(self.rt_run[spectrum][peptide])))
+          rt_run_mean.append(spectrum+":"+str(mean(self.rt_run[spectrum][peptide])))
           rt_run_sd.append(spectrum+":"+str(std(self.rt_run[spectrum][peptide])))
         report.writerow([peptide,lmedian(rt),self.irt_merged[peptide],lmedian(rt),mean(rt),std(rt),lmedian(irt),mean(irt),std(irt),";".join(rt_run_median),";".join(rt_run_mean),";".join(rt_run_sd)])
     except IOError:
@@ -231,14 +231,14 @@ class sptxtio:
           self.b[rawspectrum] = linregs[rawspectrum]['b']
           self.rsq[rawspectrum] = 1.0
         else:
-      	  (self.a[rawspectrum],self.b[rawspectrum]) = scipy.polyfit(rt_calibration,irt_calibration,1)
+          (self.a[rawspectrum],self.b[rawspectrum]) = scipy.polyfit(rt_calibration,irt_calibration,1)
           slope, intercept, r_value, p_value, std_err = stats.linregress(rt_calibration,irt_calibration)
           self.rsq[rawspectrum] = r_value**2
-      	plt.figure()
-      	plt.title(rawspectrum + " (c: " + str(self.b[rawspectrum]) + ", m: " + str(self.a[rawspectrum]) + ")")
-      	fit_fn = scipy.poly1d((self.a[rawspectrum],self.b[rawspectrum]))
-      	plt.plot(rt_calibration,irt_calibration, 'b.',rt_calibration,fit_fn(rt_calibration),'-r')
-      	plt.savefig(rawspectrum+'.png')
+          plt.figure()
+          plt.title(rawspectrum + " (c: " + str(self.b[rawspectrum]) + ", m: " + str(self.a[rawspectrum]) + ")")
+          fit_fn = scipy.poly1d((self.a[rawspectrum],self.b[rawspectrum]))
+          plt.plot(rt_calibration,irt_calibration, 'b.',rt_calibration,fit_fn(rt_calibration),'-r')
+          plt.savefig(rawspectrum+'.png')
 
     for host in surrogates.keys():
       print "Replacing iRT normalization of run " + host + " with " + surrogates[host] + "."

@@ -117,7 +117,7 @@ if __name__ == "__main__":
 #        for elem,num in aa.composition.iteritems():
 #            print "%s: %s" % (elem,num)
     
-    print "1-letter code	3-letter code	Chemical formula	Monoisotopic"
+    print "1-letter code    3-letter code    Chemical formula    Monoisotopic"
     print "-"*65
     for aa in myAAs.list:
         print "%-10s  %-15s  %-20s %s" % (aa.code, aa.code3, Formulas.compositionString(aa.composition), aa.deltaMass)

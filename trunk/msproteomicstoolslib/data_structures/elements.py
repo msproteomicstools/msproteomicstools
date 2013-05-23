@@ -145,33 +145,33 @@ class Elements:
         # TODO this is broken, Elements signature does not match
         
         #Check that the lists of masses and natural abundances have the same length
-		if len(isotMass) != len(isotAbundance) :
-			#Throw an exception
-			print "Error : the isotopic masses and the natural abundance vector sizes don't match!"
-			print "Element : " , symbol
-			print "isotopic masses : " , isotMass
-			print "natural abundances : " , isotAbundance
-			sys.exit(5)
+        if len(isotMass) != len(isotAbundance) :
+            #Throw an exception
+            print "Error : the isotopic masses and the natural abundance vector sizes don't match!"
+            print "Element : " , symbol
+            print "isotopic masses : " , isotMass
+            print "natural abundances : " , isotAbundance
+            sys.exit(5)
 
-		#Check that the sum of all the natural abundances is close enough to 1 (over 1 is not good, a bit below 1 might be acceptable)
-		sumAbundances = sum(isotAbundance)
-		
-		if sumAbundances > 1 : 
-			print "Error : the sum of the abundances is over 1!"
-			print "Element : " , symbol
-			print "isotopic masses : " , isotMass
-			print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
-			sys.exit(5)
-		
-		if sumAbundances < 0.97 :
-			print "Error : the sum of the abundances is too low! It should be closer to 1."
-			print "Element : " , symbol
-			print "isotopic masses : " , isotMass
-			print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
-			sys.exit(5)
-			
-		newEl = Element(symbol,isotMass, isotAbundance)
-		self.list.append(newEl)
+        #Check that the sum of all the natural abundances is close enough to 1 (over 1 is not good, a bit below 1 might be acceptable)
+        sumAbundances = sum(isotAbundance)
+        
+        if sumAbundances > 1 : 
+            print "Error : the sum of the abundances is over 1!"
+            print "Element : " , symbol
+            print "isotopic masses : " , isotMass
+            print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+            sys.exit(5)
+        
+        if sumAbundances < 0.97 :
+            print "Error : the sum of the abundances is too low! It should be closer to 1."
+            print "Element : " , symbol
+            print "isotopic masses : " , isotMass
+            print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+            sys.exit(5)
+            
+        newEl = Element(symbol,isotMass, isotAbundance)
+        self.list.append(newEl)
 
     def getElement(self,symbol):
         for el in self.list:

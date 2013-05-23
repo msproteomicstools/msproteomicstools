@@ -41,10 +41,10 @@ import csv
 import getopt 
 import glob
 import re
-from configobj 	import ConfigObj
-from cluster 	import HierarchicalClustering
+from configobj     import ConfigObj
+from cluster     import HierarchicalClustering
 
-import 	msproteomicstoolslib.format.speclib_db_lib 		as 		speclib_db_lib
+import     msproteomicstoolslib.format.speclib_db_lib         as         speclib_db_lib
 
 def usage() :
     print ""
@@ -128,9 +128,9 @@ def main(argv) :
             #    print property, ": ", value
             #sys.exit()
 
-            sequence 	= spectrum.name.split('/')[0]
-            z_parent 	= float(spectrum.name.split('/')[1])
-            rt 			= spectrum.RetTime_detected
+            sequence     = spectrum.name.split('/')[0]
+            z_parent     = float(spectrum.name.split('/')[1])
+            rt             = spectrum.RetTime_detected
             
             if sequence in peptide_spectra.keys() :
                 peptide_spectra[sequence][last_offset] = rt

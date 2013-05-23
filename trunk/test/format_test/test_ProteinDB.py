@@ -2,7 +2,7 @@
 # -*- coding: utf-8  -*-
 """
 =========================================================================
-		msproteomicstools -- Mass Spectrometry Proteomics Tools
+        msproteomicstools -- Mass Spectrometry Proteomics Tools
 =========================================================================
 
 Copyright (c) 2013, ETH Zurich
@@ -42,69 +42,71 @@ import msproteomicstoolslib.format.ProteinDB as pdb
 
 class TestUnitProteinDB(unittest.TestCase):
 
-	def setUp(self):
-		self.fastafile = '../data/smallDB.fasta'
-		self.db = pdb.ProteinDB()
-		self.db.readFasta(self.fastafile)
-		self.P31946 = self.db.proteinDictionary['P31946']
+    def setUp(self):
+        self.fastafile = '../data/smallDB.fasta'
+        self.db = pdb.ProteinDB()
+        self.db.readFasta(self.fastafile)
+        self.P31946 = self.db.proteinDictionary['P31946']
 
-	def test_readFasta(self) :
-		
-		self.code1 = self.P31946.code1
-		self.code2 = self.P31946.code2
-		self.modres = self.P31946.modres
-		self.ncbi_tax_id = self.P31946.ncbi_tax_id
-		self.description = self.P31946.description
-		self.sequence = self.P31946.sequence
-		
-		print self.code1
-		print self.code2
-		print self.modres
-		print self.ncbi_tax_id
-		print self.description
-		print self.sequence
+    def test_readFasta(self) :
+        
+        self.code1 = self.P31946.code1
+        self.code2 = self.P31946.code2
+        self.modres = self.P31946.modres
+        self.ncbi_tax_id = self.P31946.ncbi_tax_id
+        self.description = self.P31946.description
+        self.sequence = self.P31946.sequence
+        
+        print self.code1
+        print self.code2
+        print self.modres
+        print self.ncbi_tax_id
+        print self.description
+        print self.sequence
 
-		
-	def test_get_proteins_containing_peptide(self): #To-Do : test with some peptides present and not present. Also shared peptides. 
-	   pass
-	  
-	def test_pseudoreverseDB(self): #To-Do : Pseudo-reverse and check a couple of reversed proteins. Pseudo-reverse the DB twice, and check the DB is equal. 
- 	   pass
+        
+    def test_get_proteins_containing_peptide(self): 
+        #To-Do : test with some peptides present and not present. Also shared peptides. 
+        pass
+      
+    def test_pseudoreverseDB(self):
+        #To-Do : Pseudo-reverse and check a couple of reversed proteins. Pseudo-reverse the DB twice, and check the DB is equal. 
+        pass
 
 class TestUnitProtein(unittest.TestCase):
-	
-	def setUp(self):
-		#>sp|P31946|1433B_HUMAN 14-3-3 protein beta/alpha OS=Homo sapiens GN=YWHAB PE=1 SV=3
-		#MTMDKSELVQKAKLAEQAERYDDMAAAMKAVTEQGHELSNEERNLLSVAYKNVVGARRSS
-		#WRVISSIEQKTERNEKKQQMGKEYREKIEAELQDICNDVLELLDKYLIPNATQPESKVFY
-		#LKMKGDYFRYLSEVASGDNKQTTVSNSQQAYQEAFEISKKEMQPTHPIRLGLALNFSVFY
-		#YEILNSPEKACSLAKTAFDEAIAELDTLNEESYKDSTLIMQLLRDNLTLWTSENQGDEGD
-		#AGEGEN
+    
+    def setUp(self):
+        #>sp|P31946|1433B_HUMAN 14-3-3 protein beta/alpha OS=Homo sapiens GN=YWHAB PE=1 SV=3
+        #MTMDKSELVQKAKLAEQAERYDDMAAAMKAVTEQGHELSNEERNLLSVAYKNVVGARRSS
+        #WRVISSIEQKTERNEKKQQMGKEYREKIEAELQDICNDVLELLDKYLIPNATQPESKVFY
+        #LKMKGDYFRYLSEVASGDNKQTTVSNSQQAYQEAFEISKKEMQPTHPIRLGLALNFSVFY
+        #YEILNSPEKACSLAKTAFDEAIAELDTLNEESYKDSTLIMQLLRDNLTLWTSENQGDEGD
+        #AGEGEN
 
-		self.fastafile = '../data/smallDB.fasta'
-		self.db = pdb.ProteinDB()
-		self.db.readFasta(self.fastafile)
-		self.P31946 = self.db.proteinDictionary['P31946']
-		self.trypsin = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}
-		self.Lys_N = {'terminus' : 'N' , 'cleave' : ['K'], 'exceptions' : []}
-		self.pep_tryp1 = 'TAFDEAIAELDTLNEESYK'
-		self.pep_Lys_N = 'KGDYFRYLSEVASGDN'
+        self.fastafile = '../data/smallDB.fasta'
+        self.db = pdb.ProteinDB()
+        self.db.readFasta(self.fastafile)
+        self.P31946 = self.db.proteinDictionary['P31946']
+        self.trypsin = {'terminus' : 'C' , 'cleave' : ['K','R'], 'exceptions' : ['KP', 'RP']}
+        self.Lys_N = {'terminus' : 'N' , 'cleave' : ['K'], 'exceptions' : []}
+        self.pep_tryp1 = 'TAFDEAIAELDTLNEESYK'
+        self.pep_Lys_N = 'KGDYFRYLSEVASGDN'
 
-	def test_proteinWeight(self) :
-		pass
+    def test_proteinWeight(self) :
+        pass
 
-	
-	def test_digest(self) :
-		
-		self.P31946_peptides_trypsin = self.P31946.digest(self.trypsin)
-		
-		self.assertIn(self.pep_tryp1, self.P31946_peptides_trypsin, "A tryptic peptide has not been found after tryptic digestion of a protein!")
-		self.assertNotIn(self.pep_Lys_N, self.P31946_peptides_trypsin, "A non tryptic peptide has been found after tryptic digestion of a protein!")
+    
+    def test_digest(self) :
+        
+        self.P31946_peptides_trypsin = self.P31946.digest(self.trypsin)
+        
+        self.assertIn(self.pep_tryp1, self.P31946_peptides_trypsin, "A tryptic peptide has not been found after tryptic digestion of a protein!")
+        self.assertNotIn(self.pep_Lys_N, self.P31946_peptides_trypsin, "A non tryptic peptide has been found after tryptic digestion of a protein!")
 
-		self.P31946_peptides_Lys_N = self.P31946.digest(self.Lys_N)
-		self.assertNotIn(self.pep_tryp1, self.P31946_peptides_Lys_N, "A  tryptic peptide has been found after tryptic digestion of a protein!")
-		self.assertIn(self.pep_Lys_N, self.P31946_peptides_Lys_N, "A Lys-N peptide has not been found after tryptic digestion of a protein!")
+        self.P31946_peptides_Lys_N = self.P31946.digest(self.Lys_N)
+        self.assertNotIn(self.pep_tryp1, self.P31946_peptides_Lys_N, "A  tryptic peptide has been found after tryptic digestion of a protein!")
+        self.assertIn(self.pep_Lys_N, self.P31946_peptides_Lys_N, "A Lys-N peptide has not been found after tryptic digestion of a protein!")
 
 
 if __name__ == '__main__':
-	unittest.main()
+    unittest.main()
