@@ -43,7 +43,8 @@ import msproteomicstoolslib.format.ProteinDB as pdb
 class TestUnitProteinDB(unittest.TestCase):
 
     def setUp(self):
-        self.fastafile = '../data/smallDB.fasta'
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.fastafile = os.path.join(self.dirname, "..", "data", "smallDB.fasta")
         self.db = pdb.ProteinDB()
         self.db.readFasta(self.fastafile)
         self.P31946 = self.db.proteinDictionary['P31946']
@@ -83,7 +84,9 @@ class TestUnitProtein(unittest.TestCase):
         #YEILNSPEKACSLAKTAFDEAIAELDTLNEESYKDSTLIMQLLRDNLTLWTSENQGDEGD
         #AGEGEN
 
-        self.fastafile = '../data/smallDB.fasta'
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.fastafile = os.path.join(self.dirname, "..", "data", "smallDB.fasta")
+
         self.db = pdb.ProteinDB()
         self.db.readFasta(self.fastafile)
         self.P31946 = self.db.proteinDictionary['P31946']
