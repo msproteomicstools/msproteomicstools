@@ -62,7 +62,101 @@ class Peptide:
         self.labelings = ['N15', '15N', 'AQUA_KR', 'SILAC_K6R10', 'no_labeling', 'SILAC_K8R10', 'SILAC_K8R6']
         self.iontypes = ['a', 'b', 'c', 'x', 'y', 'z']
 
-    def comparePeptideFragments(self, otherPeptidesList, ionseries = None, fragmentlossgains = [0,], precision = 1e-8) :
+    def _it(self,l) :
+        try : iter(l)
+        except TypeError : iterable = [l]
+        else : iterable = l
+        return iterable
+
+    def all_ions(self, ionseries = None, frg_z_list = [1,2], fragmentlossgains = [0,] , mass_limits = None, label = '' ):
+        '''
+        Returns all the fragment ions of the peptide in a tuple of two objects: (annotated, ionmasses_only) 
+        annotated is a list of tuples as : (ion_type, ion_number, ion_charge, lossgain, fragment_mz)
+        ionmasses_only is a list of fragment masses.
+        When ionseries is not provided, all existing ion series (see: Peptide.iontypes) will be calculated.
+        When frg_z_list is not provided, fragment ion charge states +1 and +2 will be used.
+        '''
+        annotated = []
+        ionmasses_only = []
+        
+        if not ionseries : ionseries = self.iontypes
+        
+        for ion_type in ionseries :
+            for ion_number in range(1,len(self.sequence)) :
+                for ion_charge in frg_z_list :
+                    for lossgain in fragmentlossgains :
+                        frg_mass = self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain)
+                        if mass_limits : 
+                            if frg_mass < mass_limits[0] : continue 
+                            if frg_mass > mass_limits[1] : continue 
+                        annotated.append( ( ion_type, ion_number, ion_charge, lossgain, frg_mass ) ) 
+                        ionmasses_only.append(frg_mass)
+        
+        return ( annotated, ionmasses_only )
+
+        
+    def cal_UIS(self, otherPeptidesList, UISorder = 2,  ionseries = None, fragmentlossgains = [0,], precision = 1e-8, frg_z_list = [1,2], mass_limits = None) :
+        '''
+        
+        It returns a tuple of two objects
+        '''
+        if not ionseries : ionseries = self.iontypes
+        
+        all_UIS = [] #   all_UIS = [ [UIS1] , [UIS2] ,[UIS3]  ]
+        all_UIS_annotated = {} # all_UIS_annotated = { UIS1 : [annotation(s)] , ... }
+        selfPep_annotated , selfPep_masses = self.all_ions( ionseries = ionseries, frg_z_list = frg_z_list, 
+                                                        fragmentlossgains = fragmentlossgains , mass_limits = mass_limits, 
+                                                        label = '' )
+        ions_others = []  # ions_others = [ [ions_pep1] , [ions_pep2], ]
+        #Create a pool of the ions of other peptides         
+        for othPep in otherPeptidesList :
+            _ , othIons = othPep.all_ions(ionseries = ionseries, frg_z_list = frg_z_list, fragmentlossgains = fragmentlossgains , 
+                            mass_limits = mass_limits, label = '')
+            ions_others.append(othIons)
+        
+        #Remove from the selfPep_annotated and selfPep_masses the ions that are common to ALL the other peptides 
+        #(since they are not going to be useful at all!)
+        discard = []
+        for ion in selfPep_masses : 
+            in_all = True
+            for pep in ions_others : 
+                if not set(self._it(ion)).issubset(pep) : in_all = False
+            if in_all : discard.append(ion)
+        selfPep_masses = [mass for mass in selfPep_masses if mass not in discard ]
+        discard = []
+        #Starting for the lowest order of UIS, so that we can remove combinations containing a unique sub-combination
+        for order in range(1,UISorder+1) :
+            tentative_UIS = list(itertools.combinations(selfPep_masses, order))
+            #Remove from the tentative_UIS the sub-combinations that are already UIS
+            for uis in all_UIS :
+                for t_uis in tentative_UIS :
+                    if set(uis).issubset(t_uis) :  discard.append(t_uis)
+            #print "discard : " , discard
+            tentative_UIS_tmp = [ tuis for tuis in tentative_UIS if not set(tuis).issubset(discard)]
+            tentative_UIS = tentative_UIS_tmp
+            discard = []
+            for i, t_uis in enumerate(tentative_UIS) :
+                #Check whether the tentative UIS actually defines uniquely the peptide
+                for othPep in ions_others :
+                    if set(t_uis).issubset(othPep) :
+                        #print "removing : " , t_uis , tentative_UIS[i] 
+                        discard.append(t_uis)
+            tentative_UIS_tmp = [ tuis for tuis in tentative_UIS if tuis not in discard]
+            tentative_UIS = tentative_UIS_tmp
+            
+            for t_uis in tentative_UIS :
+                all_UIS.append(t_uis)
+                #Annotate the UIS, and append it to the all_UIS_annotated
+                uis_annotations = []
+                for mass in t_uis : 
+                    for i, annot in enumerate(selfPep_annotated) :
+                        if mass == annot[4] : uis_annotations.append(annot)
+                        #break
+                all_UIS_annotated[t_uis] = uis_annotations
+                
+        return ( all_UIS , all_UIS_annotated )
+
+    def comparePeptideFragments(self, otherPeptidesList, ionseries = None, fragmentlossgains = [0,] , precision = 1e-8, frg_z_list = [1,2]) :
         '''
         This returns a tuple of lists: (CommonFragments, differentialFragments). The differentialFragmentMasses are the masses
         of the __self__ peptide are not shared with any of the peptides listed in the otherPeptidesList. otherPeptidesList must be a list of
@@ -75,14 +169,14 @@ class Peptide:
         
         for ion_type in ionseries :
             for ion_number in range(1,len(self.sequence)) :
-                for ion_charge in [1,2] :
+                for ion_charge in frg_z_list :
                     for lossgain in fragmentlossgains :
                         ions_selfPep.append( ( ion_type, ion_number, ion_charge, lossgain, self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain) ) ) 
         
         for othPep in otherPeptidesList :
             for ion_type in ionseries :
                 for ion_number in range(1,len(othPep.sequence)) :
-                    for ion_charge in [1,2] :
+                    for ion_charge in frg_z_list :
                         for lossgain in fragmentlossgains :
                             ions_others.append(( ion_type, ion_number, ion_charge, lossgain, othPep.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain=lossgain) ) )
         
@@ -121,7 +215,7 @@ class Peptide:
         for subset in itertools.combinations(modSites, num_of_switchMods) :
             newmods = { key : mod for key, mod in fixed_modifications.iteritems() }  #Keep the fixed modifications!
             for idx in subset : newmods[idx+1] = switchingModification
-            isoform = Peptide(self.sequence, newmods)
+            isoform = Peptide(self.sequence, newmods, aminoacidLib = self.aaList)
             peptide_family.append(isoform)
         
         return peptide_family
@@ -516,6 +610,28 @@ def test():
     mods = Modifications()
     mypep2  = Peptide('LMGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['M[147]']}) #M[147]
     mypep = Peptide('LMGPTSVVMGR')
+    phospho    = mods.mods_unimods[21]
+    oxi        = mods.mods_unimods[35]
+    
+    isoform4_1  = Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : oxi , 5 : phospho })
+    isoform4_2  = Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : oxi , 12 : phospho })
+    isoform4_3  = Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : oxi , 13 : phospho })
+    isoform4_4  = Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : oxi , 14 : phospho })
+    
+    isof_target = isoform4_2
+    theOtherIsoforms = [ isoform4_1 , isoform4_2, isoform4_3 , isoform4_4 ]
+    theOtherIsoforms.remove(isof_target)
+    
+    for isof in theOtherIsoforms : 
+        print isof.getSequenceWithMods('unimod')
+        annot , ion_masses =  isof.all_ions(ionseries = ['y',], frg_z_list = [1,], fragmentlossgains = [0,] , mass_limits = [300,1500], label = '' )
+        
+    print isof_target.getSequenceWithMods('unimod')
+    annot , ion_masses = isof_target.all_ions(ionseries = ['y',], frg_z_list = [1,], fragmentlossgains = [0,] , mass_limits = [300,1500], label = '' )
+    
+    UISmass , UISannot = isof_target.cal_UIS(theOtherIsoforms, UISorder = 2,  ionseries = ['y',], fragmentlossgains = [0,], precision = 1e-5, frg_z_list = [1,], mass_limits = [300,1500])
+    for UIS in UISannot.itervalues() :
+        print UIS
     
     matched , unmatched = mypep.comparePeptideFragments([mypep2,], ['y','b'], precision = 1e-2)
     print "Matched ions : " , matched
