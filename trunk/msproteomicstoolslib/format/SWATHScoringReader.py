@@ -56,8 +56,54 @@ Doc :
 #
 # The data structures of the reader
 #
+class PeakGroupBase(object):
 
-class MinimalPeakGroup():
+    def __init__(self):
+        self.fdr_score = None
+        self.normalized_retentiontime = None
+        self.id_ = None
+        self.intensity_ = None
+        self.selected_ = False
+  
+    def get_value(self, value):
+        raise Exception("Needs implementation")
+
+    def set_fdr_score(self, fdr_score):
+        self.fdr_score = fdr_score
+
+    def get_fdr_score(self):
+        return self.fdr_score
+
+    def set_normalized_retentiontime(self, normalized_retentiontime):
+        self.normalized_retentiontime = float(normalized_retentiontime)
+
+    def get_normalized_retentiontime(self):
+        return self.normalized_retentiontime
+
+    def set_feature_id(self, id_):
+        self.id_ = id_
+
+    def get_feature_id(self):
+        return self.id_
+
+    def set_intensity(self, intensity):
+      self.intensity_ = intensity
+
+    def get_intensity(self):
+        return self.intensity_
+
+    # Selected
+    def is_selected(self):
+        return self.selected_
+
+    def select_this_peakgroup(self):
+        self.selected_ = True
+
+    def unselect_this_peakgroup(self):
+        self.selected_ = False
+
+
+class MinimalPeakGroup(PeakGroupBase):
     """
     A single peakgroup that is defined by a retention time in a chromatogram
     of multiple transitions. Additionally it has an fdr_score and it has an
@@ -74,9 +120,10 @@ class MinimalPeakGroup():
     
     """
     def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide, intensity=None):
-      self.id = unique_id
+      super(MinimalPeakGroup, self).__init__()
+      self.id_ = unique_id
       self.fdr_score = fdr_score
-      self.diff_from_assay_seconds = assay_rt 
+      self.normalized_retentiontime = assay_rt 
       self.selected_ = selected
       self.peptide = peptide
       self.intensity_ = intensity
@@ -86,51 +133,38 @@ class MinimalPeakGroup():
         # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
         return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " RT:" + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
 
-    ## Getters 
-    def get_fdr_score(self):
-      return self.fdr_score
 
-    def get_feature_id(self):
-      return self.id
+    # Do not allow setting of any parameters (since data is not stored here)
+    def set_fdr_score(self, fdr_score):
+        raise Exception("Cannot set in immutable object")
 
-    def get_normalized_retentiontime(self):
-      return self.diff_from_assay_seconds
+    def set_normalized_retentiontime(self, normalized_retentiontime):
+        raise Exception("Cannot set in immutable object")
 
-    def get_intensity(self):
-      return self.intensity_
+    def set_feature_id(self, id_):
+        raise Exception("Cannot set in immutable object")
+
+    def set_intensity(self, intensity):
+        raise Exception("Cannot set in immutable object")
 
     ## Select / De-select peakgroup
-    def is_selected(self):
-        return self.selected_
-
-    ## Setters
     def select_this_peakgroup(self):
         self.selected_ = True
-        self.peptide.select_pg(self.id)
+        self.peptide.select_pg(self.get_feature_id())
 
     def unselect_this_peakgroup(self):
         self.selected_ = False
-        self.peptide.unselect_pg(self.id)
+        self.peptide.unselect_pg(self.get_feature_id() )
 
-class GeneralPeakGroupOpenSwath():
+class GeneralPeakGroup(PeakGroupBase):
 
     def __init__(self, row, run, peptide):
+      super(GeneralPeakGroup, self).__init__()
       self.row = row
       self.run = run
       self.peptide = peptide
-      self.selected = False
   
-    def get_value(self, value):
-      return self.row[self.run.header_dict[value]]
-
-    def get_fdr_score(self):
-      return float(self.get_value("m_score"))
-
-    def get_normalized_retentiontime(self):
-      return float(self.get_value("RT"))
-
-
-class PrecursorBase():
+class PrecursorBase(object):
     def __init__(self, this_id, run):
         raise NotImplemented
 
@@ -201,7 +235,7 @@ class GeneralPrecursor(PrecursorBase):
     def get_selected_peakgroup(self):
         # return the selected peakgroup of this peptide, we can only select 1 or
         # zero groups per chromatogram!
-        selected = [peakgroup for peakgroup in self.peakgroups if peakgroup.selected]
+        selected = [peakgroup for peakgroup in self.peakgroups if peakgroup.is_selected()]
         assert len(selected) < 2
         if len(selected) == 1:
           return selected[0]
@@ -209,7 +243,7 @@ class GeneralPrecursor(PrecursorBase):
             return None
   
     def find_closest_in_iRT(self, delta_assay_rt):
-      return min(self.peakgroups , key=lambda x: abs(float(x.get_value(diff_from_assay_in_sec_name)) - float(delta_assay_rt)))
+      return min(self.peakgroups , key=lambda x: abs(float(x.get_normalized_retentiontime()) - float(delta_assay_rt)))
 
 class Precursor(PrecursorBase):
     """
@@ -436,7 +470,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = Precursor
         else:
             self.Precursor = GeneralPrecursor
-            self.PeakGroup = GeneralPeakGroupOpenSwath
+            self.PeakGroup = GeneralPeakGroup
 
     def parse_row(self, run, this_row, do_realignment):
         decoy_name = "decoy"
@@ -483,6 +517,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
           peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_fdr_score(fdr_score)
+          peakgroup.set_feature_id(thisid)
+          peakgroup.set_intensity(intensity)
           run.all_peptides[trgr_id].add_peakgroup(peakgroup)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
@@ -496,7 +534,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = Precursor
         else:
             self.Precursor = GeneralPrecursor
-            self.PeakGroup = GeneralPeakGroupOpenSwath
+            self.PeakGroup = GeneralPeakGroup
 
     def parse_row(self, run, this_row, do_realignment):
         decoy_name = "decoy"
@@ -548,6 +586,10 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
           peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_fdr_score(fdr_score)
+          peakgroup.set_feature_id(thisid)
+          peakgroup.set_intensity(intensity)
           run.all_peptides[trgr_id].add_peakgroup(peakgroup)
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
