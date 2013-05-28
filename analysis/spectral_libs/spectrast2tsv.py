@@ -77,6 +77,7 @@ def usage() :
     print "-v                  Verbose mode."
     print "-w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
     print "-x    allowed_frg_z Fragment ion charge states allowed. Default: 1,2"
+    print "-y    UIS-order     When using a switching modification, this determines the UIS order to be calculated. Default : 2"
     print "-a    outfile       Output file name (default: appends _peakview.txt)"
     print ""
 
@@ -469,7 +470,7 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     return 0
 
 
-def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary, 
+def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary,UISorder, ionseries, fragmentlossgains, frg_z_list,  
                         useMinutes, searchEngineconfig, masslimits, key, precision,  
                         writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance, aaLib = None, nprocs = 0, verbose = False) :
     '''
@@ -521,9 +522,9 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             for isof in isoforms.iterkeys() : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
-            _, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
-            uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = 2,  ionseries = ['y','b'], 
-                                            fragmentlossgains = [0,], precision = 1e-5, frg_z_list = [1,], mass_limits = masslimits)
+            #_, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
+            uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
+                                            fragmentlossgains = fragmentlossgains, precision = massTolerance, frg_z_list = frg_z_list, mass_limits = masslimits)
             
             #if there is a spectrum for the isoform, use it. Otherwise, use dummy data
             z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
@@ -622,6 +623,7 @@ def main(argv) :
     aaLib = Aminoacides()
     nprocs = 0
     verbose = False
+    UISorder = 2
     
     csv_headers_peakview =     [    'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
                      'relative_intensity', 'stripped_sequence', 'modification_sequence', 'prec_z',
@@ -645,7 +647,7 @@ def main(argv) :
 
     #Get options
     try:
-        opts, _ = getopt.getopt(argv, "hf:l:s:en:m:o:w:c:z:g:i:dx:p:t:k:a:u:q:v",["help","fasta","limits","series","exact","max","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key","output","switchingmod","nprocs","verbose"])
+        opts, _ = getopt.getopt(argv, "hf:l:s:en:m:o:w:c:z:g:i:dx:p:t:k:a:u:q:vy:",["help","fasta","limits","series","exact","max","modifications","min","swaths","config","writeconfig","gain","isot-labeling","remove-duplicates","charge","precision","timescale","key","output","switchingmod","nprocs","verbose","UISorder"])
 
     except getopt.GetoptError:
         usage()
@@ -748,6 +750,9 @@ def main(argv) :
         if opt in ('-v','--verbose') :
             argsUsed += 1
             verbose = True
+        if opt in ('y','--UISorder') :
+            argsUsed += 2
+            UISorder = int(arg)
             
 
     print "Masslimits:",masslimits
@@ -813,8 +818,9 @@ def main(argv) :
                 raise Exception("Error: the switching modification given by the user is not in the modifications library!")
             switchingMod = modificationsLib.mods_unimods[switchingModification]
             isobaric_species = get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = aaLib)
-            transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, 
+            transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, UISorder, ionseries, [0,], frgchargestate,
                         useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, aaLib = aaLib, nprocs = nprocs, verbose = verbose)
+            
             print "done!"
             sys.exit()
 
