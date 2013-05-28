@@ -361,11 +361,26 @@ class Experiment(AlignmentExperiment):
                 matrix_writer.writerow(line)
             del matrix_writer
 
+        if len(outfile) > 0 and options.readmethod == "full":
+            # write out the complete original files 
+            writer = csv.writer(open(outfile, "w"), delimiter="\t")
+            header_first = self.runs[0].header
+            for run in self.runs:
+                assert header_first == run.header
+            header_first += ["align_runid", "align_origfilename"]
+            writer.writerow(header_first)
 
-        # only in openswath we have the ID and can go back to the original file ... 
-        if file_format != "openswath": return
-
-        if len(outfile) > 0:
+            for m in multipeptides:
+                selected_peakgroups = m.get_selected_peakgroups()
+                if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
+                for p in m.get_peptides():
+                    selected_pg = p.get_selected_peakgroup()
+                    if selected_pg is None: continue
+                    row_to_write = selected_pg.row
+                    row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
+                    writer.writerow(row_to_write)
+        elif len(outfile) > 0 and file_format == "openswath":
+            # only in openswath we have the ID and can go back to the original file ... 
             # write out the complete original files 
             writer = csv.writer(open(outfile, "w"), delimiter="\t")
             header_first = self.runs[0].header
@@ -386,7 +401,7 @@ class Experiment(AlignmentExperiment):
                       row_to_write = row
                       row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                       writer.writerow(row_to_write)
-
+ 
         # Print out trafo data
         trafo_fnames = []
         for current_run in self.runs:
@@ -637,6 +652,7 @@ def handle_args():
 
     experimental_parser = parser.add_argument_group('experimental options')
 
+    experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
     experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
@@ -656,7 +672,7 @@ def main(options):
 
     #import SWATHScoringReader
     start = time.time()
-    reader = SWATHScoringReader.newReader(options.infiles, options.file_format)
+    reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod)
     this_exp.runs = reader.parse_files(options.realign_runs)
     print("Reading the input files took %ss" % (time.time() - start) )
 
