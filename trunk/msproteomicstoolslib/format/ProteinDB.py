@@ -167,12 +167,13 @@ class ProteinDB :
         for protein_code1, protein in self.proteinDictionary.iteritems() :
             protein.pseudoreverse(decoytag)
 
-    def writeFastaFile(self, fastaFileName, chunksize = -1) :
-        if chunksize < 0 : chunksize = self.chunksize
+    def writeFastaFile(self, fastaFileName, chunksize = -1, format=None) :
+        if chunksize < 0 : chunksize = self.chunksize - 1
         file = open(fastaFileName,"w")
         
         for code1, protein in self.proteinDictionary.iteritems() :
-            proteintxt = ">" + protein.code1
+            if not format : proteintxt = ">" + protein.code1
+            if format == 'sp' : proteintxt = ">" + "sp|" + protein.code1 + "|" + protein.code2 + " " + protein.description
             file.write(proteintxt)
             file.write("\n")
 
