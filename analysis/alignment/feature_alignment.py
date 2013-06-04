@@ -263,7 +263,7 @@ class Experiment(AlignmentExperiment):
         # value, we multiply by fdr_cutoff again (which was used to obtain the
         # original estimated decoy percentage).
         if self.estimated_decoy_pcnt is None: return 0
-        if not self.estimated_decoy_pcnt > 0: return 0
+        if (nr_targets + nr_decoys) == 0: return 0
         est_real_fdr = (nr_decoys * 100.0 / (nr_targets + nr_decoys) ) / self.estimated_decoy_pcnt * fdr_cutoff 
         return est_real_fdr
 
