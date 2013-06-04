@@ -662,6 +662,13 @@ def handle_args():
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=0.01, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01', type=float)
 
     args = parser.parse_args(sys.argv[1:])
+
+    if args.min_frac_selected < 0.0 or args.min_frac_selected > 1.0:
+        raise Exception("Argument frac_selected needs to be a number between 0 and 1.0")
+
+    if args.infiles is None:
+        raise Exception("This program needs infiles to be specified.")
+
     return args
 
 def main(options):
