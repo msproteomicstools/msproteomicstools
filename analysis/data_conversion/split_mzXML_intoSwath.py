@@ -42,7 +42,7 @@ Usage:
     python split.py filename window_size [outputdir] [noms1map]
 
 where 
-    filename is an mzXML file 
+    filename is an mzXML or mzXML.gz file 
     window size is usually 32
     outputdir is . default
     noms1map is default false (ms1scans are written)
@@ -54,7 +54,12 @@ Author: Hannes Roest loblum
 ###########################################################################
 """
 
-import re, csv, sys, os
+import re, sys, os, gzip
+
+if len(sys.argv) < 3 or sys.argv[1] == '-h':
+    print "Usage: split.py file.mzXML[.gz] windowSize [outputdir [noms1map]]]"
+    sys.exit(1)
+
 full_filename = sys.argv[1]
 window_size = int(sys.argv[2])
 
@@ -106,7 +111,11 @@ swathscan = 0
 header = ''
 header_done = False
 mybuffer = ''
-source = open(full_filename)
+if full_filename.endswith('.gz'):
+    print "Opening compressed file"
+    source = gzip.open(full_filename,'rb')
+else:
+    source = open(full_filename)
 for line in source:
     mybuffer += line
     if line.find('<scan') != -1:
@@ -138,4 +147,3 @@ for f in windows:
 if writeMs1:
     ms1map.write('  </msRun>\n</mzXML>')
     ms1map.close()
-
