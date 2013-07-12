@@ -1106,7 +1106,6 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     
     #Write in the peakview input file (until the max number of transitions per peptide/z (the most intense N transitions)
     for index in range(0,min(len(filteredtransitions),maxtransitions)) :
-        print filteredtransitions[index]
         if lock : lock.acquire()
         writer.writerow(filteredtransitions[index])
         time.sleep(0.001)
