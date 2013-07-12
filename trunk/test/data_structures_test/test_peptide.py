@@ -138,6 +138,19 @@ class TestUnitPeptide(unittest.TestCase):
         self.assertIn(self.isoform4_4.getSequenceWithMods('unimod'), self.isoforms_seqmods, "Isoform4 not in the isoforms list")    
         self.assertNotIn(self.notisoform4.getSequenceWithMods('unimod'), self.isoforms_seqmods, "This should not be in the isoforms list")
 
+    def test_calUIS(self) :
+        self.theOtherIsoforms = [ self.isoform4_1 , self.isoform4_3 , self.isoform4_4 ]
+        self.UISmass , self.UISannot = self.isoform4_2.cal_UIS(self.theOtherIsoforms, UISorder = 2,  ionseries = ['y'], fragmentlossgains = [0,], precision = 1e-5, frg_z_list = [1], mass_limits = [300,1500])
+        self.assertEqual(len(self.UISmass), 7,  "wrong number of UIS. They should be 7!")
+        self.assertIn((646.3406318939999,928.365933736), self.UISmass, "The UIS (646 , 928) is not in the UIS list!")
+        self.assertIn((646.3406318939999,1373.5984528780002), self.UISmass, "The UIS (646 , 1373) is not in the UIS list!")
+        self.assertIn((646.3406318939999,813.338990706), self.UISmass, "The UIS (646 , 813) is not in the UIS list!")
+        self.assertIn((646.3406318939999,1316.5769891520001), self.UISmass, "The UIS (646 , 1316) is not in the UIS list!")
+        self.assertIn((646.3406318939999,1169.508575234), self.UISmass, "The UIS (646 , 1169) is not in the UIS list!")
+        self.assertIn((646.3406318939999,1098.471461444), self.UISmass, "The UIS (646 , 1098) is not in the UIS list!")
+        self.assertIn((646.3406318939999,1041.449997718), self.UISmass, "The UIS (646 , 1041) is not in the UIS list!")
+        
+        
     def test_comparePeptideFragments(self):
         self.matched , self.unmatched = self.isoform1.comparePeptideFragments([self.isoform2], ['y','b'], precision = 1e-5)
         self.isoform1_b3_1 = self.isoform1.getMZfragment('b', 3, 1)

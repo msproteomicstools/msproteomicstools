@@ -61,6 +61,7 @@ class Peptide:
         self.proteins = protein
         self.labelings = ['N15', '15N', 'AQUA_KR', 'SILAC_K6R10', 'no_labeling', 'SILAC_K8R10', 'SILAC_K8R6']
         self.iontypes = ['a', 'b', 'c', 'x', 'y', 'z']
+        self.lossConstraints = { -97.976896 : ['S','T','Y'], -79.966331 : ['S','T','Y'] }
 
     def _it(self,l) :
         try : iter(l)
@@ -85,6 +86,17 @@ class Peptide:
             for ion_number in range(1,len(self.sequence)) :
                 for ion_charge in frg_z_list :
                     for lossgain in fragmentlossgains :
+                        frg_seq = self.fragmentSequence(ion_type, ion_number)
+                        lossgainOK = True
+                        for mass, constrain in self.lossConstraints.iteritems() :
+                            if abs(mass-lossgain) < 0.02 :
+                                lossgainOK = False 
+                                for aa in constrain : 
+                                    if aa in frg_seq : 
+                                        lossgainOK = True
+                                        break
+                        if not lossgainOK : continue
+                                
                         frg_mass = self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain)
                         if mass_limits : 
                             if frg_mass < mass_limits[0] : continue 
@@ -97,16 +109,22 @@ class Peptide:
         
     def cal_UIS(self, otherPeptidesList, UISorder = 2,  ionseries = None, fragmentlossgains = [0,], precision = 1e-8, frg_z_list = [1,2], mass_limits = None) :
         '''
-        
-        It returns a tuple of two objects
+        It calculates the UIS for a given peptide referred to a given list of other peptides.
+        It returns a tuple of two objects all_UIS, and all_UIS_annotated. all_UIS contains only a mass list.
         '''
         if not ionseries : ionseries = self.iontypes
         
         all_UIS = [] #   all_UIS = [ [UIS1] , [UIS2] ,[UIS3]  ]
         all_UIS_annotated = {} # all_UIS_annotated = { UIS1 : [annotation(s)] , ... }
+        print fragmentlossgains
         selfPep_annotated , selfPep_masses = self.all_ions( ionseries = ionseries, frg_z_list = frg_z_list, 
                                                         fragmentlossgains = fragmentlossgains , mass_limits = mass_limits, 
                                                         label = '' )
+        if UISorder < 0 : 
+            all_UIS = [selfPep_masses]
+            all_UIS_annotated = { tuple(selfPep_masses) : selfPep_annotated }
+            return (all_UIS, all_UIS_annotated)
+        
         ions_others = []  # ions_others = [ [ions_pep1] , [ions_pep2], ]
         #Create a pool of the ions of other peptides         
         for othPep in otherPeptidesList :
@@ -153,7 +171,7 @@ class Peptide:
                         if mass == annot[4] : uis_annotations.append(annot)
                         #break
                 all_UIS_annotated[t_uis] = uis_annotations
-                
+
         return ( all_UIS , all_UIS_annotated )
 
     def comparePeptideFragments(self, otherPeptidesList, ionseries = None, fragmentlossgains = [0,] , precision = 1e-8, frg_z_list = [1,2]) :
@@ -449,6 +467,24 @@ class Peptide:
         mz = (pepmass + shift + massProton * z) / z
        
         return mz
+
+    def fragmentSequence(self, ion_type, frg_number) :
+        if ion_type == 'p' :
+            return self.sequence
+        elif ion_type == 'a' :
+            return self.sequence[:frg_number] 
+        elif ion_type == 'b' :
+            return self.sequence[:frg_number] 
+        elif ion_type == 'c' :
+            return self.sequence[:frg_number] 
+        elif ion_type == 'x' :
+            return self.sequence[-frg_number:]
+        elif ion_type == 'y' :
+            return self.sequence[-frg_number:]
+        elif ion_type == 'z' :
+            return self.sequence[-frg_number:]
+
+        return self.sequence
     
     def getMZfragment(self, ion_type, ion_number, ion_charge, label='', fragmentlossgain=0.0):
         #Check label

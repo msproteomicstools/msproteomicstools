@@ -77,7 +77,7 @@ def usage() :
     print "-v                  Verbose mode."
     print "-w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
     print "-x    allowed_frg_z Fragment ion charge states allowed. Default: 1,2"
-    print "-y    UIS-order     When using a switching modification, this determines the UIS order to be calculated. Default : 2"
+    print "-y    UIS-order     When using a switching modification, this determines the UIS order to be calculated. If -1 is set, all transitions for each isoform will be reported. Default : 2"
     print "-a    outfile       Output file name (default: appends _peakview.txt)"
     print ""
 
@@ -522,7 +522,6 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             for isof in isoforms.iterkeys() : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
-            #_, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
             uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
                                             fragmentlossgains = fragmentlossgains, precision = massTolerance, frg_z_list = frg_z_list, mass_limits = masslimits)
             
@@ -580,6 +579,8 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     transition = []
                     transition_cnt += 1
                     if key == 'peakview' :
+                        if abs(uis_lossgain) > 0.05 : 
+                            uis_serie = uis_serie + str(int(round(uis_lossgain)))
                         transition = [ precursorMZ , uis_mass , RT_experimental , protein_desc , 'light' ,
                                         rel_intensity , isoform.sequence , isoform.getSequenceWithMods(code) , int(z_parent) ,
                                         uis_serie , uis_frg_z , uis_nr , irt_sequence , protein_code1 , 'FALSE', uis_order, uis_masses]
@@ -750,7 +751,7 @@ def main(argv) :
         if opt in ('-v','--verbose') :
             argsUsed += 1
             verbose = True
-        if opt in ('y','--UISorder') :
+        if opt in ('-y','--UISorder') :
             argsUsed += 2
             UISorder = int(arg)
             
@@ -818,7 +819,8 @@ def main(argv) :
                 raise Exception("Error: the switching modification given by the user is not in the modifications library!")
             switchingMod = modificationsLib.mods_unimods[switchingModification]
             isobaric_species = get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = aaLib)
-            transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, UISorder, ionseries, [0,], frgchargestate,
+            if 0 not in gain_or_loss_mz : gain_or_loss_mz.append(0.0)
+            transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, UISorder, ionseries, gain_or_loss_mz, frgchargestate,
                         useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, aaLib = aaLib, nprocs = nprocs, verbose = verbose)
             
             print "done!"
@@ -1101,9 +1103,10 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     if len(filteredtransitions) < mintransitions :
         filteredtransitions = [] #I don't think this is really necessary, just in case.
     if verbose : print "after removing num of transitions below the required minimum " , len(filteredtransitions)
-
+    
     #Write in the peakview input file (until the max number of transitions per peptide/z (the most intense N transitions)
     for index in range(0,min(len(filteredtransitions),maxtransitions)) :
+        print filteredtransitions[index]
         if lock : lock.acquire()
         writer.writerow(filteredtransitions[index])
         time.sleep(0.001)
