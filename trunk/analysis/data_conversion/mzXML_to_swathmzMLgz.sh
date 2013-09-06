@@ -48,11 +48,12 @@ do
 	o)	outdir=$OPTARG;;
     t)  threads=$OPTARG;;
 	n)	noms1map="noms1map";;
-    ?)  echo "Usage: $0 -i input.mzXML [-o outdir] [-t threads] [-w numWnd] [-n] 
+	w)  windows=$OPTARG;;
+    ?)  echo "Usage: $0 -i input.mzXML [-o outdir] [-t threads] [-w numSwathes] [-n] 
 Splits input.mzXML into its windows and converts them into mzML.gz using FileConverter and gzip. 
 [-o outdir] location where split.mzML.gz are written. default=current dir
 [-n] prevents writing of ms1map
-[-w numWnd] number of swath windows. default=32
+[-w numSwathes] number of swathes. default=32
 [-t numThreads] parallelizes the process using multiple processors. default=1"
         exit 1;;
     esac
