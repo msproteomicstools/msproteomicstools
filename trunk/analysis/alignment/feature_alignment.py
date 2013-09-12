@@ -44,6 +44,7 @@ from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment, Multipeptide
 from sys import stdout
+from shared import write_out_matrix_file
 
 verb = True
 verb = False
@@ -336,31 +337,7 @@ class Experiment(AlignmentExperiment):
             del id_writer
 
         if len(matrix_outfile) > 0:
-            matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
-            run_ids = [r.get_id() for r in self.runs]
-            header = ["Peptide", "Protein"]
-            for r in self.runs:
-                fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
-                header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
-            header.extend(["RT_mean", "RT_std"])
-            matrix_writer.writerow(header)
-            for m in multipeptides:
-                line = [m.get_id(), m.find_best_peptide_pg().peptide.protein_name]
-                rts = []
-                selected_peakgroups = m.get_selected_peakgroups()
-                if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-                for rid in run_ids:
-                    pg = None
-                    if m.has_peptide(rid):
-                        pg = m.get_peptide(rid).get_selected_peakgroup()
-                    if pg is None:
-                        line.extend(["NA", "NA"])
-                    else:
-                        line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
-                        rts.append(pg.get_normalized_retentiontime())
-                line.extend([numpy.mean(rts), numpy.std(rts)])
-                matrix_writer.writerow(line)
-            del matrix_writer
+            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected)
 
         if len(outfile) > 0 and options.readmethod == "full":
             # write out the complete original files 
