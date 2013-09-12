@@ -47,6 +47,9 @@ from sys import stdout
 
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
 
+from shared import write_out_matrix_file
+
+
 class ImputeValuesHelper(object):
     """
     Static object with some helper methods.
@@ -126,9 +129,23 @@ def read_chromatograms(options, peakgroups_file, trafo_fnames):
         print "Found swath chromatograms:", len(swath_chromatograms), [v.keys() for k,v in swath_chromatograms.iteritems()]
         return [], []
 
-    return analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_)
+    multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_)
+    return new_exp, multipeptides
     
 def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_):
+    """Analyze the multipeptides and impute missing values
+
+    Args:
+        new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
+        multipeptides(list(AlignmentHelper.Multipeptide)): list of multipeptides
+        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
+        transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
+
+    Returns:
+        The updated multipeptides
+
+    This function will update the input multipeptides and add peakgroups, imputing missing values 
+    """
     # Go through all aligned peptides
     run_ids = [r.get_id() for r in new_exp.runs]
     imputations = 0
@@ -162,7 +179,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
 
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
-                    swath_chromatograms, rid, transformation_collection_)
+                    rid, transformation_collection_)
                 res = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
                                              border_l, border_r)
                 if res != "NA": 
@@ -175,15 +192,14 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                     m.add_peptide(rid, p)
     print "Imputations:", imputations, "Successful:", imputation_succ
     print "Peakgroups:", peakgroups
-    return new_exp, multipeptides 
+    return multipeptides 
 
-def determine_integration_border(new_exp, selected_pg, swath_chromatograms, rid, transformation_collection_):
+def determine_integration_border(new_exp, selected_pg, rid, transformation_collection_):
     """Determine the optimal integration border by taking the mean of all other peakgroup boundaries.
 
     Args:
-        new_exp(AlignmentExperiment): experiment containing the multipeptides
+        new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
         selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
-        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
         rid(String): current run id
         transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
 
@@ -231,8 +247,9 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     """ Integrate a chromatogram from left_start to right_end and store the sum.
 
     Args:
-        pg(GeneralPeakGroup): A template peakgroup from which to construct the new peakgroup
+        template_pg(GeneralPeakGroup): A template peakgroup from which to construct the new peakgroup
         current_run(SWATHScoringReader.Run): current run where the missing value occured
+        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
         current_mz(float): m/z value of the current precursor
         left_start(float): retention time for integration (left border)
         right_end(float): retention time for integration (right border)
@@ -258,6 +275,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
     newpg.set_value("run_id", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
+    newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
 
@@ -275,7 +293,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_value("Intensity", integrated_sum)
     return newpg
 
-def write_out(new_exp, multipeptides, outfile):
+def write_out(new_exp, multipeptides, outfile, matrix_outfile):
     # write out the complete original files 
     writer = csv.writer(open(outfile, "w"), delimiter="\t")
     header_first = new_exp.runs[0].header
@@ -295,6 +313,9 @@ def write_out(new_exp, multipeptides, outfile):
             row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
             writer.writerow(row_to_write)
 
+    if len(matrix_outfile) > 0:
+        write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0)
+
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
     usage += "\nThis program will impute missing values"
@@ -304,6 +325,7 @@ def handle_args():
     parser.add_argument("--peakgroups_infile", dest="peakgroups_infile", required=True, help="Infile containing peakgroups (outfile from feature_alignment.py)")
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
 
     experimental_parser = parser.add_argument_group('experimental options')
@@ -315,7 +337,7 @@ def main(options):
     import time
     new_exp, multipeptides = read_chromatograms(options, options.peakgroups_infile, options.infiles)
     if options.dry_run: return
-    write_out(new_exp, multipeptides, options.output)
+    write_out(new_exp, multipeptides, options.output, options.matrix_outfile)
 
 if __name__=="__main__":
     options = handle_args()
