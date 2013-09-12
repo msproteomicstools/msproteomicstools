@@ -50,7 +50,7 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentE
 from shared import write_out_matrix_file
 
 # The Window overlap which needs to be taken into account when calculating from which swath window to extract!
-SWATH_EDGE_SHIFT = 0
+SWATH_EDGE_SHIFT = 1
 
 class ImputeValuesHelper(object):
     """
@@ -283,14 +283,15 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
-    for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks"]:
+    for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "run_id", "m.z"]:
         newpg.set_value(element, template_pg.get_value(element))
     newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
-    newpg.set_value("run_id", current_rid)
+    newpg.set_value("align_runid", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
+    newpg.set_value("m_score", 1.0)
 
     integrated_sum = 0
     allchroms = correct_swath[current_rid]
