@@ -49,7 +49,7 @@ def get_smooting_operator():
     scikits_present = True
     return SmoothingPy()
   except ImportError:
-    pass
+    print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
   return None
 
 class SmoothingR:
