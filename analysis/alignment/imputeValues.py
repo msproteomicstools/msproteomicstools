@@ -153,6 +153,8 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                         print pg.row
                 assert len( m.get_peptide(rid).peakgroups) == 1
                 pg = m.get_peptide(rid).peakgroups[0]
+                # Also select this pg
+                pg.select_this_peakgroup()
             if pg is None:
                 # fill up the hole if we have an NA here!
                 imputations += 1
@@ -167,6 +169,8 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                     imputation_succ += 1
                     # print "result is", res.get_value("Intensity"), numpy.log10(res.get_value("Intensity"))
                     p = GeneralPrecursor(res.get_value("transition_group_id"), rid)
+                    # Also select this pg
+                    res.select_this_peakgroup()
                     p.add_peakgroup(res)
                     m.add_peptide(rid, p)
     print "Imputations:", imputations, "Successful:", imputation_succ
