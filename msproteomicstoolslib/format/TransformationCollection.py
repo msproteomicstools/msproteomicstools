@@ -38,25 +38,43 @@ $Authors: Hannes Roest$
 import msproteomicstoolslib.math.Smoothing as smoothing
 
 class TransformationCollection():
-    """A class to store information about multiple transformations between two
-    runs.
+    """A class to store information about transformations between multiple runs.
     
     It allows to add transformation data (e.g. a pair of arrays which map
     coordinates from one RT space to the other). Once all data is added, one
     can initialize from the data:
 
-    Example:
+    Compute a new transformation and write to file:
+        # data1 = reference data (master) with ref_id
+        # data2 = data to be aligned (slave) with current_id
 
-    >>> transformation_collection_ = TransformationCollection()
+    >>> tcoll = TransformationCollection()
+    >>> tcoll.setReferenceRunID( ref_id )
+    >>> tcoll.addTransformationData([data2, data1], current_id, ref_id )
+    >>> tcoll.writeTransformationData( "outfile", current_id, ref_id)
+
+    Read a set of transformations from files:
+
+    >>> tcoll = TransformationCollection()
     >>> for filename in ["file1.tr", "file2.tr"]:
-    >>>   transformation_collection_.readTransformationData(filename)
-    >>> transformation_collection_.initialize_from_data(reverse=True)
+    >>>   tcoll.readTransformationData(filename)
+    >>> tcoll.initialize_from_data(reverse=True)
 
+    Compute a transformation:
+
+    >>> norm_value = tcoll.getTransformation(orig_runid, ref_id).predict( [ value ] )[0]
     """
+
     def __init__(self):
       self.transformations = {}
       self.transformation_data = {}
-      self.reference_run_id = None
+      self._reference_run_id = None
+
+    def getReferenceRunID(self):
+        return self._reference_run_id
+
+    def setReferenceRunID(self, value):
+        self._reference_run_id = value
 
     def _addTransformation(self, trafo, s_from, s_to):
       d = self.transformations.get(s_from, {})
@@ -75,6 +93,10 @@ class TransformationCollection():
           return None
 
     def initialize_from_data(self, reverse=False):
+        # Check whether we get a smoothing operator
+        if smoothing.get_smooting_operator() is None:
+            raise Exception("Could not initialize transformations, smoothing operator is mandatory.")
+
         # use the data in self.transformation_data to create the trafos
         for s_from, darr in self.transformation_data.iteritems():
             self.transformations[s_from] = {}
@@ -90,6 +112,16 @@ class TransformationCollection():
                     self._addTransformation(sm_rev, s_to, s_from)
 
     def addTransformationData(self, data, s_from, s_to):
+      """ Add raw data points to the collection 
+
+      Args:
+          data(list(data_master, data_slave)) : two data two data vectors
+              containing the raw data points from two runs. The first data
+              vector is the master (reference) data and the second one is the
+              slave (to be aligned).
+          s_from(String): run ID of the slave (to be aligned) run
+          s_to(String): run ID of the master (reference) run
+      """
       assert isinstance(data, list)
       assert len(data) == 2
       assert isinstance(data[0], list)
@@ -110,6 +142,12 @@ class TransformationCollection():
       print "This data is able to transform from %s to %s" % (s_from, s_to)
 
     def writeTransformationData(self, filename, s_from, s_to):
+      """Write the transformation s_from to s_to to a file.
+
+      The header is either:
+          #Transformation Null
+          #Transformation Data "from_id" to "to_id" reference_id "ref_id"
+      """
       r = self.getTransformationData(s_from, s_to)
       if r is None: 
           f = open(filename, "w")
@@ -118,12 +156,18 @@ class TransformationCollection():
           return
 
       f = open(filename, "w")
-      f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self.reference_run_id) )
+      f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self._reference_run_id) )
       for a,b in zip(r[0],r[1]):
           f.write("%s\t%s\n" % (a,b) )
       f.close()
 
     def readTransformationData(self, filename):
+      """Read the transformation present in the file.
+
+      The header is either:
+          #Transformation Null
+          #Transformation Data "from_id" to "to_id" reference_id "ref_id"
+      """
       f = open(filename, "r")
       header = f.next().split("\t")
       if header[0].startswith( "#Transformation Null" ):
@@ -131,9 +175,9 @@ class TransformationCollection():
           return
       s_from = header[1]
       s_to = header[3]
-      if self.reference_run_id is None:
-        self.reference_run_id = header[5].strip()
-      assert self.reference_run_id == header[5].strip()
+      if self._reference_run_id is None:
+        self._reference_run_id = header[5].strip()
+      assert self._reference_run_id == header[5].strip()
       data1 = []
       data2 = []
       for line in f:
@@ -142,3 +186,4 @@ class TransformationCollection():
           data2.append(float(d[1]))
       # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
       self.addTransformationData([data1, data2], s_from, s_to)
+

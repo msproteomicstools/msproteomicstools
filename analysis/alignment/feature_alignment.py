@@ -240,7 +240,7 @@ class Experiment(AlignmentExperiment):
         bestrun = spl_aligner.determine_best_run(self, alignment_fdr_threshold)
 
         spl_aligner.transformation_collection = self.transformation_collection
-        spl_aligner.transformation_collection.reference_run_id = bestrun.get_id()
+        spl_aligner.transformation_collection.setReferenceRunID( bestrun.get_id() )
 
         # go through all runs and align two runs at a time
         for run in self.runs:
@@ -384,7 +384,7 @@ class Experiment(AlignmentExperiment):
         trafo_fnames = []
         for current_run in self.runs:
           current_id = current_run.get_id()
-          ref_id = self.transformation_collection.reference_run_id 
+          ref_id = self.transformation_collection.getReferenceRunID() 
           filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
           trafo_fnames.append(filename)
           self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
@@ -393,10 +393,10 @@ class Experiment(AlignmentExperiment):
         if len(yaml_outfile) > 0:
             import yaml
             myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
-                      "ReferenceRun" : self.transformation_collection.reference_run_id }
+                      "ReferenceRun" : self.transformation_collection.getReferenceRunID() }
             for current_run in self.runs:
                 current_id = current_run.get_id()
-                ref_id = self.transformation_collection.reference_run_id 
+                ref_id = self.transformation_collection.getReferenceRunID() 
                 filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
                 dirpath = os.path.realpath(os.path.dirname(current_run.orig_filename))
                 this = {"id" : current_id, "directory" : dirpath, "trafo_file" : os.path.realpath(filename)}

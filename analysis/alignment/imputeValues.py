@@ -207,7 +207,7 @@ def determine_integration_border(new_exp, selected_pg, rid, transformation_colle
         A tuple of (left_integration_border, right_integration_border) in the retention time space of the _reference_ run
     """
     current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
-    ref_id = transformation_collection_.reference_run_id
+    ref_id = transformation_collection_.getReferenceRunID()
 
     pg_lefts = []
     pg_rights = []
