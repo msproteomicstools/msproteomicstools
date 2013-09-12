@@ -283,7 +283,7 @@ class Precursor(PrecursorBase):
         return "%s (run %s)" % (self.id, self.run)
 
     def add_peakgroup_tpl(self, pg_tuple, tpl_id):
-        # peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+        # peakgroup_tuple = (thisid, fdr_score, retention_time, intensity)
         assert self.id == tpl_id # Check that the peak group is added to the correct precursor
         assert len(pg_tuple) == 4
         self.peakgroups_.append(pg_tuple)
@@ -409,7 +409,7 @@ class SWATHScoringReader:
     def __init__(self):
         raise Exception("Abstract class")
 
-    def parse_row(self, run, this_row, do_realignment):
+    def parse_row(self, run, this_row, read_exp_RT):
         raise Exception("Abstract method")
 
     @staticmethod
@@ -424,9 +424,21 @@ class SWATHScoringReader:
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
-    def parse_files(self, do_realignment):
-      print "Parsing input files"
+    def parse_files(self, read_exp_RT=True):
+      """Parse the input file(s) (CSV).
 
+      Args:
+          read_exp_RT(bool) : to read the real, experimental retention time
+              (default behavior) or the delta iRT should be used instead.
+
+      A single CSV file might contain more than one run and thus to create
+      unique run ids, we number the runs as xx_yy where xx is the current file
+      number and yy is the run found in the current file. However, if an
+      alignment has already been performed and each run has already obtained a
+      unique run id, we can directly use the previous alignment id.
+      """
+
+      print "Parsing input files"
       from sys import stdout
       import csv
       runs = []
@@ -441,15 +453,17 @@ class SWATHScoringReader:
           header_dict[n] = i
         stdout.write("\rReading file %s" % (str(f)) )
         stdout.flush()
+
+        # Check if runs are already aligned (only one input file and correct header)
+        already_aligned = (len(self.infiles) == 1 and header_dict.has_key(self.aligned_run_id_name))
+
         for this_row in reader:
-            # There may be multiple runs in one csv file, we use the run number
-            # as well as the file number to find unique runs -> not if we have
-            # an aligned run id which means we already computed a unique id for
-            # each run.
-            runnr = this_row[header_dict[self.run_id_name]]
-            runid = runnr + "_" + str(file_nr)
-            if header_dict.has_key(self.aligned_run_id_name):
+            if already_aligned:
                 runid = this_row[header_dict[self.aligned_run_id_name]]
+            else:
+                runnr = this_row[header_dict[self.run_id_name]]
+                runid = runnr + "_" + str(file_nr)
+
             current_run = [r for r in runs if r.get_id() == runid]
             # check if we have a new run
             if len(current_run) == 0:
@@ -458,9 +472,11 @@ class SWATHScoringReader:
             else: 
                 assert len(current_run) == 1
                 current_run = current_run[0]
-            # Unfortunately, since we are using csv tell() will not work...
+
+            # Unfortunately, since we are using csv, tell() will not work...
             # print "parse row at", filehandler.tell()
-            self.parse_row(current_run, this_row, do_realignment)
+            self.parse_row(current_run, this_row, read_exp_RT)
+
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
       stdout.write("\r\r\n") # clean up
@@ -480,7 +496,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
-    def parse_row(self, run, this_row, do_realignment):
+    def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
         unique_peakgroup_id_name = "transition_group_id"
@@ -496,7 +512,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         if "aligned_rt" in run.header_dict: 
             diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
-        if do_realignment: 
+        if read_exp_RT: 
             diff_from_assay_in_sec_name = "RT"
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
@@ -544,7 +560,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
-    def parse_row(self, run, this_row, do_realignment):
+    def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
         unique_peakgroup_id_name = "transition_group_id"
@@ -559,7 +575,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
         if "aligned_rt" in run.header_dict: 
             diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
-        if do_realignment: 
+        if read_exp_RT: 
             diff_from_assay_in_sec_name = "Tr" 
             diff_from_assay_seconds = float(this_row[run.header_dict["Tr"]]) 
         else:
@@ -613,7 +629,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroupPeakView
 
-    def parse_row(self, run, this_row, do_realignment):
+    def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "Decoy"
         fdr_score_name = "Score" # TODO invert score!!!
         unique_peakgroup_id_name = "Peptide" ## Does not exist!!
@@ -632,7 +648,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         if "aligned_rt" in run.header_dict: 
             diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
-        if do_realignment: 
+        if read_exp_RT: 
             diff_from_assay_in_sec_name = "Median RT"
 
         # create some id
