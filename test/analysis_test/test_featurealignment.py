@@ -57,17 +57,21 @@ class TestFeatureAlignment(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_openswath_output_cluster_ids_2.csv")
+        expected_matrix_outcome = os.path.join(self.datadir, "feature_alignment_openswath_output_matrix.csv")
         tmpfilename = "featureAlignment.out.tmp"
         tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
+        tmpfilename_matrix = "featureAlignment.out.tmp_matrix.csv"
 
-        args = "--in %s --out %s --out_ids %s --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
         self.exact_diff(tmpfilename_ids, expected_outcome)
+        self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
 
         os.remove(tmpfilename)
         os.remove(tmpfilename_ids)
+        # os.remove(tmpfilename_matrix)
 
     def test_featureAlignment_openswath_alignment(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
