@@ -47,7 +47,10 @@ from sys import stdout
 
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
 
-class Helper(object):
+class ImputeValuesHelper(object):
+    """
+    Static object with some helper methods.
+    """
 
     @staticmethod
     def select_correct_swath(swath_chromatograms, mz):
@@ -62,6 +65,10 @@ class Helper(object):
 
     @staticmethod
     def convert_to_this(orig_runid, target_runid, ref_id, rt, transformation_collection_):
+        """ Convert a retention time into one of the target RT space.
+        
+        Using the transformation collection
+        """
         normalized_space_rt = transformation_collection_.getTransformation(orig_runid, ref_id).predict( [rt] )[0]
         return transformation_collection_.getTransformation(ref_id, target_runid).predict( [normalized_space_rt] )[0]
 
@@ -151,8 +158,9 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                 imputations += 1
 
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
+
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
-                    swath_chromatograms, rid, transformation_collection_, current_mz)
+                    swath_chromatograms, rid, transformation_collection_)
                 res = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
                                              border_l, border_r)
                 if res != "NA": 
@@ -165,71 +173,102 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
     print "Peakgroups:", peakgroups
     return new_exp, multipeptides 
 
-def determine_integration_border(new_exp, selected_pg, swath_chromatograms, rid, transformation_collection_, current_mz):
+def determine_integration_border(new_exp, selected_pg, swath_chromatograms, rid, transformation_collection_):
+    """Determine the optimal integration border by taking the mean of all other peakgroup boundaries.
+
+    Args:
+        new_exp(AlignmentExperiment): experiment containing the multipeptides
+        selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
+        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
+        rid(String): current run id
+        transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
+
+    Returns:
+        A tuple of (left_integration_border, right_integration_border) in the retention time space of the _reference_ run
+    """
     current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
     ref_id = transformation_collection_.reference_run_id
 
     pg_lefts = []
     pg_rights = []
     for pg in selected_pg:
-        rt = pg.get_normalized_retentiontime()
-        ## WRONG this does not work
-        ### this_run_rt = Helper.convert_to_this(pg.peptide.run.get_id(), current_run.get_id(), ref_id, rt, transformation_collection_)
+
         rwidth = float(pg.get_value("rightWidth"))
         lwidth = float(pg.get_value("leftWidth"))
-        this_run_rwidth = Helper.convert_to_this(pg.peptide.run.get_id(), current_run.get_id(), ref_id, rwidth, transformation_collection_)
-        this_run_lwidth = Helper.convert_to_this(pg.peptide.run.get_id(), current_run.get_id(), ref_id, lwidth, transformation_collection_)
+        this_run_rwidth = ImputeValuesHelper.convert_to_this(pg.peptide.run.get_id(),
+            current_run.get_id(), ref_id, rwidth, transformation_collection_)
+        this_run_lwidth = ImputeValuesHelper.convert_to_this(pg.peptide.run.get_id(),
+            current_run.get_id(), ref_id, lwidth, transformation_collection_)
+
         pg_lefts.append(this_run_lwidth)
         pg_rights.append(this_run_rwidth)
+
         # print pg.peptide.run.get_id(), "look at peakgroup %0.4f" % this_run_lwidth,\
         #       "\t",this_run_rwidth , "\t",this_run_rwidth-this_run_lwidth, "\tscore:", \
         #       -numpy.log10(float(pg.get_value("m_score"))),  "intensity:", \
         #       numpy.log10(float(pg.get_value("Intensity"))), pg.get_value("Sequence")
 
     # print "overall mean, std", numpy.mean(pg_lefts), numpy.std(pg_lefts), numpy.mean(pg_rights), numpy.std(pg_rights)
+
     integration_right = numpy.mean(pg_rights)
     integration_left = numpy.mean(pg_lefts)
 
+    std_warning_level = 20
+    if numpy.std(pg_rights) > std_warning_level or numpy.std(pg_lefts) > std_warning_level: 
+        pass
+        # TODO : what if they are not consistent ?
+        # print "Std is too large", pg_rights, pg_lefts
+        # print "overall mean, std", numpy.mean(pg_lefts), numpy.std(pg_lefts), numpy.mean(pg_rights), numpy.std(pg_rights)
+
     return integration_left, integration_right
 
-def integrate_chromatogram(pg, current_run, swath_chromatograms, current_mz, 
+def integrate_chromatogram(template_pg, current_run, swath_chromatograms, current_mz, 
                            left_start, right_end):
-    """
-    Integrate a chromatogram from left_start to right_end and store the sum.
+    """ Integrate a chromatogram from left_start to right_end and store the sum.
+
+    Args:
+        pg(GeneralPeakGroup): A template peakgroup from which to construct the new peakgroup
+        current_run(SWATHScoringReader.Run): current run where the missing value occured
+        current_mz(float): m/z value of the current precursor
+        left_start(float): retention time for integration (left border)
+        right_end(float): retention time for integration (right border)
+
+    Returns:
+        A new GeneralPeakGroup which contains the new, integrated intensity for this run (or "NA" if no chromatograms could be found).
 
     Create a new peakgroup from the old pg and then store the integrated intensity.
     """
 
     # get the chromatograms
-    cur_id  = current_run.get_id()
-    correct_swath = Helper.select_correct_swath(swath_chromatograms, current_mz)
-    chrom_ids = pg.get_value("aggr_Fragment_Annotation").split(";")
-    if not correct_swath.has_key(current_run.get_id()):
+    current_rid  = current_run.get_id()
+    correct_swath = ImputeValuesHelper.select_correct_swath(swath_chromatograms, current_mz)
+    chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
+    if not correct_swath.has_key(current_rid):
         return "NA"
 
     # Create new peakgroup by copying the old one
-    newrow = ["NA" for ele in pg.row]
-    newpg = GeneralPeakGroup(newrow, current_run, pg.peptide)
+    newrow = ["NA" for ele in template_pg.row]
+    newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
     for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks"]:
-        newpg.set_value(element, pg.get_value(element))
-    newpg.set_value("transition_group_record", pg.get_value("transition_group_id") + "_%s" % cur_id)
-    newpg.set_value("run_id", cur_id)
+        newpg.set_value(element, template_pg.get_value(element))
+    newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
+    newpg.set_value("run_id", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
 
-    alls = 0
-    allchroms = correct_swath[current_run.get_id()]
+    integrated_sum = 0
+    allchroms = correct_swath[current_rid]
     for chrom_id in chrom_ids:
         chromatogram = allchroms[chrom_id]
         if chromatogram is None:
             print "chromatogram is None"
             continue
-        alls += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
-        # print alls, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
-        # "integrated from \t%s\t%s in run %s" %( left_start, right_end, cur_id)
+        integrated_sum += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
+        # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
+        # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid)
 
-    newpg.set_value("Intensity", alls)
+    newpg.set_value("Intensity", integrated_sum)
     return newpg
 
 def write_out(new_exp, multipeptides, outfile):
