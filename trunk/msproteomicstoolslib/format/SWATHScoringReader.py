@@ -68,6 +68,9 @@ class PeakGroupBase(object):
     def get_value(self, value):
         raise Exception("Needs implementation")
 
+    def set_value(self, key, value):
+        raise Exception("Needs implementation")
+
     def set_fdr_score(self, fdr_score):
         self.fdr_score = fdr_score
 
@@ -133,7 +136,6 @@ class MinimalPeakGroup(PeakGroupBase):
         # return self.run.get_id() + "/" + self.get_id() + " " + str(self.get_fdr_score()) + " " + str(self.get_normalized_retentiontime()) + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
         return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " RT:" + str(self.get_normalized_retentiontime()) # + " " + str(self.get_value("RT")) + " " + str(self.get_value("rt_score")) # rt_score = delta iRT
 
-
     # Do not allow setting of any parameters (since data is not stored here)
     def set_fdr_score(self, fdr_score):
         raise Exception("Cannot set in immutable object")
@@ -163,6 +165,12 @@ class GeneralPeakGroup(PeakGroupBase):
       self.row = row
       self.run = run
       self.peptide = peptide
+
+    def get_value(self, value):
+        return self.row[self.run.header_dict[value]]
+
+    def set_value(self, key, value):
+        self.row[self.run.header_dict[key]] = value
   
 class PrecursorBase(object):
     def __init__(self, this_id, run):

@@ -65,6 +65,10 @@ class Multipeptide():
     def get_peptides(self):
       return self._peptides.values()
 
+    def add_peptide(self, runid, value):
+      assert not self.has_peptide(runid)
+      self._peptides[runid] = value
+
     def get_id(self):
       if len(self.get_peptides()) == 0: return None
       return self.get_peptides()[0].get_id()
