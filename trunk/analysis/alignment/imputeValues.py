@@ -49,6 +49,8 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentE
 
 from shared import write_out_matrix_file
 
+# The Window overlap which needs to be taken into account when calculating from which swath window to extract!
+SWATH_EDGE_SHIFT = 0
 
 class ImputeValuesHelper(object):
     """
@@ -57,6 +59,7 @@ class ImputeValuesHelper(object):
 
     @staticmethod
     def select_correct_swath(swath_chromatograms, mz):
+        mz = mz + SWATH_EDGE_SHIFT
         swath_window_low = int(mz / 25) *25
         swath_window_high = int(mz / 25) *25 + 25
         res = {}
@@ -75,7 +78,20 @@ class ImputeValuesHelper(object):
         normalized_space_rt = transformation_collection_.getTransformation(orig_runid, ref_id).predict( [rt] )[0]
         return transformation_collection_.getTransformation(ref_id, target_runid).predict( [normalized_space_rt] )[0]
 
-def read_chromatograms(options, peakgroups_file, trafo_fnames):
+def run_impute_values(options, peakgroups_file, trafo_fnames):
+    """Impute values across chromatograms
+
+    Args:
+        peakgroups_file(filename): CSV file containing all peakgroups
+        trafo_fnames(filename): A list of .tr filenames (it is assumed that in
+            the same directory also the chromatogram mzML reside)
+    Returns:
+        A tuple of:
+            new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
+            multipeptides(list(AlignmentHelper.Multipeptide)): list of multipeptides
+
+    This function will read the csv file with all peakgroups as well as the transformation files (.tr) and the corresponding raw chromatograms. It will then try  
+    """
 
     # options.outfile = "/tmp/testout.csv"
     # trafo_fnames = ['analysis/alignment/strep_align/Strep0_Repl1_R02/transformation-0_0-0_1.tr', 'analysis/alignment/strep_align/Strep0_Repl2_R02/transformation-0_1-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl1_R02/transformation-0_2-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl2_R02/transformation-0_3-0_1.tr']
@@ -95,8 +111,6 @@ def read_chromatograms(options, peakgroups_file, trafo_fnames):
 
     transformation_collection_ = TransformationCollection()
     for filename in trafo_fnames:
-      # current_id = current_run.get_id()
-      # filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
       transformation_collection_.readTransformationData(filename)
 
     # Read the datapoints and perform the smoothing
@@ -129,10 +143,10 @@ def read_chromatograms(options, peakgroups_file, trafo_fnames):
         print "Found swath chromatograms:", len(swath_chromatograms), [v.keys() for k,v in swath_chromatograms.iteritems()]
         return [], []
 
-    multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_)
+    multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option)
     return new_exp, multipeptides
     
-def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_):
+def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, border_option):
     """Analyze the multipeptides and impute missing values
 
     Args:
@@ -179,7 +193,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
 
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
-                    rid, transformation_collection_)
+                    rid, transformation_collection_, border_option)
                 res = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
                                              border_l, border_r)
                 if res != "NA": 
@@ -194,7 +208,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
     print "Peakgroups:", peakgroups
     return multipeptides 
 
-def determine_integration_border(new_exp, selected_pg, rid, transformation_collection_):
+def determine_integration_border(new_exp, selected_pg, rid, transformation_collection_, border_option):
     """Determine the optimal integration border by taking the mean of all other peakgroup boundaries.
 
     Args:
@@ -223,15 +237,14 @@ def determine_integration_border(new_exp, selected_pg, rid, transformation_colle
         pg_lefts.append(this_run_lwidth)
         pg_rights.append(this_run_rwidth)
 
-        # print pg.peptide.run.get_id(), "look at peakgroup %0.4f" % this_run_lwidth,\
-        #       "\t",this_run_rwidth , "\t",this_run_rwidth-this_run_lwidth, "\tscore:", \
-        #       -numpy.log10(float(pg.get_value("m_score"))),  "intensity:", \
-        #       numpy.log10(float(pg.get_value("Intensity"))), pg.get_value("Sequence")
-
-    # print "overall mean, std", numpy.mean(pg_lefts), numpy.std(pg_lefts), numpy.mean(pg_rights), numpy.std(pg_rights)
-
-    integration_right = numpy.mean(pg_rights)
-    integration_left = numpy.mean(pg_lefts)
+    if border_option == "mean":
+        integration_left = numpy.mean(pg_lefts)
+        integration_right = numpy.mean(pg_rights)
+    elif border_option == "max_width":
+        integration_left = numpy.min(pg_lefts)
+        integration_right = numpy.max(pg_rights)
+    else:
+        raise Exception("Unknown border determination option %s" % border_option)
 
     std_warning_level = 20
     if numpy.std(pg_rights) > std_warning_level or numpy.std(pg_lefts) > std_warning_level: 
@@ -288,12 +301,14 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
             continue
         integrated_sum += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
         # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
-        # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid)
+        # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid), newpg.get_value("transition_group_id")
 
     newpg.set_value("Intensity", integrated_sum)
     return newpg
 
 def write_out(new_exp, multipeptides, outfile, matrix_outfile):
+    """ Write the result to disk 
+    """
     # write out the complete original files 
     writer = csv.writer(open(outfile, "w"), delimiter="\t")
     header_first = new_exp.runs[0].header
@@ -326,6 +341,7 @@ def handle_args():
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
+    parser.add_argument('--border_option', default='max_width', metavar="max_width", help="How to determine integration border (possible values: max_width, mean)")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
 
     experimental_parser = parser.add_argument_group('experimental options')
@@ -335,7 +351,7 @@ def handle_args():
 
 def main(options):
     import time
-    new_exp, multipeptides = read_chromatograms(options, options.peakgroups_infile, options.infiles)
+    new_exp, multipeptides = run_impute_values(options, options.peakgroups_infile, options.infiles)
     if options.dry_run: return
     write_out(new_exp, multipeptides, options.output, options.matrix_outfile)
 
