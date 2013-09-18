@@ -122,7 +122,7 @@ class MinimalPeakGroup(PeakGroupBase):
     In this case, the peak group can also be selected or unselected.
     
     """
-    def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide, intensity=None):
+    def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide, intensity=None, dscore=None):
       super(MinimalPeakGroup, self).__init__()
       self.id_ = unique_id
       self.fdr_score = fdr_score
@@ -130,6 +130,7 @@ class MinimalPeakGroup(PeakGroupBase):
       self.selected_ = selected
       self.peptide = peptide
       self.intensity_ = intensity
+      self.dscore_ = dscore
   
     ## Print
     def print_out(self):
@@ -148,6 +149,9 @@ class MinimalPeakGroup(PeakGroupBase):
 
     def set_intensity(self, intensity):
         raise Exception("Cannot set in immutable object")
+
+    def get_dscore(self):
+        return self.dscore_
 
     ## Select / De-select peakgroup
     def select_this_peakgroup(self):
@@ -171,6 +175,9 @@ class GeneralPeakGroup(PeakGroupBase):
 
     def set_value(self, key, value):
         self.row[self.run.header_dict[key]] = value
+
+    def get_dscore(self):
+        return self.get_value("d_score")
   
 class PrecursorBase(object):
     def __init__(self, this_id, run):
@@ -292,9 +299,12 @@ class Precursor(PrecursorBase):
             1. quality score (FDR)
             2. retention time (normalized)
             3. intensity
+            (4. d_score optional)
         """
         assert self.id == tpl_id # Check that the peak group is added to the correct precursor
-        assert len(pg_tuple) == 4
+        if len(pg_tuple) == 4:
+            pg_tuple = pg_tuple + (None,)
+        assert len(pg_tuple) == 5
         self.peakgroups_.append(pg_tuple)
         self.selected_.append(False)
 
@@ -338,7 +348,7 @@ class Precursor(PrecursorBase):
                 best_score = peakgroup[1]
                 result = peakgroup
         index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
+        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
 
     def get_selected_peakgroup(self):
       # return the selected peakgroup of this peptide, we can only select 1 or
@@ -348,18 +358,18 @@ class Precursor(PrecursorBase):
       if len(selected) == 1:
         index = selected[0]
         result = self.peakgroups_[index]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
+        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
       else: 
           return None
 
     def get_all_peakgroups(self):
         for index, result in enumerate(self.peakgroups_):
-            yield MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
+            yield MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
   
     def find_closest_in_iRT(self, delta_assay_rt):
       result = min(self.peakgroups_, key=lambda x: abs(float(x[2]) - float(delta_assay_rt)))
       index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-      return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3])
+      return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
 
 class Run():
     """
@@ -528,6 +538,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
+        dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
         diff_from_assay_in_sec_name = "delta_rt"
         run_id_name = "run_id"
@@ -551,6 +562,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score = float(this_row[run.header_dict[fdr_score_name]])
         diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
+        d_score = float(this_row[run.header_dict[dscore_name]])
         intensity = -1
         if run.header_dict.has_key(intensity_name):
             intensity = float(this_row[run.header_dict[intensity_name]])
@@ -566,7 +578,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
         if self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
           peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])

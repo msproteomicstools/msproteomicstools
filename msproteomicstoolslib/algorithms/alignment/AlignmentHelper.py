@@ -39,13 +39,14 @@ import csv, os
 import numpy
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected):
+    import scipy.stats
     matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
     run_ids = [r.get_id() for r in allruns]
     header = ["Peptide", "Protein"]
     for r in allruns:
         fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
         header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
-    header.extend(["RT_mean", "RT_std"])
+    header.extend(["RT_mean", "RT_std", "pg_pvalue"])
     matrix_writer.writerow(header)
     for m in multipeptides:
         line = [m.get_id(), m.find_best_peptide_pg().peptide.protein_name]
@@ -61,8 +62,16 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
             else:
                 line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
                 rts.append(pg.get_normalized_retentiontime())
-        line.extend([numpy.mean(rts), numpy.std(rts)])
+
+        # The d_score is a z-score which computed on the null / decoy
+        # distribution which is (assumed) gaussian with u = 0, sigma = 1 
+        # -> we thus compute a p-value from the z-score and assuming
+        # independent measurements, we multiply the p-values to compute a
+        # peakgroup p-value.
+        # We use norm.sf (1-cdf) on the vector of z-scores.
+        pvals = scipy.stats.norm.sf([ pg.get_dscore() for pg in m.get_selected_peakgroups() if not pg is None])
+        pvalue = numpy.prod(pvals)
+        line.extend([numpy.mean(rts), numpy.std(rts), pvalue ])
         matrix_writer.writerow(line)
     del matrix_writer
-
 
