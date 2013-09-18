@@ -182,6 +182,7 @@ class TransformationCollection():
       data2 = []
       for line in f:
           d = line.split("\t")
+          if len(d) != 2: raise Exception("Cannot parse line '%s' in file %s" % (line, filename))
           data1.append(float(d[0]))
           data2.append(float(d[1]))
       # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
