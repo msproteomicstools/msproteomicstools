@@ -151,6 +151,10 @@ class AlignmentAlgorithm():
                     if pg.get_fdr_score() < aligned_fdr_cutoff
         ]
 
+        # Check for empty groups
+        if len(groups) == 0:
+            return
+
         # do the clustering
         from cluster import HierarchicalClustering
         cl = HierarchicalClustering(groups, lambda x,y: abs(x.get_normalized_retentiontime()-y.get_normalized_retentiontime()))
