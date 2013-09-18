@@ -283,7 +283,14 @@ class Precursor(PrecursorBase):
         return "%s (run %s)" % (self.id, self.run)
 
     def add_peakgroup_tpl(self, pg_tuple, tpl_id):
-        # peakgroup_tuple = (thisid, fdr_score, retention_time, intensity)
+        """Adds a peakgroup to this precursor.
+
+        The peakgroup should be a tuple of length 4 with the following components:
+            0. id
+            1. quality score (FDR)
+            2. retention time (normalized)
+            3. intensity
+        """
         assert self.id == tpl_id # Check that the peak group is added to the correct precursor
         assert len(pg_tuple) == 4
         self.peakgroups_.append(pg_tuple)
@@ -400,6 +407,16 @@ class Run():
         for peptide in self.all_peptides.values():
             yield peptide
 
+class ReadFilter(object):
+    """
+    A callable class which can pre-filters a row and determine whether the row can be skipped.
+
+    If the call returns true, the row is examined but if it returns false, the row should be skipped.
+    """
+
+    def __call__(self, row, header):
+        return True
+
 #
 # The Readers of the Scoring files
 #
@@ -413,14 +430,14 @@ class SWATHScoringReader:
         raise Exception("Abstract method")
 
     @staticmethod
-    def newReader(infiles, filetype, readmethod="minimal"):
+    def newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter()):
         """Factory to create a new reader"""
         if filetype  == "openswath": 
-            return OpenSWATH_SWATHScoringReader(infiles, readmethod)
+            return OpenSWATH_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "mprophet": 
-            return mProphet_SWATHScoringReader(infiles, readmethod)
+            return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
-            return Peakview_SWATHScoringReader(infiles, readmethod)
+            return Peakview_SWATHScoringReader(infiles, readmethod, readfilter)
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
@@ -441,6 +458,7 @@ class SWATHScoringReader:
       print "Parsing input files"
       from sys import stdout
       import csv
+      skipped = 0; read = 0
       runs = []
       for file_nr, f in enumerate(self.infiles):
         stdout.write("\rReading %s" % str(f))
@@ -473,6 +491,11 @@ class SWATHScoringReader:
                 assert len(current_run) == 1
                 current_run = current_run[0]
 
+            if not self.readfilter(this_row, current_run.header_dict):
+                skipped += 1
+                continue
+
+            read += 1
             # Unfortunately, since we are using csv, tell() will not work...
             # print "parse row at", filehandler.tell()
             self.parse_row(current_run, this_row, read_exp_RT)
@@ -480,16 +503,17 @@ class SWATHScoringReader:
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
       stdout.write("\r\r\n") # clean up
-      print "Found %s runs" % len(runs)
+      print "Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped)
       return runs
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal"):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
         self.aligned_run_id_name = "align_runid"
+        self.readfilter = readfilter
         if readmethod == "minimal":
             self.Precursor = Precursor
         else:
@@ -549,11 +573,12 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal"):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
         self.aligned_run_id_name = "align_runid"
+        self.readfilter = readfilter
         if readmethod == "minimal":
             self.Precursor = Precursor
         else:
@@ -618,11 +643,12 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal"):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
         self.infiles = infiles
         self.run_id_name = "Sample"
         self.aligned_run_id_name = "align_runid"
         self.readmethod = readmethod
+        self.readfilter = readfilter
         if readmethod == "minimal":
             self.Precursor = Precursor
         else:
