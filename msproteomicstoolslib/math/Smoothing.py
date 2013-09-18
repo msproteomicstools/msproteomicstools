@@ -94,6 +94,7 @@ class SmoothingR:
 
     def initialize(self, data1, data2):
         import rpy2.robjects as robjects
+        robjects.r['options'](warn=-1)
         rdata1 = robjects.FloatVector(data1)
         rdata2 = robjects.FloatVector(data2)
         spline = robjects.r["smooth.spline"]
@@ -101,6 +102,7 @@ class SmoothingR:
 
     def predict(self, xhat):
         import rpy2.robjects as robjects
+        robjects.r['options'](warn=-1)
         rxhat = robjects.FloatVector(xhat)
         predict = robjects.r["predict"]
         predicted_data = predict(self.sm, rxhat)
