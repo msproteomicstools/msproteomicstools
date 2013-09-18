@@ -203,7 +203,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                     # Also select this pg
                     res.select_this_peakgroup()
                     p.add_peakgroup(res)
-                    m.add_peptide(rid, p)
+                    m.insert(rid, p)
     print "Imputations:", imputations, "Successful:", imputation_succ
     print "Peakgroups:", peakgroups
     return multipeptides 

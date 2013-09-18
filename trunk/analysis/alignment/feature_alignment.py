@@ -630,6 +630,8 @@ def handle_args():
 
     experimental_parser = parser.add_argument_group('experimental options')
 
+    experimental_parser.add_argument('--use_dscore_filter', action='store_true', default=False)
+    experimental_parser.add_argument("--dscore_cutoff", default=1.96, help="Quality cutoff to still consider a feature for alignment using the d_score: everything below this d-score is discarded", metavar='1.96')
     experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
     experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
@@ -648,6 +650,12 @@ def handle_args():
 
     return args
 
+class DReadFilter(object):
+    def __init__(self, cutoff):
+        self.cutoff = cutoff
+    def __call__(self, row, header):
+        return float(row[ header["d_score" ] ]) > self.cutoff
+
 def main(options):
     import time
 
@@ -655,9 +663,13 @@ def main(options):
     this_exp = Experiment()
     #this_exp.parse_files(options.infiles, options.file_format, options.realign_runs)
 
+    readfilter = ReadFilter()
+    if options.use_dscore_filter:
+        readfilter = DReadFilter(float(options.dscore_cutoff))
+
     #import SWATHScoringReader
     start = time.time()
-    reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod)
+    reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod, readfilter)
     this_exp.runs = reader.parse_files(options.realign_runs)
     print("Reading the input files took %ss" % (time.time() - start) )
 

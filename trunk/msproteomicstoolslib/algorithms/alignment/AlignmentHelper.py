@@ -48,13 +48,19 @@ class Multipeptide():
     def __init__(self):
         self._peptides = {}
         self._has_null = False
+        self._nr_runs = -1
 
     def __str__(self):
-        return "Precursors of %s runs, identified by %s." % (len(self._peptides), self.get_peptides()[0].id)
+        return "Precursors of %s runs, identified by %s." % (len(self._nr_runs), self.get_peptides()[0].id)
   
     # 
     ## Getters  / Setters
     # 
+    def set_nr_runs(self, v):
+        self._nr_runs = v
+
+    def get_nr_runs(self):
+        return self._nr_runs
 
     def has_peptide(self, runid):
         return self._peptides.has_key(runid)
@@ -65,17 +71,14 @@ class Multipeptide():
     def get_peptides(self):
       return self._peptides.values()
 
-    def add_peptide(self, runid, value):
-      assert not self.has_peptide(runid)
-      self._peptides[runid] = value
-
     def get_id(self):
       if len(self.get_peptides()) == 0: return None
       return self.get_peptides()[0].get_id()
 
     def more_than_fraction_selected(self, fraction):
+      assert self._nr_runs >= 0
       # returns true if more than fraction of the peakgroups are selected
-      if len( self.get_selected_peakgroups() )*1.0 / len(self._peptides) < fraction:
+      if len( self.get_selected_peakgroups() )*1.0 / self._nr_runs < fraction:
           return False
       return True
 
@@ -87,6 +90,8 @@ class Multipeptide():
       return self._has_null
 
     def insert(self, runid, peptide):
+      assert not self.has_peptide(runid)
+
       if peptide is None: 
           self._has_null = True 
           return
@@ -122,17 +127,20 @@ class Multipeptide():
     #
 
     def all_above_cutoff(self, cutoff):
+      assert self._nr_runs >= 0
+      if len(self.get_peptides())< self._nr_runs:
+          return False
+
       for p in self.get_peptides():
         if p.get_best_peakgroup().get_fdr_score() > cutoff: 
             return False
       return True
   
-    def all_below_cutoff(self, cutoff):
-      for p in self.get_peptides():
-        if p.get_best_peakgroup().get_fdr_score() < cutoff: return False
-      return True
-
     def all_selected(self):
+      assert self._nr_runs >= 0
+      if len(self.get_peptides())< self._nr_runs:
+          return False
+
       for p in self.get_peptides():
           if p.get_selected_peakgroup() is None: return False
       return True
@@ -194,6 +202,7 @@ class AlignmentExperiment(object):
           m = Multipeptide()
           for r in self.runs:
             m.insert(r.get_id(), r.get_peptide(peptide_id))
+          m.set_nr_runs(len(self.runs))
           multipeptides.append(m)
         return multipeptides
 
