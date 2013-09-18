@@ -125,7 +125,7 @@ class Experiment(MRExperiment):
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
-                "peakgroups quantified in at least one run above FDR %s%%" % (fdr_cutoff*100) + ", " + \
+                "peakgroups quantified in at least %s run(s) above FDR %s%%" % (fdr_cutoff*100, min_nrruns) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
@@ -304,6 +304,115 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
                     p.unselect_all()
             return aligned_fdr_cutoff
 
+class DReadFilter(object):
+    def __init__(self, cutoff):
+        self.cutoff = cutoff
+    def __call__(self, row, header):
+        return float(row[ header["d_score" ] ]) > self.cutoff
+
+class ParamEst(object):
+    """
+    Parameter estimation object
+
+    Based on the percentage of decoys in all peakgroups
+
+    >>> p = ParamEst()
+    >>> decoy_frac = p.compute_decoy_frac(multipeptides, target_fdr)
+    >>> fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
+    """
+
+    def __init__(self, min_runs=1, verbose=False):
+        self.verbose = verbose
+        self.min_runs = min_runs
+
+    def estimate_paramter_range(self, multipeptides, decoy_frac):
+        pass
+
+    def find_iterate_fdr(self, multipeptides, decoy_frac, recursion=0):
+
+        # Starting guess
+        start = 0.05 / (10**recursion)
+        end = 1.0 / (10**recursion)
+        stepsize = start
+
+        if self.verbose: print "Recurse", recursion
+        if recursion > 10:
+            raise Exception("Recursed too much in FDR iteration.")
+
+        decoy_pcnt = decoy_frac*100
+        val_005 = self._calc_precursor_fr(multipeptides, (start+stepsize)/100.0 )*100
+        val_1 = self._calc_precursor_fr(multipeptides, end/100.0 )*100
+        if self.verbose: print "Decoy pcnt aim:", decoy_pcnt
+        if self.verbose: print decoy_pcnt, val_1, val_005
+
+        # Check if our computed value lies between 0.05% and 1% FDR cutoff
+        if decoy_pcnt < val_005:
+            return self.find_iterate_fdr(multipeptides, decoy_frac, recursion=recursion+1)
+        elif decoy_pcnt > val_1:
+            if self.verbose: print "choose larger step from 0.5 on"
+            start = 0.5
+            end = 100.0
+            stepsize = 0.5
+            if recursion > 1:
+                raise Exception("Decreased start / end but the values was too large? Should never happen.")
+        else:
+            # All is fine, we are within the limits
+            pass
+        
+        fdrrange = numpy.arange(start, end, stepsize)
+        return self._find_iterate_fdr(multipeptides, decoy_frac, fdrrange)
+
+    def _find_iterate_fdr(self, multipeptides, decoy_frac, fdrrange):
+        decoy_pcnt = decoy_frac*100
+        if self.verbose: print "mScore_cutoff", "Calc-precursor-FDR"
+        for fdr in fdrrange:
+            calc_fdr = self._calc_precursor_fr(multipeptides, fdr/100.0 )*100
+            if self.verbose: print fdr, calc_fdr
+            if calc_fdr > decoy_pcnt:
+                break
+            prev_fdr = fdr
+            prev_calc_fdr = calc_fdr
+        # Linear interpolation
+        res = prev_fdr + (fdr-prev_fdr) * (decoy_pcnt-prev_calc_fdr)/(calc_fdr-prev_calc_fdr)
+        return res/100.0
+
+    def _calc_precursor_fr(self, multipeptides, target_fdr):
+        """ Calculate how many of the *precursors* are decoy for a given cutoff.
+        """
+        min_runs = self.min_runs
+        ## min_runs = 1
+        allpg_cnt = 0
+        alldecoypg_cnt = 0
+        for mpep in multipeptides:
+            count = 0
+            decoy = False
+            for pep in mpep.get_peptides():
+                if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
+                    count += 1
+                if pep.get_decoy():
+                    decoy = True
+            if count >= min_runs:
+                allpg_cnt += 1
+            if decoy and count >= min_runs:
+                alldecoypg_cnt += 1
+        return alldecoypg_cnt *1.0 / allpg_cnt
+
+    def compute_decoy_frac(self, multipeptides, target_fdr):
+        """ Calculate how many of the *peakgroups* are decoy for a given cutoff.
+        """
+        allpg_cnt = 0
+        alldecoypg_cnt = 0
+        for mpep in multipeptides:
+            for pep in mpep.get_peptides():
+                if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
+                    allpg_cnt += 1
+                    if pep.get_decoy():
+                        alldecoypg_cnt += 1
+
+
+        decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
+        return decoy_frac
+
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
     usage += "\nThis program will select all peakgroups below the FDR cutoff in all files and try to align them to each other."
@@ -311,14 +420,14 @@ def handle_args():
             "\nand will apply the provided FDR cutoff."
 
     parser = argparse.ArgumentParser(description = usage )
-    parser.add_argument('--in', dest="infiles", nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
-    parser.add_argument("--out", dest="outfile", default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
+    parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
+    parser.add_argument("--out", dest="outfile", required=True, default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="FDR cutoff to use, default 0.01", metavar='0.01')
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, type=float, help="Maximal difference in RT for two aligned features", metavar='30')
-    parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01 (-1 will set it to fdr_cutoff)", metavar='-1')
+    parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1.0, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01 (-1 will set it to fdr_cutoff)", metavar='-1')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall or best_cluster_score)")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
@@ -334,34 +443,52 @@ def handle_args():
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
     experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
-    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=0.01, type=float, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01')
+    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01')
 
     args = parser.parse_args(sys.argv[1:])
 
     if args.min_frac_selected < 0.0 or args.min_frac_selected > 1.0:
         raise Exception("Argument frac_selected needs to be a number between 0 and 1.0")
 
-    if args.infiles is None:
-        raise Exception("This program needs infiles to be specified.")
-
-    try:
-        if float(args.aligned_fdr_cutoff) < 0:
-            args.aligned_fdr_cutoff = args.fdr_cutoff
-        elif float(args.aligned_fdr_cutoff) < args.fdr_cutoff:
-            raise Exception("max_fdr_quality cannot be smaller than fdr_cutoff!")
-    except ValueError:
+    if args.target_fdr > 0:
+        # Parameter estimation turned on: check user input ...
+        if args.fdr_cutoff != 0.01:
+            raise Exception("You selected parameter estimation with target_fdr - cannot set fdr_cutoff as well!")
+        args.fdr_cutoff = args.target_fdr
+        # if args.aligned_fdr_cutoff != -1.0:
+        #     raise Exception("You selected parameter estimation with target_fdr - cannot set max_fdr_quality as well!")
         pass
-
+    else:
+        # Parameter estimation turned off: Check max fdr quality ...
+        try:
+            if float(args.aligned_fdr_cutoff) < 0:
+                args.aligned_fdr_cutoff = args.fdr_cutoff
+                print("Setting max_fdr_quality automatically to fdr_cutoff of", args.fdr_cutoff)
+            elif float(args.aligned_fdr_cutoff) < args.fdr_cutoff:
+                raise Exception("max_fdr_quality cannot be smaller than fdr_cutoff!")
+        except ValueError:
+            pass
     return args
-
-class DReadFilter(object):
-    def __init__(self, cutoff):
-        self.cutoff = cutoff
-    def __call__(self, row, header):
-        return float(row[ header["d_score" ] ]) > self.cutoff
 
 def main(options):
     import time
+
+    # options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
+    if False:
+        multipeptides = []
+        for peptide_id in this_exp.union_transition_groups_set:
+            m = Multipeptide()
+            above_ctf = 0
+            for r in self.runs:
+                peptide = r.get_peptide(peptide_id)
+                m.insert(r.get_id(), peptide)
+                ## if not peptide.get_best_peakgroup() is None and \
+                ##    peptide.get_best_peakgroup().get_fdr_score() 
+                ##    # and min([pg.get_fdr_score() for pg in mpep.get_selected_peakgroups() ]) > options.fdr_cutoff:
+            if append:
+                m.set_nr_runs(len(self.runs))
+                multipeptides.append(m)
+        return multipeptides
 
     readfilter = ReadFilter()
     if options.use_dscore_filter:
@@ -381,6 +508,47 @@ def main(options):
     start = time.time()
     multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=True)
     print("Mapping the precursors took %ss" % (time.time() - start) )
+
+    if options.target_fdr > 0:
+        ### Do parameter estimation
+        start = time.time()
+        print "-"*35
+        print "Do Parameter estimation"
+        p = ParamEst(min_runs=options.nr_high_conf_exp,verbose=True)
+        decoy_frac = p.compute_decoy_frac(multipeptides, options.target_fdr)
+        print "Found target decoy fraction overall %0.4f%%" % (decoy_frac*100)
+        try:
+            fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
+        except UnboundLocalError:
+            raise Exception("Could not estimate FDR accurately!")
+
+        if fdr_cutoff_calculated > options.target_fdr:
+            #### Re-read the multipeptides with the new cutoff ... !
+            multipeptides = this_exp.get_all_multipeptides(fdr_cutoff_calculated, verbose=True)
+            print "Re-parse the files!"
+            try:
+                fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
+            except UnboundLocalError:
+                raise Exception("Could not estimate FDR accurately!")
+
+        # options.aligned_fdr_cutoff = options.target_fdr
+        options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
+        if options.aligned_fdr_cutoff < 0:
+            # Estimate the aligned_fdr parameter -> if the new fdr cutoff is
+            # lower than the target fdr, we can use the target fdr as aligned
+            # cutoff but if its higher we have to guess (here we take
+            # 2xcutoff).
+            if fdr_cutoff_calculated < options.target_fdr: 
+                options.aligned_fdr_cutoff = options.target_fdr
+            else:
+                options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
+                print "use higher"
+        else:
+            print "larger than 0", options.aligned_fdr_cutoff
+        options.fdr_cutoff = fdr_cutoff_calculated
+        print "Using an FDR cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
+        print("Parameter estimation took %ss" % (time.time() - start) )
+        print "-"*35
 
     # If we want to align runs
     if options.realign_runs:
@@ -409,10 +577,22 @@ def main(options):
 
     # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
     for mpep in multipeptides:
+        # check if we have found enough peakgroups
         if len( mpep.get_selected_peakgroups() ) < options.nr_high_conf_exp: 
             for p in mpep.get_peptides():
                 p.unselect_all()
     
+    if True:
+        # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+        for mpep in multipeptides:
+            count = 0
+            for pep in mpep.get_peptides():
+                if pep.get_best_peakgroup().get_fdr_score() < options.fdr_cutoff:
+                    count += 1
+            if count < options.nr_high_conf_exp:
+                for p in mpep.get_peptides():
+                    p.unselect_all()
+
     # print statistics, write output
     start = time.time()
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
