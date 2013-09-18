@@ -251,59 +251,88 @@ class Experiment(AlignmentExperiment):
       return len(self.runs)*len(self.union_transition_groups_set)
 
     def estimate_real_fdr(self, multipeptides, fdr_cutoff, fraction_needed_selected):
+        class DecoyStats(): pass
+        d = DecoyStats()
+        d.est_real_fdr = 0.0
         precursors_to_be_used = [m for m in multipeptides if m.more_than_fraction_selected(fraction_needed_selected)]
 
         # count the decoys
-        nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+        d.nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
                           if prec.find_best_peptide_pg().peptide.get_decoy()])
-        nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+        d.nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
                           if not prec.find_best_peptide_pg().peptide.get_decoy()])
         # estimate the real fdr by calculating the decoy ratio and dividing it
         # by the decoy ration obtained at @fdr_cutoff => which gives us the
         # decoy in/decrease realtive to fdr_cutoff. To calculate the absolute
         # value, we multiply by fdr_cutoff again (which was used to obtain the
         # original estimated decoy percentage).
-        if self.estimated_decoy_pcnt is None: return 0
-        if (nr_targets + nr_decoys) == 0: return 0
-        est_real_fdr = (nr_decoys * 100.0 / (nr_targets + nr_decoys) ) / self.estimated_decoy_pcnt * fdr_cutoff 
-        return est_real_fdr
+        if self.estimated_decoy_pcnt is None: return d
+        if (d.nr_targets + d.nr_decoys) == 0: return d
+        d.decoy_pcnt = (d.nr_decoys * 100.0 / (d.nr_targets + d.nr_decoys) )
+        d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * fdr_cutoff 
+        return d
 
-    def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present):
+    def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present, min_nrruns):
+        nr_precursors_total = len(self.union_transition_groups_set)
+
         # Do statistics and print out
         in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
         proteins_in_all_runs_wo_align = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff)]))
         proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_all_proteins = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if not m.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_all_peptides = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if not m.find_best_peptide_pg().peptide.get_decoy()]))
+        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
 
         print "Present targets in all runs", in_all_runs_wo_align
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
+        precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
 
         # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
         # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
         nr_decoys = len([1 for prec in precursors_in_all_runs if prec.find_best_peptide_pg().peptide.get_decoy()])
 
+        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
+
         nr_peptides = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs]))
         nr_proteins = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs]))
         nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+
+        nr_precursors_to_quant = len(set([ prec for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_proteins_to_quant = len(set([ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_peptides_to_quant = len(set([ prec.find_best_peptide_pg().peptide.sequence for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+
         nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = self.get_max_pg()
-        est_real_fdr = self.estimate_real_fdr(multipeptides, fdr_cutoff, fraction_present) * 100
+        dstats = self.estimate_real_fdr(multipeptides, fdr_cutoff, fraction_present)
+        dstats_all = self.estimate_real_fdr(multipeptides, fdr_cutoff, 1.0)
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
                 "peakgroups quantified in at least one run above FDR %s%%" % (fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
-        print "We were able to quantify", nr_precursors_in_all, "/", len(self.union_transition_groups_set), \
-                "precursors in all runs (up from", in_all_runs_wo_align, "before alignment)"
-        print "We were able to quantify", nr_peptides_target, "target peptides and", nr_proteins_target, \
-                "target proteins in all runs (up from", proteins_in_all_runs_wo_align_target, "target proteins before alignment)"
-        print "Able to quantify", alignment.nr_quantified, "/", max_pg, "of which we aligned", \
+        print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
+
+        print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align)
+        print "We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_peptides_to_quant, nr_all_peptides, min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
+        print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_proteins_to_quant, nr_all_proteins, min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
+
+        # print "quant proteins", nr_proteins_to_quant
 
         # Get decoy estimates
         if len(precursors_in_all_runs) > 0:
-            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which corresponds to a real FDR of %s %%" % (
-                nr_decoys * 100.0 / len(precursors_in_all_runs), nr_decoys, len(precursors_in_all_runs), est_real_fdr)
+            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a real FDR of %s %%" % (
+                dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100)
+
+            print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a real FDR of %s %%" % (
+                dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
+
+            print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / nr_precursors_to_quant)
+
 
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
@@ -646,7 +675,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
         # now align
         options.aligned_fdr_cutoff = aligned_fdr_cutoff
         alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
-        est_fdr = this_exp.estimate_real_fdr(multipeptides, options.fdr_cutoff, options.min_frac_selected)
+        est_fdr = this_exp.estimate_real_fdr(multipeptides, options.fdr_cutoff, options.min_frac_selected).est_real_fdr
         print "Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff
         if est_fdr > options.target_fdr:
             # Unselect the peptides again ...
@@ -667,24 +696,25 @@ def handle_args():
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
-    parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, help="FDR cutoff to use, default 0.01", metavar='0.01', type=float)
-    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30', type=float)
+    parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="FDR cutoff to use, default 0.01", metavar='0.01')
+    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, type=float, help="Maximal difference in RT for two aligned features", metavar='30')
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.2, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01", metavar='0.2')
-    parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0', type=float)
+    parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall or best_cluster_score)")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
     experimental_parser.add_argument('--use_dscore_filter', action='store_true', default=False)
-    experimental_parser.add_argument("--dscore_cutoff", default=1.96, help="Quality cutoff to still consider a feature for alignment using the d_score: everything below this d-score is discarded", metavar='1.96')
+    experimental_parser.add_argument("--dscore_cutoff", default=1.96, type=float, help="Quality cutoff to still consider a feature for alignment using the d_score: everything below this d-score is discarded", metavar='1.96')
+    experimental_parser.add_argument("--nr_high_conf_exp", default=1, type=int, help="Number of experiments in which the peptide needs to be identified with high confidence (e.g. above fdr_curoff)", metavar='1')
     experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
-    experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30', type=float)
+    experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, type=float, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30')
     experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
     experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
-    experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001', type=float)
-    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=0.01, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01', type=float)
+    experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
+    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=0.01, type=float, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -693,6 +723,12 @@ def handle_args():
 
     if args.infiles is None:
         raise Exception("This program needs infiles to be specified.")
+
+    try:
+        if float(args.aligned_fdr_cutoff) < args.fdr_cutoff:
+            raise Exception("max_fdr_quality cannot be smaller than fdr_cutoff!")
+    except ValueError:
+        pass
 
     return args
 
@@ -741,14 +777,21 @@ def main(options):
     print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff
     start = time.time()
     alignment = AlignmentAlgorithm().align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
+
     print("Re-aligning peak groups took %ss" % (time.time() - start) )
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
+
+    # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+    for mpep in multipeptides:
+        if len( mpep.get_selected_peakgroups() ) < options.nr_high_conf_exp: 
+            for p in mpep.get_peptides():
+                p.unselect_all()
     
     # print statistics, write output
     start = time.time()
-    this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected)
+    this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
     trafo_fnames = this_exp.write_to_file(multipeptides, options)
     print("Writing output took %ss" % (time.time() - start) )
 

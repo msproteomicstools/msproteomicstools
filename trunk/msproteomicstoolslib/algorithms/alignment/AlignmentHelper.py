@@ -201,11 +201,11 @@ class AlignmentExperiment(object):
 
         multipeptides = []
         for peptide_id in self.union_transition_groups_set:
-          m = Multipeptide()
-          for r in self.runs:
-            m.insert(r.get_id(), r.get_peptide(peptide_id))
-          m.set_nr_runs(len(self.runs))
-          multipeptides.append(m)
+            m = Multipeptide()
+            for r in self.runs:
+                peptide = r.get_peptide(peptide_id)
+                m.insert(r.get_id(), peptide)
+            m.set_nr_runs(len(self.runs))
+            multipeptides.append(m)
         return multipeptides
-
 
