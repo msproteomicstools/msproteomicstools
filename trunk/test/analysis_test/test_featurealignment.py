@@ -129,8 +129,8 @@ class TestFeatureAlignment(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_peakview_input_2.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_5_peakview_output_matrix.csv")
-        tmpfilename = "featureAlignment_2.out.tmp"
-        tmpfilename_matrix = "featureAlignment_2.out.tmp_matrix.csv"
+        tmpfilename = "featureAlignment_5.out.tmp"
+        tmpfilename_matrix = "featureAlignment_5.out.tmp_matrix.csv"
 
         args = "--in %s --out %s --out_matrix %s --file_format peakview  --outlier_thresh 5 --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score" % (filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
