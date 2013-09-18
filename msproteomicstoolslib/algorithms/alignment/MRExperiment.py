@@ -107,6 +107,7 @@ class MRExperiment(object):
             if all_prec > 0:
                 print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
 
+        self.initial_fdr_cutoff = fdr_cutoff
         if all_prec > 0 and all_prec - target_prec != 0:
             self.estimated_decoy_pcnt =  (all_prec - target_prec) * 100.0 / all_prec 
         else:
