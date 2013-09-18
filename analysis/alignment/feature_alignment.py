@@ -577,21 +577,14 @@ def main(options):
 
     # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
     for mpep in multipeptides:
-        # check if we have found enough peakgroups
-        if len( mpep.get_selected_peakgroups() ) < options.nr_high_conf_exp: 
+        # check if we have found enough peakgroups which are below the cutoff
+        count = 0
+        for pg in mpep.get_selected_peakgroups():
+            if pg.get_fdr_score() < options.fdr_cutoff:
+                count += 1
+        if count < options.nr_high_conf_exp:
             for p in mpep.get_peptides():
                 p.unselect_all()
-    
-    if True:
-        # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
-        for mpep in multipeptides:
-            count = 0
-            for pep in mpep.get_peptides():
-                if pep.get_best_peakgroup().get_fdr_score() < options.fdr_cutoff:
-                    count += 1
-            if count < options.nr_high_conf_exp:
-                for p in mpep.get_peptides():
-                    p.unselect_all()
 
     # print statistics, write output
     start = time.time()
