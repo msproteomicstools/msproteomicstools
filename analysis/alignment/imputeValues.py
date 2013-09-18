@@ -46,8 +46,7 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentE
 from sys import stdout
 
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
-
-from shared import write_out_matrix_file
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 
 # The Window overlap which needs to be taken into account when calculating from which swath window to extract!
 SWATH_EDGE_SHIFT = 1
