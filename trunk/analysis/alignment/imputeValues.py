@@ -291,6 +291,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
     newpg.set_value("m_score", 1.0)
+    newpg.set_value("d_score", -10) # -10 has a p value of 1.0 for 1-right side cdf
 
     integrated_sum = 0
     allchroms = correct_swath[current_rid]

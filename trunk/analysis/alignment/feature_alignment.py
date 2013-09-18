@@ -147,7 +147,7 @@ class Experiment(MRExperiment):
             print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
 
-            print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / nr_precursors_to_quant)
+            print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / nr_precursors_to_quant + decoy_precursors)
 
 
         if outlier_detection is not None: 
@@ -314,7 +314,15 @@ class ParamEst(object):
     """
     Parameter estimation object
 
-    Based on the percentage of decoys in all peakgroups
+    In a first step the percentage of decoys of all peakgroups at the target
+    fdr is computed (which is then taken as the "aim"). For this "aim" of decoy
+    percentage, the class will try to estimate an fdr_cutoff such that the
+    percentage of decoy precursors in the final reported result will correspond
+    to the "aim". 
+
+    If the parameter min_runs (at initialization) is higher than 1, only
+    precursors that are identified in min_runs above the fdr_cutoff will be
+    reported.
 
     >>> p = ParamEst()
     >>> decoy_frac = p.compute_decoy_frac(multipeptides, target_fdr)
@@ -324,9 +332,6 @@ class ParamEst(object):
     def __init__(self, min_runs=1, verbose=False):
         self.verbose = verbose
         self.min_runs = min_runs
-
-    def estimate_paramter_range(self, multipeptides, decoy_frac):
-        pass
 
     def find_iterate_fdr(self, multipeptides, decoy_frac, recursion=0):
 
@@ -472,23 +477,6 @@ def handle_args():
 
 def main(options):
     import time
-
-    # options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
-    if False:
-        multipeptides = []
-        for peptide_id in this_exp.union_transition_groups_set:
-            m = Multipeptide()
-            above_ctf = 0
-            for r in self.runs:
-                peptide = r.get_peptide(peptide_id)
-                m.insert(r.get_id(), peptide)
-                ## if not peptide.get_best_peakgroup() is None and \
-                ##    peptide.get_best_peakgroup().get_fdr_score() 
-                ##    # and min([pg.get_fdr_score() for pg in mpep.get_selected_peakgroups() ]) > options.fdr_cutoff:
-            if append:
-                m.set_nr_runs(len(self.runs))
-                multipeptides.append(m)
-        return multipeptides
 
     readfilter = ReadFilter()
     if options.use_dscore_filter:
