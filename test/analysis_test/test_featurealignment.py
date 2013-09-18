@@ -48,10 +48,16 @@ class TestFeatureAlignment(unittest.TestCase):
         self.scriptdir = os.path.join(self.topdir, "analysis")
 
     def exact_diff(self, name1, name2):
+        """ Check whether two (csv/tsv) files are almost equal, allowing for numerical inaccuracies only."""
         f1 = open(name1, "r")
         f2 = open(name2, "r")
         for l1,l2 in zip(f1,f2):
-            self.assertEqual(l1,l2)
+            for field1,field2 in zip(l1.split(),l2.split()):
+                try:
+                    self.assertAlmostEqual(float(field1),float(field2) )
+                except ValueError:
+                    self.assertEqual(field1,field2)
+
 
     def test_1_featureAlignment_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
