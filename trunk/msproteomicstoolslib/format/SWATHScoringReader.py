@@ -449,6 +449,9 @@ class SWATHScoringReader:
       Args:
           read_exp_RT(bool) : to read the real, experimental retention time
               (default behavior) or the delta iRT should be used instead.
+      
+      Returns:
+          runs(list(SWATHScoringReader.Run))
 
       A single CSV file might contain more than one run and thus to create
       unique run ids, we number the runs as xx_yy where xx is the current file
