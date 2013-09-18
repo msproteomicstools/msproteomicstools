@@ -215,8 +215,8 @@ def update_iRTs(file, models) :
         
     f_new.close()
     
-    os.remove(file)
-    os.rename(file + '.tmp', file)
+    base = os.path.splitext(file)[0]
+    os.rename(file + '.tmp', base + "_iRT.sptxt")
     
     return
 
