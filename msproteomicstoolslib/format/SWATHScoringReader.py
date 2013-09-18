@@ -231,6 +231,8 @@ class GeneralPrecursor(PrecursorBase):
         self.peakgroups.append(transitiongroup)
   
     def get_best_peakgroup(self):
+        """ Return the best peakgroup according to fdr score
+        """
         if len(self.peakgroups) == 0: return None
         best_score = self.peakgroups[0].get_fdr_score()
         result = self.peakgroups[0]
