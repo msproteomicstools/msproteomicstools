@@ -60,7 +60,7 @@ class Experiment(MRExperiment):
     def get_max_pg(self):
       return len(self.runs)*len(self.union_transition_groups_set)
 
-    def estimate_real_fdr(self, multipeptides, fdr_cutoff, fraction_needed_selected):
+    def estimate_real_fdr(self, multipeptides, fraction_needed_selected):
         class DecoyStats(): 
             def __init__(self):
                 self.est_real_fdr = 0.0
@@ -85,7 +85,7 @@ class Experiment(MRExperiment):
         if self.estimated_decoy_pcnt is None: return d
         if (d.nr_targets + d.nr_decoys) == 0: return d
         d.decoy_pcnt = (d.nr_decoys * 100.0 / (d.nr_targets + d.nr_decoys) )
-        d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * fdr_cutoff 
+        d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * self.initial_fdr_cutoff 
         return d
 
     def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present, min_nrruns):
@@ -120,8 +120,8 @@ class Experiment(MRExperiment):
 
         nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = self.get_max_pg()
-        dstats = self.estimate_real_fdr(multipeptides, fdr_cutoff, fraction_present)
-        dstats_all = self.estimate_real_fdr(multipeptides, fdr_cutoff, 1.0)
+        dstats = self.estimate_real_fdr(multipeptides, fraction_present)
+        dstats_all = self.estimate_real_fdr(multipeptides, 1.0)
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
@@ -141,10 +141,10 @@ class Experiment(MRExperiment):
 
         # Get decoy estimates
         if len(precursors_in_all_runs) > 0:
-            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a real FDR of %s %%" % (
+            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100)
 
-            print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a real FDR of %s %%" % (
+            print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
 
             print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / nr_precursors_to_quant)
@@ -295,7 +295,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
         # now align
         options.aligned_fdr_cutoff = aligned_fdr_cutoff
         alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
-        est_fdr = this_exp.estimate_real_fdr(multipeptides, options.fdr_cutoff, options.min_frac_selected).est_real_fdr
+        est_fdr = this_exp.estimate_real_fdr(multipeptides, options.min_frac_selected).est_real_fdr
         print "Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff
         if est_fdr > options.target_fdr:
             # Unselect the peptides again ...
