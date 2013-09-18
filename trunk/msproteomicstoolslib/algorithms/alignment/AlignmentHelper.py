@@ -114,10 +114,12 @@ class Multipeptide():
     #
 
     def detect_outliers(self):
+        from msproteomicstoolslib.math.chauvenet import chauvenet
+        import numpy
         # Uses chauvenet's criterion for outlier detection to find peptides
         # whose retention time is different from the rest.
         rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
-        runids = numpy.array([p.get_selected_peakgroup().get_run_id() for p in self.get_peptides() if p.get_selected_peakgroup() is not None])
+        runids = numpy.array([p.get_run_id() for p in self.get_peptides() if p.get_selected_peakgroup() is not None])
         if len(rts) == 1: return []
         outliers = chauvenet(numpy.array(rts),numpy.array(rts))
         return runids[~outliers]

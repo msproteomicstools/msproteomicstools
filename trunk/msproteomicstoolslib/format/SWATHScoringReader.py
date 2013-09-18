@@ -319,7 +319,7 @@ class Precursor(PrecursorBase):
         assert len(pg_id) == 1
         self.selected_[pg_id[0]] = True
 
-    def unselect_pg(self, id):
+    def unselect_pg(self, this_id):
         pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
         assert len(pg_id) == 1
         self.selected_[pg_id[0]] = False
