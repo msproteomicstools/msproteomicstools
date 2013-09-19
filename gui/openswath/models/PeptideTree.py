@@ -99,6 +99,7 @@ class PeptideTree(TreeModel):
         parent = QModelIndex()
         self.beginInsertRows(parent, 0, len(data) )
         self.rootElements = data
+        self.reset()
         self.endInsertRows()
 
         # initialize super method again
