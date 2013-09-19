@@ -42,11 +42,9 @@ from msproteomicstoolslib.math.chauvenet import chauvenet
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment, Multipeptide
 from sys import stdout
-
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
+from feature_alignment import Experiment
 
 # The Window overlap which needs to be taken into account when calculating from which swath window to extract!
 SWATH_EDGE_SHIFT = 1
@@ -58,12 +56,19 @@ class ImputeValuesHelper(object):
 
     @staticmethod
     def select_correct_swath(swath_chromatograms, mz):
+        """Select the correct chromatogram
+
+        Args:
+            swath_chromatograms(dict): containing the objects pointing to the original chrom mzML (see run_impute_values)
+            mz(float): the mz value of the precursor
+        """
         mz = mz + SWATH_EDGE_SHIFT
         swath_window_low = int(mz / 25) *25
         swath_window_high = int(mz / 25) *25 + 25
         res = {}
         for k,v in swath_chromatograms.iteritems():
-            selected = [vv for prec_mz,vv in v.iteritems() if prec_mz > swath_window_low and prec_mz < swath_window_high]
+            # TODO smarter selection here
+            selected = [vv for prec_mz,vv in v.iteritems() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
             if len(selected) == 1: 
                 res[k] = selected[0]
         return res
@@ -89,18 +94,28 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
             new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
             multipeptides(list(AlignmentHelper.Multipeptide)): list of multipeptides
 
-    This function will read the csv file with all peakgroups as well as the transformation files (.tr) and the corresponding raw chromatograms. It will then try  
+    This function will read the csv file with all peakgroups as well as the
+    transformation files (.tr) and the corresponding raw chromatograms which
+    need to be in the same folder. It will then try to impute missing values
+    for those peakgroups where no values is currently present, reading the raw
+    chromatograms.
+
+    It produces a dict swath_chromatograms which can be described as following:
+
+        a dict whose key is the run_id (0_1, 0_2 etc) pointing to an all_swathes dict
+            the all_swathes has a key which is the floor m/z of the *first* precursor found in that run and a value of type pymzml.run.Reader:
+        { "0_0" : 
+            {501 : pymzml.run.Reader,
+             530 : pymzml.run.Reader,
+                [...]
+            }
+          "0_1" : 
+            {501 : pymzml.run.Reader,
+             530 : pymzml.run.Reader,
+                [...]
+            }
+            }
     """
-
-    # options.outfile = "/tmp/testout.csv"
-    # trafo_fnames = ['analysis/alignment/strep_align/Strep0_Repl1_R02/transformation-0_0-0_1.tr', 'analysis/alignment/strep_align/Strep0_Repl2_R02/transformation-0_1-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl1_R02/transformation-0_2-0_1.tr', 'analysis/alignment/strep_align/Strep10_Repl2_R02/transformation-0_3-0_1.tr']
-
-    # trafo_fnames = ["strep_align/Strep0_Repl1_R02/transformation-0_0-0_0.tr", "strep_align/Strep0_Repl2_R02/transformation-0_1-0_0.tr", "strep_align/Strep10_Repl1_R02/transformation-0_2-0_0.tr", "strep_align/Strep10_Repl2_R02/transformation-0_3-0_0.tr" ]
-    # options.outfile = "../../output_010_Repl12_R02/out_reduced.txt"
-    # peakgroups_file = "../../output_010_Repl12_R02/out_reduced.txt"
-    # options.file_format = "openswath"
-    # options.fdr_cutoff = "0.01"
-    # options.realign_runs = False
 
     fdr_cutoff_all_pg = 1.0
     reader = SWATHScoringReader.newReader([peakgroups_file], options.file_format, readmethod="complete")
@@ -114,6 +129,7 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
 
     # Read the datapoints and perform the smoothing
     transformation_collection_.initialize_from_data(reverse=True)
+    print "Read Transformations"
 
     # Read the mzML files and store them
     # TODO abstract this away to an object
@@ -130,11 +146,23 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
         files = glob.glob(os.path.join(dname + "/*.mzML") )
         for f in files:
             import pymzml
+            if f.find("rtnorm") != -1 or f.find("ms1scan") != -1: 
+                continue
             run = pymzml.run.Reader(f, build_index_from_scratch=True)
-            first = run.next()
+
+            # Try to read the first chromatogram
+            try: 
+                first = run.next()
+            except StopIteration:
+                print "Warning, no scans/chromatograms for file - skipping", f
+                continue
+
+            # Extract the m/z and append to the all_swathes dict
             mz = first['precursors'][0]['mz']
             all_swathes[ int(mz) ] = run
         swath_chromatograms[ runid ] = all_swathes
+
+    print "Read all chromatogram files"
 
     if options.dry_run:
         print "Dry Run only"
@@ -151,7 +179,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
     Args:
         new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
         multipeptides(list(AlignmentHelper.Multipeptide)): list of multipeptides
-        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
+        swath_chromatograms(dict): containing the objects pointing to the original chrom mzML (see run_impute_values)
         transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
 
     Returns:
@@ -163,18 +191,22 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
     run_ids = [r.get_id() for r in new_exp.runs]
     imputations = 0
     imputation_succ = 0
+    ###f1 = open("imputed_ratios.txt", "w")
+    ###f2 = open("nonimputed_ratios.txt", "w")
     peakgroups = 0
-    for m in multipeptides:
+    print "Will work on %s peptides" % (len(multipeptides))
+    for i,m in enumerate(multipeptides):
+        if i % 500 == 0: print "Done with %s out of %s" % (i, len(multipeptides))
         line = [m.get_id()]
         selected_pg = [p.peakgroups[0] for p in m.get_peptides() if len(p.peakgroups)==1 ] 
         current_mz = float(selected_pg[0].get_value("m.z"))
-        # return [p.get_selected_peakgroup() for p in self.peptides.values() if p.get_selected_peakgroup() is not None]
-        # print "selected pgs ... ", len(selected_pg)
+        imputed=False
         for rid in run_ids:
             pg = None
             peakgroups += 1
-            #print m
-            #print m.get_peptides(), rid, rid in m.get_peptides()
+
+            # Try to extract the peakgroup from this run (ensuring there is
+            # only one peakgroup per run)
             if m.has_peptide(rid):
                 if len( m.get_peptide(rid).peakgroups) > 1:
                     print "found more than one pg"
@@ -183,11 +215,13 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                         print pg.row
                 assert len( m.get_peptide(rid).peakgroups) == 1
                 pg = m.get_peptide(rid).peakgroups[0]
-                # Also select this pg
+                # Mark this peakgroup as selected
                 pg.select_this_peakgroup()
+
             if pg is None:
                 # fill up the hole if we have an NA here!
                 imputations += 1
+                imputed=True
 
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
 
@@ -203,7 +237,20 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
                     res.select_this_peakgroup()
                     p.add_peakgroup(res)
                     m.insert(rid, p)
-    print "Imputations:", imputations, "Successful:", imputation_succ
+                else:
+                    pass
+                    print "Not successfull!", res, border_l, border_r
+        ### if True:
+        ###     try:
+        ###         r = m.get_selected_peakgroups()[0].get_intensity() / m.get_selected_peakgroups()[1].get_intensity()
+        ###         r = "%s\n" % r
+        ###         if imputed:
+        ###             f1.write(r)
+        ###         else:
+        ###             f2.write(r)
+        ###     except Exception as e:
+        ###         print "exception", len(m.get_selected_peakgroups()), e
+    print "Imputations:", imputations, "Successful:", imputation_succ, "Still missing", imputations - imputation_succ
     print "Peakgroups:", peakgroups
     return multipeptides 
 
@@ -277,6 +324,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     correct_swath = ImputeValuesHelper.select_correct_swath(swath_chromatograms, current_mz)
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
     if not correct_swath.has_key(current_rid):
+        print "no correct swath for id %s with current mz %s" % (current_rid, current_mz)
         return "NA"
 
     # Create new peakgroup by copying the old one
@@ -287,11 +335,16 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
     newpg.set_value("align_runid", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
-    newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
     newpg.set_value("m_score", 1.0)
-    newpg.set_value("d_score", -10) # -10 has a p value of 1.0 for 1-right side cdf
+    newpg.set_value("d_score", '-10') # -10 has a p value of 1.0 for 1-right side cdf
+
+    import uuid 
+    thisid = str(uuid.uuid1() )
+    newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
+    newpg.set_fdr_score(1.0)
+    newpg.set_feature_id(thisid)
 
     integrated_sum = 0
     allchroms = correct_swath[current_rid]
@@ -305,6 +358,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
         # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid), newpg.get_value("transition_group_id")
 
     newpg.set_value("Intensity", integrated_sum)
+    newpg.set_intensity(integrated_sum)
     return newpg
 
 def write_out(new_exp, multipeptides, outfile, matrix_outfile):
