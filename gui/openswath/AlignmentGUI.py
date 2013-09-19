@@ -165,7 +165,6 @@ class GraphArea(QtGui.QWidget):
         self.plots = []
         self.delete_all()
 
-        from guidata.qt.QtGui import QFont
         for i, run in enumerate(datamodel.get_runs()):
 
             self.plot = MultiLinePlot(edit=False, toolbar=False,
