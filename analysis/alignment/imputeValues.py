@@ -191,65 +191,44 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
     run_ids = [r.get_id() for r in new_exp.runs]
     imputations = 0
     imputation_succ = 0
-    ###f1 = open("imputed_ratios.txt", "w")
-    ###f2 = open("nonimputed_ratios.txt", "w")
     peakgroups = 0
     print "Will work on %s peptides" % (len(multipeptides))
     for i,m in enumerate(multipeptides):
         if i % 500 == 0: print "Done with %s out of %s" % (i, len(multipeptides))
-        line = [m.get_id()]
+
+        # Ensure that each run has either exactly one peakgroup (or zero)
+        if any([len(p.peakgroups) > 1 for p in m.get_peptides()] ):
+            raise Exception("Found more than one peakgroup for peptide %s - \
+                \n is this after alignment or did you forget to run feature_alignment.py? beforehand" % (
+                m.get_id() ))
+
         selected_pg = [p.peakgroups[0] for p in m.get_peptides() if len(p.peakgroups)==1 ] 
         current_mz = float(selected_pg[0].get_value("m.z"))
-        imputed=False
         for rid in run_ids:
-            pg = None
             peakgroups += 1
 
-            # Try to extract the peakgroup from this run (ensuring there is
-            # only one peakgroup per run)
+            # Check whether we have a peakgroup for this run id, if yes we mark
+            # this peakgroup as selected for output, otherwise we try to impute.
             if m.has_peptide(rid):
-                if len( m.get_peptide(rid).peakgroups) > 1:
-                    print "found more than one pg"
-                    print m._peptides[rid].peakgroups
-                    for pg in  m.peptides[rid].peakgroups:
-                        print pg.row
-                assert len( m.get_peptide(rid).peakgroups) == 1
-                pg = m.get_peptide(rid).peakgroups[0]
-                # Mark this peakgroup as selected
-                pg.select_this_peakgroup()
-
-            if pg is None:
-                # fill up the hole if we have an NA here!
+                m.get_peptide(rid).peakgroups[0].select_this_peakgroup()
+            else:
                 imputations += 1
                 imputed=True
 
+                # Select current run, compute right/left integration border and then integrate
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
-
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
                     rid, transformation_collection_, border_option)
-                res = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
+                newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
                                              border_l, border_r)
-                if res != "NA": 
+                if newpg != "NA": 
                     imputation_succ += 1
-                    # print "result is", res.get_value("Intensity"), numpy.log10(res.get_value("Intensity"))
-                    p = GeneralPrecursor(res.get_value("transition_group_id"), rid)
-                    # Also select this pg
-                    res.select_this_peakgroup()
-                    p.add_peakgroup(res)
-                    m.insert(rid, p)
-                else:
-                    pass
-                    print "Not successfull!", res, border_l, border_r
-        ### if True:
-        ###     try:
-        ###         r = m.get_selected_peakgroups()[0].get_intensity() / m.get_selected_peakgroups()[1].get_intensity()
-        ###         r = "%s\n" % r
-        ###         if imputed:
-        ###             f1.write(r)
-        ###         else:
-        ###             f2.write(r)
-        ###     except Exception as e:
-        ###         print "exception", len(m.get_selected_peakgroups()), e
+                    precursor = GeneralPrecursor(newpg.get_value("transition_group_id"), rid)
+                    # Select for output, add to precursor
+                    newpg.select_this_peakgroup()
+                    precursor.add_peakgroup(newpg)
+                    m.insert(rid, precursor)
+
     print "Imputations:", imputations, "Successful:", imputation_succ, "Still missing", imputations - imputation_succ
     print "Peakgroups:", peakgroups
     return multipeptides 
