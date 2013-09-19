@@ -69,7 +69,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
         # independent measurements, we multiply the p-values to compute a
         # peakgroup p-value.
         # We use norm.sf (1-cdf) on the vector of z-scores.
-        pvals = [ pg.get_dscore() for pg in m.get_selected_peakgroups() if not pg is None and not pg.get_dscore() is None]
+        pvals = [ float(pg.get_dscore()) for pg in m.get_selected_peakgroups() if not pg is None and not pg.get_dscore() is None]
         pvalue = numpy.prod(scipy.stats.norm.sf(pvals))
         line.extend([numpy.mean(rts), numpy.std(rts), pvalue ])
         matrix_writer.writerow(line)
