@@ -58,8 +58,8 @@ class TestFeatureAlignment(unittest.TestCase):
                 except ValueError:
                     self.assertEqual(field1,field2)
 
-    def test_1_imputeValues(self):
-        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "imputeValues.py")
+    def test_1_requantAlignedValues(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
         filename = os.path.join(self.datadir, "imputeValues/imputeValues_1_input.csv")
         tr_f1 = os.path.join(self.datadir, "imputeValues/r003_small/transformation-0_0-0_0.tr")
         tr_f2 = os.path.join(self.datadir, "imputeValues/r004_small/transformation-0_1-0_0.tr")
