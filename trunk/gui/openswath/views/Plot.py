@@ -422,9 +422,17 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         pass
 
     def mouseReleaseEvent(self, event):
-        xmin = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound()
-        xmax = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
-        ymin = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
-        ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+
+        if 'lowerBound' in dir(self.axisScaleDiv(Qwt.QwtPlot.xBottom)):
+            xmin = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound()
+            xmax = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
+            ymin = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
+            ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+        else:
+            xmin = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound()
+            xmax = self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound()
+            ymin = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound()
+            ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound()
+
         self.zoomChanged.emit(xmin, xmax, ymin, ymax)
 
