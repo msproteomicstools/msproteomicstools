@@ -333,8 +333,9 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     for chrom_id in chrom_ids:
         chromatogram = allchroms[chrom_id]
         if chromatogram is None:
-            print "chromatogram is None"
-            continue
+            print "chromatogram is None (tried to get %s with precursor %s mz from run %s)" % (chrom_id, current_mz, current_rid)
+            # Something is not right here, rather abort ...
+            return "NA"
         integrated_sum += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
         # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
         # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid), newpg.get_value("transition_group_id")
@@ -353,7 +354,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile):
         assert header_first == run.header
     writer.writerow(header_first)
 
-    print "len multipeptides"
+    print "number of precursors quantified:", len(multipeptides)
     for m in multipeptides:
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue

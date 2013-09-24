@@ -125,7 +125,7 @@ class Experiment(MRExperiment):
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
-                "peakgroups quantified in at least %s run(s) above FDR %s%%" % (fdr_cutoff*100, min_nrruns) + ", " + \
+                "peakgroups quantified in at least %s run(s) above FDR %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
