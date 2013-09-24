@@ -40,7 +40,7 @@ import os
 try:
     from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
     from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
-    from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import AlignmentExperiment as Experiment 
+    from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
 except ImportError:
     print "Could not find msproteomicstoolslib, certain functions are not available."
 
