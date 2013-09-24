@@ -69,6 +69,9 @@ class ImputeValuesHelper(object):
         for k,v in swath_chromatograms.iteritems():
             # TODO smarter selection here
             selected = [vv for prec_mz,vv in v.iteritems() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
+            if len(v) == 1: 
+                # We have merged chrom.mzML file (only one file)
+                selected = v.values()
             if len(selected) == 1: 
                 res[k] = selected[0]
         return res
