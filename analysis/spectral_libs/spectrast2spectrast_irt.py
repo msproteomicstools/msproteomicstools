@@ -247,10 +247,6 @@ class sptxtio:
       self.rsq[host] = self.rsq[surrogates[host]]
       missingirt = filter (lambda a: a != host, missingirt)
 
-    for rawspectrum in self.spectra:
-      if self.rsq[rawspectrum] < rsq_threshold:
-        raise Exception("Error: R-squared " + str(self.rsq[rawspectrum]) + " is below the threshold of " + str(rsq_threshold) + ".")
-
     if len(missingirt) > 0:
       print "Did you search for the true sequences?"
       print "Did you use a non-consensus and without best replicates summarization spectral library?"
@@ -259,6 +255,10 @@ class sptxtio:
       for rawspectrum in missingirt:
         print rawspectrum
       raise Exception("Error: At least one of your runs doesn't contain any peptides from the Biognosys RT-kit!")
+
+    for rawspectrum in self.spectra:
+      if self.rsq[rawspectrum] < rsq_threshold:
+        raise Exception("Error: R-squared " + str(self.rsq[rawspectrum]) + " of run " + rawspectrum + " is below the threshold of " + str(rsq_threshold) + ".")
 
   def transform(self,rmout):
     irt = {}
