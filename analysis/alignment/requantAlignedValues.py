@@ -85,6 +85,67 @@ class ImputeValuesHelper(object):
         normalized_space_rt = transformation_collection_.getTransformation(orig_runid, ref_id).predict( [rt] )[0]
         return transformation_collection_.getTransformation(ref_id, target_runid).predict( [normalized_space_rt] )[0]
 
+class SwathChromatogramRun(object):
+    """ A single SWATH LC-MS/MS run.
+
+    Each run may contain multiple files (split up by swath).
+    """
+
+    def __init__(self):
+        self.chromfiles = []
+
+    def parse(self, runid, files):
+        """ Parse a set of files which all belong to the same experiment 
+        """
+        for i,f in enumerate(files):
+            import pymzml
+            if f.find("rtnorm") != -1 or f.find("ms1scan") != -1: 
+                continue
+            run = pymzml.run.Reader(f, build_index_from_scratch=True)
+            self.chromfiles.append(run)
+
+    def getChromatogram(self, chromid):
+        for cfile in self.chromfiles:
+            if cfile.info["offsets"].has_key(chromid):
+                return cfile[chromid]
+        return None
+
+class SwathChromatogramCollection(object):
+    """ A collection of multiple SWATH LC-MS/MS runs.
+
+    Each single run is represented as a SwathChromatogramRun and accessible
+    through a run id.
+    """
+
+    def __init__(self):
+        self.allruns = {}
+
+    def getChromatogram(self, runid, chromid):
+        if not self.allruns.has_key(runid):
+            return None
+        return self.allruns[runid].getChromatogram(chromid)
+
+    def parse(self, trafo_fnames):
+        """ Parse a set of different experiments.
+        """
+        start = time.time()
+        swath_chromatograms = {}
+        for filename in trafo_fnames:
+            print "Parsing", filename
+            # get the run id
+            f = open(filename, "r")
+            header = f.next().split("\t")
+            f.close()
+            all_swathes = {}
+            runid = header[1]
+            import glob
+            dname = os.path.dirname(filename)
+            files = glob.glob(os.path.join(dname + "/*.mzML") )
+
+            swathrun = SwathChromatogramRun()
+            swathrun.parse(runid, files)
+            self.allruns[runid] = swathrun
+
 def run_impute_values(options, peakgroups_file, trafo_fnames):
     """Impute values across chromatograms
 
@@ -139,44 +200,15 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
     transformation_collection_.initialize_from_data(reverse=True)
     print("Initializing the trafo file took %ss" % (time.time() - start) )
 
-    # Read the mzML files and store them
-    # TODO abstract this away to an object
-    start = time.time()
-    swath_chromatograms = {}
-    for filename in trafo_fnames:
-        # get the run id
-        f = open(filename, "r")
-        header = f.next().split("\t")
-        f.close()
-        all_swathes = {}
-        runid = header[1]
-        import glob
-        dname = os.path.dirname(filename)
-        files = glob.glob(os.path.join(dname + "/*.mzML") )
-        for f in files:
-            import pymzml
-            if f.find("rtnorm") != -1 or f.find("ms1scan") != -1: 
-                continue
-            run = pymzml.run.Reader(f, build_index_from_scratch=True)
-
-            # Try to read the first chromatogram
-            try: 
-                first = run.next()
-            except StopIteration:
-                print "Warning, no scans/chromatograms for file - skipping", f
-                continue
-
-            # Extract the m/z and append to the all_swathes dict
-            mz = first['precursors'][0]['mz']
-            all_swathes[ int(mz) ] = run
-        swath_chromatograms[ runid ] = all_swathes
+    swath_chromatograms = SwathChromatogramCollection()
+    swath_chromatograms.parse(trafo_fnames)
 
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
 
     if options.dry_run:
         print "Dry Run only"
         print "Found multipeptides:", len(multipeptides)
-        print "Found swath chromatograms:", len(swath_chromatograms), [v.keys() for k,v in swath_chromatograms.iteritems()]
+        print "Found swath chromatograms:", swath_chromatograms
         return [], []
 
     start = time.time()
@@ -309,14 +341,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     Create a new peakgroup from the old pg and then store the integrated intensity.
     """
 
-    # get the chromatograms
     current_rid  = current_run.get_id()
-    correct_swath = ImputeValuesHelper.select_correct_swath(swath_chromatograms, current_mz)
-    chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
-    if not correct_swath.has_key(current_rid):
-        print "no correct swath for id %s with current mz %s" % (current_rid, current_mz)
-        return "NA"
-
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
@@ -337,9 +362,9 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_feature_id(thisid)
 
     integrated_sum = 0
-    allchroms = correct_swath[current_rid]
+    chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
     for chrom_id in chrom_ids:
-        chromatogram = allchroms[chrom_id]
+        chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         if chromatogram is None:
             print "chromatogram is None (tried to get %s with precursor %s mz from run %s)" % (chrom_id, current_mz, current_rid)
             # Something is not right here, rather abort ...
