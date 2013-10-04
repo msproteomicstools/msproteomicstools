@@ -221,9 +221,14 @@ class Experiment(MRExperiment):
               for row in reader:
                   f_id = row[ header_dict["id"]]
                   if selected_ids_dict.has_key(f_id):
-                      row_to_write = row
-                      row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
-                      writer.writerow(row_to_write)
+                      # Check the "id" and "transition_group_id" field. 
+                      # Unfortunately the id can be non-unique, there we check both.
+                      trgroup_id = selected_ids_dict[f_id].peptide.get_id()
+                      unique_peptide_id = row[ header_dict["transition_group_id"]]
+                      if unique_peptide_id == trgroup_id:
+                          row_to_write = row
+                          row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
+                          writer.writerow(row_to_write)
  
         # Print out trafo data
         trafo_fnames = []
