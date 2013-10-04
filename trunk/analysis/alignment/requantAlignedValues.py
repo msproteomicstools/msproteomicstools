@@ -119,8 +119,27 @@ class SwathChromatogramCollection(object):
 
     def __init__(self):
         self.allruns = {}
+        self.cached_run = None
+        self.cache = {}
+
+    def createRunCache(self, runid):
+        self.cache = {}
+        self.cached_run = runid
+
+        import copy
+        for run in self.allruns[runid].chromfiles:
+            for chromid, value in run.info['offsets'].iteritems():
+              if value is None: continue
+              self.cache[ chromid ] = copy.copy(run[chromid])
+
+    def _getChromatogramCached(self, runid, chromid):
+        assert runid == self.cached_run
+        return self.cache.get( chromid, None)
 
     def getChromatogram(self, runid, chromid):
+        if runid == self.cached_run:
+            return self._getChromatogramCached(runid, chromid)
+
         if not self.allruns.has_key(runid):
             return None
         return self.allruns[runid].getChromatogram(chromid)
@@ -360,6 +379,8 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_fdr_score(1.0)
     newpg.set_feature_id(thisid)
+
+    # swath_chromatograms.createRunCache(current_rid)
 
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
