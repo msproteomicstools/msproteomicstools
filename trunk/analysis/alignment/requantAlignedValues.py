@@ -231,11 +231,19 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
         return [], []
 
     start = time.time()
-    multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option)
+    if options.cache_in_memory:
+        run_ids = [r.get_id() for r in new_exp.runs]
+        for rid in run_ids:
+            # Create the cache for run "rid" and then only extract peakgroups from this run
+            swath_chromatograms.createRunCache(rid)
+            multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option, rid)
+    else:
+        multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option)
     print("Analyzing the runs took %ss" % (time.time() - start) )
     return new_exp, multipeptides
     
-def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, border_option):
+def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, 
+                          transformation_collection_, border_option, onlyExtractFromRun=None):
     """Analyze the multipeptides and impute missing values
 
     Args:
@@ -276,6 +284,10 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transform
             else:
                 imputations += 1
                 imputed=True
+
+                if not onlyExtractFromRun is None:
+                    if onlyExtractFromRun != rid:
+                        continue
 
                 # Select current run, compute right/left integration border and then integrate
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
@@ -380,8 +392,6 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_fdr_score(1.0)
     newpg.set_feature_id(thisid)
 
-    # swath_chromatograms.createRunCache(current_rid)
-
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
     for chrom_id in chrom_ids:
@@ -435,6 +445,7 @@ def handle_args():
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
     parser.add_argument('--border_option', default='max_width', metavar="max_width", help="How to determine integration border (possible values: max_width, mean)")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
+    parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
