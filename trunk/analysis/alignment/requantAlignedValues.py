@@ -35,7 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import os, sys, csv
+import os, sys, csv, time
 import numpy
 import argparse
 from msproteomicstoolslib.math.chauvenet import chauvenet
@@ -121,21 +121,27 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
     """
 
     fdr_cutoff_all_pg = 1.0
+    start = time.time()
     reader = SWATHScoringReader.newReader([peakgroups_file], options.file_format, readmethod="complete")
     new_exp = Experiment()
     new_exp.runs = reader.parse_files()
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
+    print("Parsing the peakgroups file took %ss" % (time.time() - start) )
 
+    start = time.time()
     transformation_collection_ = TransformationCollection()
     for filename in trafo_fnames:
       transformation_collection_.readTransformationData(filename)
 
     # Read the datapoints and perform the smoothing
+    print("Reading the trafo file took %ss" % (time.time() - start) )
+    start = time.time()
     transformation_collection_.initialize_from_data(reverse=True)
-    print "Read Transformations"
+    print("Initializing the trafo file took %ss" % (time.time() - start) )
 
     # Read the mzML files and store them
     # TODO abstract this away to an object
+    start = time.time()
     swath_chromatograms = {}
     for filename in trafo_fnames:
         # get the run id
@@ -165,7 +171,7 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
             all_swathes[ int(mz) ] = run
         swath_chromatograms[ runid ] = all_swathes
 
-    print "Read all chromatogram files"
+    print("Reading the chromatogram files took %ss" % (time.time() - start) )
 
     if options.dry_run:
         print "Dry Run only"
@@ -173,7 +179,9 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
         print "Found swath chromatograms:", len(swath_chromatograms), [v.keys() for k,v in swath_chromatograms.iteritems()]
         return [], []
 
+    start = time.time()
     multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option)
+    print("Analyzing the runs took %ss" % (time.time() - start) )
     return new_exp, multipeptides
     
 def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, border_option):
