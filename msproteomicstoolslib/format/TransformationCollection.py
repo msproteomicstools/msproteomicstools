@@ -68,6 +68,7 @@ class TransformationCollection():
     def __init__(self):
       self.transformations = {}
       self.transformation_data = {}
+      self._transformed_data = {}
       self._reference_run_id = None
 
     def getReferenceRunID(self):
@@ -92,30 +93,40 @@ class TransformationCollection():
       except KeyError:
           return None
 
-    def initialize_from_data(self, reverse=False):
+    def initialize_from_data(self, reverse=False, use_scikit=False, use_linear=False):
         # Check whether we get a smoothing operator
-        if smoothing.get_smooting_operator() is None:
+        if smoothing.get_smooting_operator(use_scikit, use_linear) is None:
             raise Exception("Could not initialize transformations, smoothing operator is mandatory.")
 
         # use the data in self.transformation_data to create the trafos
         for s_from, darr in self.transformation_data.iteritems():
             self.transformations[s_from] = {}
+            import time
             for s_to, data in darr.iteritems():
-                sm = smoothing.get_smooting_operator()
-                sm.initialize(data[0], data[1])
-                self.transformations[s_from][s_to] = sm
-
-                if reverse: 
-
-                    sm_rev = smoothing.get_smooting_operator()
-                    sm_rev.initialize(data[1], data[0])
-                    self._addTransformation(sm_rev, s_to, s_from)
+                start = time.time()
+                if not self.getTransformedData(s_from, s_to) is None:
+                    sm = smoothing.SmoothingInterpolation()
+                    sm.initialize(data[0], self.getTransformedData(s_from, s_to))
+                    self._addTransformation(sm, s_from, s_to)
+                    if reverse: 
+                        sm_rev = smoothing.SmoothingInterpolation()
+                        sm_rev.initialize(self.getTransformedData(s_from, s_to), data[0])
+                        self._addTransformation(sm_rev, s_to, s_from)
+                else:
+                    sm = smoothing.get_smooting_operator(use_scikit, use_linear)
+                    sm.initialize(data[0], data[1])
+                    self.transformations[s_from][s_to] = sm
+                    if reverse: 
+                        sm_rev = smoothing.get_smooting_operator(use_scikit, use_linear)
+                        sm_rev.initialize(data[1], data[0])
+                        self._addTransformation(sm_rev, s_to, s_from)
+                print "Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from)
 
     def addTransformationData(self, data, s_from, s_to):
       """ Add raw data points to the collection 
 
       Args:
-          data(list(data_master, data_slave)) : two data two data vectors
+          data(list(data_slave, data_master)) : two data two data vectors
               containing the raw data points from two runs. The first data
               vector is the master (reference) data and the second one is the
               slave (to be aligned).
@@ -129,6 +140,31 @@ class TransformationCollection():
       d = self.transformation_data.get(s_from, {})
       d[s_to] = data
       self.transformation_data[s_from] = d
+
+    def addTransformedData(self, data, s_from, s_to):
+      """ Add transformed data points to the collection 
+
+      The idea is to add the anchor points of s_from in the space of s_to so
+      that one could compute the transformation using a simple linear transform.
+
+      Args:
+          data
+          s_from(String): run ID of the slave (to be aligned) run
+          s_to(String): run ID of the master (reference) run
+      """
+      assert isinstance(data, list)
+      assert not self.getTransformationData(s_from, s_to) is None
+      print len(data), len(self.getTransformationData(s_from, s_to)[0])
+      assert len(data) == len(self.getTransformationData(s_from, s_to)[0])
+      d = self._transformed_data.get(s_from, {})
+      d[s_to] = data
+      self._transformed_data[s_from] = d
+
+    def getTransformedData(self, s_from, s_to):
+      try:
+          return self._transformed_data[s_from][s_to]
+      except KeyError:
+          return None
 
     def getTransformationData(self, s_from, s_to):
       try:
@@ -157,8 +193,13 @@ class TransformationCollection():
 
       f = open(filename, "w")
       f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self._reference_run_id) )
-      for a,b in zip(r[0],r[1]):
-          f.write("%s\t%s\n" % (a,b) )
+      if self._transformed_data.has_key(s_from) and self._transformed_data[s_from].has_key(s_to):
+          tr = self._transformed_data[s_from][s_to]
+          for a,b,c in zip(r[0],r[1], tr):
+              f.write("%s\t%s\t%s\n" % (a,b,c) )
+      else:
+          for a,b in zip(r[0],r[1]):
+              f.write("%s\t%s\n" % (a,b) )
       f.close()
 
     def readTransformationData(self, filename):
@@ -180,11 +221,15 @@ class TransformationCollection():
       assert self._reference_run_id == header[5].strip()
       data1 = []
       data2 = []
+      transformed_data = []
       for line in f:
           d = line.split("\t")
-          if len(d) != 2: raise Exception("Cannot parse line '%s' in file %s" % (line, filename))
+          if len(d) != 2 and len(d) != 3: raise Exception("Cannot parse line '%s' in file %s" % (line, filename))
           data1.append(float(d[0]))
           data2.append(float(d[1]))
+          if len(d) == 3:
+            transformed_data.append(float(d[2]))
       # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
       self.addTransformationData([data1, data2], s_from, s_to)
+      if len(transformed_data) > 0: self.addTransformedData(transformed_data, s_from, s_to)
 
