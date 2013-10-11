@@ -153,6 +153,17 @@ class Experiment(MRExperiment):
         if outlier_detection is not None: 
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
+    def _write_trafo_files(self):
+        # Print out trafo data
+        trafo_fnames = []
+        for current_run in self.runs:
+          current_id = current_run.get_id()
+          ref_id = self.transformation_collection.getReferenceRunID() 
+          filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
+          trafo_fnames.append(filename)
+          self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
+          self.transformation_collection.readTransformationData(filename)
+
     def write_to_file(self, multipeptides, options):
 
         infiles = options.infiles
@@ -230,15 +241,8 @@ class Experiment(MRExperiment):
                           row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                           writer.writerow(row_to_write)
  
-        # Print out trafo data
-        trafo_fnames = []
-        for current_run in self.runs:
-          current_id = current_run.get_id()
-          ref_id = self.transformation_collection.getReferenceRunID() 
-          filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
-          trafo_fnames.append(filename)
-          self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
-          self.transformation_collection.readTransformationData(filename)
+        if len(options.infiles_tr) == 0:
+            self._write_trafo_files()
 
         if len(yaml_outfile) > 0:
             import yaml
@@ -253,7 +257,6 @@ class Experiment(MRExperiment):
                 myYaml["RawData"].append(this)
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
-        return trafo_fnames
 
 # Detect outliers in "good" groups
 def detect_outliers(multipeptides, aligned_fdr_cutoff, outlier_threshold_seconds):
@@ -591,7 +594,7 @@ def main(options):
     # print statistics, write output
     start = time.time()
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-    trafo_fnames = this_exp.write_to_file(multipeptides, options)
+    this_exp.write_to_file(multipeptides, options)
     print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
