@@ -37,8 +37,12 @@ $Authors: Hannes Roest$
 
 import numpy
 
-def get_smooting_operator():
+def get_smooting_operator(use_scikit=False, use_linear=False):
+  if use_linear: 
+      return SmoothingLinear()
   try:
+    if use_scikit: 
+        raise ImportError
     import rpy2.robjects as robjects
     return SmoothingR()
   except ImportError:
@@ -231,7 +235,7 @@ class SmoothingPy:
     def predict(self, xhat):
         xhat = numpy.array(xhat)
         yhat_new = self.ius(xhat)
-        return yhat_new
+        return list(yhat_new)
 
     # TODO remove
     def _smooth_scikit_legacy(self, data1, data2, xhat, Nhat=200):
@@ -243,3 +247,48 @@ class SmoothingPy:
         s.initialize(data1, data2, Nhat, xmin = xmin, xmax = xmax)
         yhat_new = s.predict(xhat)
         return yhat_new
+
+class SmoothingLinear:
+    """Class for linear transformation
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        # data1 is the predictor (e.g. the input) -> x
+        # data2 is the response (e.g. what we want to predict) -> y
+        A = numpy.array([ numpy.array(data1), numpy.ones(len(data1))])
+        self.w = numpy.linalg.lstsq(A.T,numpy.array(data2))[0] # obtaining the parameters
+
+    def predict(self, xhat):
+        xhat_np = numpy.array(xhat)
+        predicted_result = self.w[0]*xhat_np+self.w[1] # regression line
+        return predicted_result
+
+class SmoothingInterpolation:
+    """Class for interpolation transformation
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        # data1 is the predictor (e.g. the input) -> x
+        # data2 is the response (e.g. what we want to predict) -> y
+        from scipy.interpolate import interp1d
+        data1s, data2s = zip(*sorted(zip(data1, data2)))
+        self.f = interp1d(data1s, data2s)
+
+        # Also prepare linear transformation
+        self.linear_sm = SmoothingLinear()
+        self.linear_sm.initialize(data1, data2)
+
+    def predict(self, xhat):
+        try:
+            predicted_result = self.f(xhat) # interpolation fxn
+        except ValueError:
+            # outside bound, use linear
+            return self.linear_sm.predict(xhat)
+        return predicted_result
+
