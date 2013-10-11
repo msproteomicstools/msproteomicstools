@@ -369,7 +369,7 @@ class ParamEst(object):
             # All is fine, we are within the limits
             pass
         
-        fdrrange = numpy.arange(start, end, stepsize)
+        fdrrange = numpy.arange(start, end + 2*stepsize, stepsize) # add 2 extra steps for edge cases
         return self._find_iterate_fdr(multipeptides, decoy_frac, fdrrange)
 
     def _find_iterate_fdr(self, multipeptides, decoy_frac, fdrrange):
@@ -382,6 +382,15 @@ class ParamEst(object):
                 break
             prev_fdr = fdr
             prev_calc_fdr = calc_fdr
+
+        # The last value is extremely close to the true one
+        if abs(calc_fdr - decoy_pcnt) < 1e-6:
+            return fdr/100.0
+
+        # We have run through without stopping
+        if abs(prev_fdr - fdr) < 1e-6:
+            raise Exception("Parameter estimation did not reach a high enough value")
+
         # Linear interpolation
         res = prev_fdr + (fdr-prev_fdr) * (decoy_pcnt-prev_calc_fdr)/(calc_fdr-prev_calc_fdr)
         return res/100.0
