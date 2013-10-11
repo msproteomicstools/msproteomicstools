@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+import numpy
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
@@ -88,7 +89,6 @@ class SplineAligner():
                 data1.append(ref_pep.get_normalized_retentiontime())
                 data2.append(align_pep.get_normalized_retentiontime())
 
-        print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
         # from run to bestrun
         self.transformation_collection.addTransformationData([data2, data1], run.get_id(), bestrun.get_id() )
 
@@ -100,16 +100,7 @@ class SplineAligner():
 
         # Since we want to predict how to convert from slave to master, slave
         # is first and master is second.
-        try:
-            if use_scikit: import dummydummy # forces to use scikit
-            sm = smoothing.SmoothingR()
-            sm.initialize(data2, data1)
-            aligned_result = sm.predict(rt_eval)
-        except ImportError:
-            sm = smoothing.SmoothingPy()
-            print "use scikit to compute spline alignment..."
-        
-        # Use the smoother to make a prediction
+        sm = smoothing.get_smooting_operator(use_scikit = use_scikit)
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 
@@ -123,6 +114,10 @@ class SplineAligner():
         # 0.66102016517870454
         # numpy.median(aligned_result - aligned_result_2)
         # -0.020456989235640322
+
+        print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
+        print "  Computed stdev", numpy.std(numpy.array(data1) - numpy.array(data2_aligned)), \
+                  "and median", numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
 
         # now re-populate the peptide data!
         i = 0
