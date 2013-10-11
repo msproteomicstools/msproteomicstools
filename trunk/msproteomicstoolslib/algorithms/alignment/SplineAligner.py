@@ -113,6 +113,9 @@ class SplineAligner():
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 
+        data2_aligned = sm.predict(data2)
+        self.transformation_collection.addTransformedData(data2_aligned, run.get_id(), bestrun.get_id() )
+
         # The two methods produce very, very similar results
         # but R is faster => prefer to use R when possible.
         # hist(aligned_result - aligned_result_2, 100)
