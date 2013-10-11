@@ -38,12 +38,10 @@ $Authors: Hannes Roest$
 import os, sys, csv, time
 import numpy
 import argparse
-from msproteomicstoolslib.math.chauvenet import chauvenet
-import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.format.SWATHScoringReader import *
-from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-from sys import stdout
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
+import msproteomicstoolslib.format.TransformationCollection as transformations
+import msproteomicstoolslib.math.Smoothing as smoothing
 from feature_alignment import Experiment
 
 # The Window overlap which needs to be taken into account when calculating from which swath window to extract!
@@ -147,11 +145,10 @@ class SwathChromatogramCollection(object):
     def parse(self, trafo_fnames):
         """ Parse a set of different experiments.
         """
-        start = time.time()
         swath_chromatograms = {}
         for filename in trafo_fnames:
-            print "Parsing", filename
             # get the run id
+            start = time.time()
             f = open(filename, "r")
             header = f.next().split("\t")
             f.close()
@@ -164,6 +161,10 @@ class SwathChromatogramCollection(object):
             swathrun = SwathChromatogramRun()
             swathrun.parse(runid, files)
             self.allruns[runid] = swathrun
+            print "Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start)
+
+    def get_runids(self):
+        return self.allruns.keys()
 
 def run_impute_values(options, peakgroups_file, trafo_fnames):
     """Impute values across chromatograms
@@ -209,19 +210,33 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
     print("Parsing the peakgroups file took %ss" % (time.time() - start) )
 
     start = time.time()
-    transformation_collection_ = TransformationCollection()
+    transformation_collection_ = transformations.TransformationCollection()
     for filename in trafo_fnames:
-      transformation_collection_.readTransformationData(filename)
+        transformation_collection_.readTransformationData(filename)
 
     # Read the datapoints and perform the smoothing
     print("Reading the trafo file took %ss" % (time.time() - start) )
     start = time.time()
-    transformation_collection_.initialize_from_data(reverse=True)
+    transformation_collection_.initialize_from_data(reverse=True, use_scikit=options.use_scikit, use_linear=options.use_linear)
     print("Initializing the trafo file took %ss" % (time.time() - start) )
+
+    if options.do_single_run and not options.dry_run:
+        # Do only a single run : read only one single file
+        start = time.time()
+        swath_chromatograms = SwathChromatogramCollection()
+        swath_chromatograms.parse([ options.do_single_run ])
+        print("Reading the chromatogram files took %ss" % (time.time() - start) )
+        assert len(swath_chromatograms.get_runids() ) == 1
+        rid = swath_chromatograms.get_runids()[0]
+        # 
+        start = time.time()
+        multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
+            transformation_collection_, options.border_option, rid, verbosity=options.verbosity)
+        print("Analyzing the runs took %ss" % (time.time() - start) )
+        return new_exp, multipeptides
 
     swath_chromatograms = SwathChromatogramCollection()
     swath_chromatograms.parse(trafo_fnames)
-
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
 
     if options.dry_run:
@@ -236,9 +251,11 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
         for rid in run_ids:
             # Create the cache for run "rid" and then only extract peakgroups from this run
             swath_chromatograms.createRunCache(rid)
-            multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option, rid)
+            multipeptides = analyze_multipeptides(new_exp, multipeptides, 
+                swath_chromatograms, transformation_collection_, options.border_option, rid)
     else:
-        multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, transformation_collection_, options.border_option)
+        multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
+            transformation_collection_, options.border_option)
     print("Analyzing the runs took %ss" % (time.time() - start) )
     return new_exp, multipeptides
     
@@ -383,7 +400,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
-    newpg.set_value("m_score", 1.0)
+    newpg.set_value("m_score", 2.0)
     newpg.set_value("d_score", '-10') # -10 has a p value of 1.0 for 1-right side cdf
 
     import uuid 
@@ -408,7 +425,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg.set_intensity(integrated_sum)
     return newpg
 
-def write_out(new_exp, multipeptides, outfile, matrix_outfile):
+def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
     """ Write the result to disk 
     """
     # write out the complete original files 
@@ -426,9 +443,16 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile):
             selected_pg = p.peakgroups[0]
             if selected_pg is None: 
                 continue
-            row_to_write = selected_pg.row
-            row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
-            writer.writerow(row_to_write)
+            if single_outfile:
+                # Only write the newly imputed ones ... 
+                if float(selected_pg.get_value("m_score")) > 1.0:
+                    row_to_write = selected_pg.row
+                    row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
+                    writer.writerow(row_to_write)
+            else:
+                row_to_write = selected_pg.row
+                row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
+                writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
         write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0)
@@ -438,7 +462,7 @@ def handle_args():
     usage += "\nThis program will impute missing values"
 
     parser = argparse.ArgumentParser(description = usage )
-    parser.add_argument('--in', dest="infiles", nargs = '+', required=True, help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
+    parser.add_argument('--in', dest="infiles", nargs = '+', required=True, help = 'A list of transformation files in the same folder as the .chrom.mzML files')
     parser.add_argument("--peakgroups_infile", dest="peakgroups_infile", required=True, help="Infile containing peakgroups (outfile from feature_alignment.py)")
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
@@ -446,17 +470,22 @@ def handle_args():
     parser.add_argument('--border_option', default='max_width', metavar="max_width", help="How to determine integration border (possible values: max_width, mean)")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
+    parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
+    parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
+    parser.add_argument('--verbosity', default=0, type=int, help="How to determine integration border (possible values: max_width, mean)")
+    parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
     args = parser.parse_args(sys.argv[1:])
+    args.verbosity = int(args.verbosity)
     return args
 
 def main(options):
     import time
     new_exp, multipeptides = run_impute_values(options, options.peakgroups_infile, options.infiles)
     if options.dry_run: return
-    write_out(new_exp, multipeptides, options.output, options.matrix_outfile)
+    write_out(new_exp, multipeptides, options.output, options.matrix_outfile, options.do_single_run)
 
 if __name__=="__main__":
     options = handle_args()
