@@ -103,8 +103,8 @@ class TestFeatureAlignment(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_3_openswath_output_cluster_ids.csv")
-        tmpfilename = "featureAlignment.out.tmp"
-        tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
+        tmpfilename = "featureAlignment_3.out.tmp"
+        tmpfilename_ids = "featureAlignment_3.out.tmp_idsonly.csv"
 
         args = "--in %s --out %s --out_ids %s --realign_runs --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
@@ -119,8 +119,8 @@ class TestFeatureAlignment(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_3_openswath_output_cluster_ids.csv")
-        tmpfilename = "featureAlignment.out.tmp"
-        tmpfilename_ids = "featureAlignment.out.tmp_idsonly.csv"
+        tmpfilename = "featureAlignment_4.out.tmp"
+        tmpfilename_ids = "featureAlignment_4.out.tmp_idsonly.csv"
 
         args = "--in %s --out %s --out_ids %s --realign_runs --use_scikit --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
