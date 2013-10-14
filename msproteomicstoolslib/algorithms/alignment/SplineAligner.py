@@ -69,7 +69,7 @@ class SplineAligner():
         print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, alignment_fdr_threshold)
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
-    def _spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit):
+    def _spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit, use_linear):
         """Will align run against bestrun"""
 
         # get those peptides we want to use for alignment => for this use the mapping
@@ -100,7 +100,7 @@ class SplineAligner():
 
         # Since we want to predict how to convert from slave to master, slave
         # is first and master is second.
-        sm = smoothing.get_smooting_operator(use_scikit = use_scikit)
+        sm = smoothing.get_smooting_operator(use_scikit = use_scikit, use_linear = use_linear)
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 
@@ -128,7 +128,7 @@ class SplineAligner():
                 i += 1
             pep.peakgroups_ = [ tuple(m) for m in mutable]
 
-    def rt_align_all_runs(self, experiment, multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False):
+    def rt_align_all_runs(self, experiment, multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False, use_linear=False):
         """ Align all runs contained in an MRExperiment
 
         Args:
@@ -148,7 +148,7 @@ class SplineAligner():
         # go through all runs and align two runs at a time
         for run in experiment.runs:
             if run.get_id() == bestrun.get_id(): continue # do not align reference run itself
-            self._spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit)
+            self._spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit, use_linear)
 
         return self.transformation_collection
 

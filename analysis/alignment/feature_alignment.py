@@ -476,6 +476,7 @@ def handle_args():
     experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
     experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
+    experimental_parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01')
 
@@ -571,7 +572,7 @@ def main(options):
     if options.realign_runs:
         start = time.time()
         spl_aligner = SplineAligner()
-        tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
+        tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit, options.use_linear)
         this_exp.transformation_collection = tcoll
 
         print("Aligning the runs took %ss" % (time.time() - start) )
