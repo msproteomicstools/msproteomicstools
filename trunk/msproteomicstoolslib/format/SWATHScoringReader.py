@@ -479,7 +479,11 @@ class SWATHScoringReader:
         stdout.write("\rReading %s" % str(f))
         stdout.flush()
         header_dict = {}
-        filehandler = open(f)
+        if f.endswith('.gz'):
+            import gzip 
+            filehandler = gzip.open(f,'rb')
+        else:
+            filehandler = open(f)
         reader = csv.reader(filehandler, delimiter="\t")
         header = reader.next()
         for i,n in enumerate(header):
