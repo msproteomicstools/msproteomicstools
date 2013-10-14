@@ -225,7 +225,12 @@ class Experiment(MRExperiment):
 
             for file_nr, f in enumerate(infiles):
               header_dict = {}
-              reader = csv.reader(open(f), delimiter="\t")
+              if f.endswith('.gz'):
+                  import gzip
+                  filehandler = gzip.open(f,'rb')
+              else:
+                  filehandler = open(f)
+              reader = csv.reader(filehandler, delimiter="\t")
               header = reader.next()
               for i,n in enumerate(header):
                 header_dict[n] = i
