@@ -115,8 +115,15 @@ class Experiment(MRExperiment):
         nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
 
         nr_precursors_to_quant = len(set([ prec for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_proteins_to_quant = len(set([ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_peptides_to_quant = len(set([ prec.find_best_peptide_pg().peptide.sequence for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]
+        nr_proteins_to_quant = len(set(target_quant_protein_list))
+
+        # TODO
+        from itertools import groupby
+        target_quant_protein_list.sort()
+        nr_sh_target_proteins = sum( [len(list(group)) == 1 for key, group in groupby(target_quant_protein_list)] )
+        nr_mh_target_proteins = sum( [len(list(group)) > 1 for key, group in groupby(target_quant_protein_list)] )
 
         nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = self.get_max_pg()
@@ -136,6 +143,7 @@ class Experiment(MRExperiment):
           nr_peptides_to_quant, nr_all_peptides, min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
         print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
           nr_proteins_to_quant, nr_all_proteins, min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
+        print "  Of these %s proteins, %s were multiple hits and %s were single hits" % (nr_proteins_to_quant, nr_mh_target_proteins, nr_sh_target_proteins)
 
         # print "quant proteins", nr_proteins_to_quant
 
