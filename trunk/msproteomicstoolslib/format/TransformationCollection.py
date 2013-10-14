@@ -94,9 +94,6 @@ class TransformationCollection():
           return None
 
     def initialize_from_data(self, reverse=False, use_scikit=False, use_linear=False):
-        # Check whether we get a smoothing operator
-        if smoothing.get_smooting_operator(use_scikit, use_linear) is None:
-            raise Exception("Could not initialize transformations, smoothing operator is mandatory.")
 
         # use the data in self.transformation_data to create the trafos
         for s_from, darr in self.transformation_data.iteritems():

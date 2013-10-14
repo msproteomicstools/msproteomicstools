@@ -231,7 +231,7 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
         # 
         start = time.time()
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-            transformation_collection_, options.border_option, rid, verbosity=options.verbosity)
+            transformation_collection_, options.border_option, rid)
         print("Analyzing the runs took %ss" % (time.time() - start) )
         return new_exp, multipeptides
 
