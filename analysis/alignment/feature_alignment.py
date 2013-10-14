@@ -241,8 +241,7 @@ class Experiment(MRExperiment):
                           row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                           writer.writerow(row_to_write)
  
-        if len(options.infiles_tr) == 0:
-            self._write_trafo_files()
+        self._write_trafo_files()
 
         if len(yaml_outfile) > 0:
             import yaml

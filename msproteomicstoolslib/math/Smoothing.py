@@ -264,7 +264,7 @@ class SmoothingLinear:
     def predict(self, xhat):
         xhat_np = numpy.array(xhat)
         predicted_result = self.w[0]*xhat_np+self.w[1] # regression line
-        return predicted_result
+        return list(predicted_result)
 
 class SmoothingInterpolation:
     """Class for interpolation transformation
@@ -290,5 +290,5 @@ class SmoothingInterpolation:
         except ValueError:
             # outside bound, use linear
             return self.linear_sm.predict(xhat)
-        return predicted_result
+        return list(predicted_result)
 
