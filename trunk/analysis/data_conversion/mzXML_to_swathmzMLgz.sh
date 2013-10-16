@@ -3,10 +3,10 @@
 # =========================================================================
 #         msproteomicstools -- Mass Spectrometry Proteomics Tools
 # =========================================================================
-# 
+#
 # Copyright (c) 2013, ETH Zurich
 # For a full list of authors, refer to the file AUTHORS.
-# 
+#
 # This software is released under a three-clause BSD license:
 #  * Redistributions of source code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
@@ -44,26 +44,38 @@ noms1map=
 while getopts i:t:o:w:n opt
 do
     case $opt in
-    i)	input=$OPTARG;;
-	o)	outdir=$OPTARG;;
+    i)  input=$OPTARG;;
+    o)  outdir=$OPTARG;;
     t)  threads=$OPTARG;;
-	n)	noms1map="noms1map";;
-	w)  windows=$OPTARG;;
-    ?)  echo "Usage: $0 -i input.mzXML [-o outdir] [-t threads] [-w numSwathes] [-n] 
-Splits input.mzXML into its windows and converts them into mzML.gz using FileConverter and gzip. 
+    n)  noms1map="noms1map";;
+    w)  windows=$OPTARG;;
+    ?)  echo "Usage: $0 -i input.mzXML [-o outdir] [-t threads] [-w numSwathes] [-n]
+Splits input.mzXML into its windows and converts them into mzML.gz using FileConverter and gzip.
 [-o outdir] location where split.mzML.gz are written. default=current dir
 [-n] prevents writing of ms1map
 [-w numSwathes] number of swathes. default=32
-[-t numThreads] parallelizes the process using multiple processors. default=1"
+[-t numThreads] parallelizes the process using multiple processors. default=1
+Note: If \$TMPDIR is set it is used as temporary directory"
         exit 1;;
     esac
 done
 
+
+if [ -z "$TMPDIR" ]; then
+    echo TMPDIR not set, using OUTDIR $outdir
+    TMPDIR=$outdir
+fi
+
 #split
-split_mzXML_intoSwath.py $input $windows $outdir $noms1map
+split_mzXML_intoSwath.py $input $windows $TMPDIR $noms1map
 
 #convert in parallel using xargs -P
-for i in $outdir/split*.mzXML
+for i in $TMPDIR/split*.mzXML
 do
-	echo ${i%%.mzXML}
-done | xargs -P $threads -I file sh -c '{ FileConverter -no_progress -in "file.mzXML" -out "file.mzML"; gzip -fv "file.mzML"; rm -v "file.mzXML"; }' 
+    echo ${i%%.mzXML}
+done | xargs -P $threads -I file sh -c '{ FileConverter -no_progress -in "file.mzXML" -out "file.mzML"; gzip -fv "file.mzML"; rm -v "file.mzXML"; }'
+
+if [ "$TMPDIR" != "$outdir" ]; then
+    echo move out of tempdir
+    mv -v $TMPDIR/*.mzML $outdir/
+fi
