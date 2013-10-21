@@ -28,6 +28,11 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#2CPU  28G 53m
+#4CPU  24G 32m
+#8CPU  29G 31m
+#16CPU 43G 15m
+
 # --------------------------------------------------------------------------
 # $Maintainer: Lorenz Blum$
 # $Authors: Lorenz Blum$
@@ -76,6 +81,6 @@ do
 done | xargs -P $threads -I file sh -c '{ FileConverter -no_progress -in "file.mzXML" -out "file.mzML"; gzip -fv "file.mzML"; rm -v "file.mzXML"; }'
 
 if [ "$TMPDIR" != "$outdir" ]; then
-    echo move out of tempdir
-    mv -v $TMPDIR/*.mzML $outdir/
+    echo Moving result files to outdir
+    mv -v $TMPDIR/*.mzML.gz $outdir/
 fi
