@@ -194,8 +194,12 @@ class PrecursorBase(object):
             self._decoy = False
         elif decoy == "TRUE":
             self._decoy = True
+        if decoy == "0":
+            self._decoy = False
+        if decoy == "1":
+            self._decoy = True
         else:
-            raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
+            raise Exception("Unknown decoy classifier '%s', please check your input data! I expected TRUE (1) or FALSE (0)" % decoy)
   
     # store information about the peakgroup - tuples (e.g. whether they are selected)
     def select_pg(self, this_id):
