@@ -1,6 +1,5 @@
 
-# convert a TSV output from feature alignment tsv (or mprophet output) 
-# to Mayu input.
+# convert a TSV output from feature alignment tsv to Mayu input.
 
 # TODO add modifications!
 
