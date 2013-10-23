@@ -478,7 +478,7 @@ def handle_args():
     experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
     experimental_parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
-    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for", metavar='0.01')
+    experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -488,7 +488,7 @@ def handle_args():
     if args.target_fdr > 0:
         # Parameter estimation turned on: check user input ...
         if args.fdr_cutoff != 0.01:
-            raise Exception("You selected parameter estimation with target_fdr - cannot set fdr_cutoff as well!")
+            raise Exception("You selected parameter estimation with target_fdr - cannot set fdr_cutoff as well! It does not make sense to ask for estimation of the fdr_cutoff (target_fdr > 0.0) and at the same time specify a certain fdr_cutoff.")
         args.fdr_cutoff = args.target_fdr
         # if args.aligned_fdr_cutoff != -1.0:
         #     raise Exception("You selected parameter estimation with target_fdr - cannot set max_fdr_quality as well!")
@@ -549,7 +549,6 @@ def main(options):
             except UnboundLocalError:
                 raise Exception("Could not estimate FDR accurately!")
 
-        # options.aligned_fdr_cutoff = options.target_fdr
         options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
         if options.aligned_fdr_cutoff < 0:
             # Estimate the aligned_fdr parameter -> if the new fdr cutoff is
@@ -560,11 +559,10 @@ def main(options):
                 options.aligned_fdr_cutoff = options.target_fdr
             else:
                 options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
-                print "use higher"
-        else:
-            print "larger than 0", options.aligned_fdr_cutoff
+
         options.fdr_cutoff = fdr_cutoff_calculated
         print "Using an FDR cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
+        print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff)
         print("Parameter estimation took %ss" % (time.time() - start) )
         print "-"*35
 
