@@ -145,6 +145,18 @@ class TestUnitSmoothing(unittest.TestCase):
         for a,b in zip(expected,r):
           self.assertAlmostEqual(a, b)
 
+    def test_smooth_spline_r_extern(self):
+        """Test the smoothing spline using R"""
+        sm = smoothing.SmoothingRExtern()
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data2)
+        expected = [  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
+                11.85840597,  13.48225519,   7.44184246,   6.61579704]
+
+        self.assertEqual(len(r), 8)
+        for a,b in zip(expected,r):
+          self.assertAlmostEqual(a, b)
+
     def test_duplication(self):
         arr = [0, 0, 5, 6, 6, 7, 8, 8]
         sm = smoothing.SmoothingPy()
