@@ -49,10 +49,16 @@ class SplineAligner():
     >>> spl_aligner = SplineAligner()
     >>> transformations = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
     """
-    def __init__(self):
+    def __init__(self, alignment_fdr_threshold = 0.0001, use_scikit=False, 
+                 use_linear=False, use_external_r=False, external_r_tmpdir=None):
       self.transformation_collection = TransformationCollection()
+      self.alignment_fdr_threshold_ = alignment_fdr_threshold
+      self.use_scikit_ = use_scikit
+      self.use_linear_ = use_linear
+      self.use_external_r_ = use_external_r
+      self.tmpdir_ = external_r_tmpdir
 
-    def _determine_best_run(self, experiment, alignment_fdr_threshold):
+    def _determine_best_run(self, experiment):
 
         maxcount = -1
         bestrun = -1
@@ -61,15 +67,15 @@ class SplineAligner():
             for peptide in run.all_peptides.values():
                 if peptide.get_decoy(): continue
                 pg = peptide.get_best_peakgroup()
-                if pg.get_fdr_score() < alignment_fdr_threshold:
+                if pg.get_fdr_score() < self.alignment_fdr_threshold_:
                     cnt += 1
             if cnt > maxcount:
                 maxcount = cnt
                 bestrun = run.get_id()
-        print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, alignment_fdr_threshold)
+        print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, self.alignment_fdr_threshold_)
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
-    def _spline_align_runs(self, bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit, use_linear):
+    def _spline_align_runs(self, bestrun, run, multipeptides):
         """Will align run against bestrun"""
 
         # get those peptides we want to use for alignment => for this use the mapping
@@ -85,7 +91,7 @@ class SplineAligner():
                 # it is possible that for some, no peak group exists in this run
                 continue
             if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): continue
-            if ref_pep.get_fdr_score() < alignment_fdr_threshold and align_pep.get_fdr_score() < alignment_fdr_threshold:
+            if ref_pep.get_fdr_score() < self.alignment_fdr_threshold_ and align_pep.get_fdr_score() < self.alignment_fdr_threshold_:
                 data1.append(ref_pep.get_normalized_retentiontime())
                 data2.append(align_pep.get_normalized_retentiontime())
 
@@ -100,7 +106,10 @@ class SplineAligner():
 
         # Since we want to predict how to convert from slave to master, slave
         # is first and master is second.
-        sm = smoothing.get_smooting_operator(use_scikit = use_scikit, use_linear = use_linear)
+        sm = smoothing.get_smooting_operator(use_scikit = self.use_scikit_, 
+                                             use_linear = self.use_linear_,
+                                             use_external_r = self.use_external_r_,
+                                             tmpdir = self.tmpdir_)
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 
@@ -128,7 +137,7 @@ class SplineAligner():
                 i += 1
             pep.peakgroups_ = [ tuple(m) for m in mutable]
 
-    def rt_align_all_runs(self, experiment, multipeptides, alignment_fdr_threshold = 0.0001, use_scikit=False, use_linear=False):
+    def rt_align_all_runs(self, experiment, multipeptides):
         """ Align all runs contained in an MRExperiment
 
         Args:
@@ -137,10 +146,9 @@ class SplineAligner():
         """
 
         print "Will re-align runs"
-        # spl_aligner = SplineAligner()
 
         # get the best run (e.g. the one with the most ids below threshold)
-        bestrun = self._determine_best_run(experiment, alignment_fdr_threshold)
+        bestrun = self._determine_best_run(experiment)
 
         ## spl_aligner.transformation_collection = experiment.transformation_collection
         self.transformation_collection.setReferenceRunID( bestrun.get_id() )
@@ -148,7 +156,7 @@ class SplineAligner():
         # go through all runs and align two runs at a time
         for run in experiment.runs:
             if run.get_id() == bestrun.get_id(): continue # do not align reference run itself
-            self._spline_align_runs(bestrun, run, multipeptides, alignment_fdr_threshold, use_scikit, use_linear)
+            self._spline_align_runs(bestrun, run, multipeptides)
 
         return self.transformation_collection
 
