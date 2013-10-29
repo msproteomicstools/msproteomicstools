@@ -190,16 +190,12 @@ class PrecursorBase(object):
         return self._decoy
 
     def set_decoy(self, decoy):
-        if decoy == "FALSE":
+        if decoy == "FALSE" or decoy == "0":
             self._decoy = False
-        elif decoy == "TRUE":
-            self._decoy = True
-        elif decoy == "0":
-            self._decoy = False
-        elif decoy == "1":
+        elif decoy == "TRUE" or decoy == "1":
             self._decoy = True
         else:
-            raise Exception("Unknown decoy classifier '%s', please check your input data! I expected TRUE (1) or FALSE (0)" % decoy)
+            raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
   
     # store information about the peakgroup - tuples (e.g. whether they are selected)
     def select_pg(self, this_id):
@@ -321,14 +317,6 @@ class Precursor(PrecursorBase):
     def get_decoy(self):
         return self._decoy
 
-    def set_decoy(self, decoy):
-        if decoy == "FALSE" or decoy == "0":
-            self._decoy = False
-        elif decoy == "TRUE" or decoy == "1":
-            self._decoy = True
-        else:
-            raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
-  
     # store information about the peakgroup - tuples (e.g. whether they are selected)
     def select_pg(self, this_id):
         pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
