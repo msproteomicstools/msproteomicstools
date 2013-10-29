@@ -403,7 +403,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
     for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "run_id", "m.z"]:
         newpg.set_value(element, template_pg.get_value(element))
-    newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
+    # newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
     newpg.set_value("align_runid", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
