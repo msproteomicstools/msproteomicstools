@@ -44,9 +44,7 @@ from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
-from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
-from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 
 class Experiment(MRExperiment):
     """
