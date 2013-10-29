@@ -106,6 +106,8 @@ class SwathChromatogramRun(object):
             if f.find("rtnorm") != -1 or f.find("ms1scan") != -1: 
                 continue
             run = pymzml.run.Reader(f, build_index_from_scratch=True)
+            if not run.info["seekable"]:
+                raise Exception("Could not properly read file", f)
             self.chromfiles.append(run)
 
     def getChromatogram(self, chromid):
