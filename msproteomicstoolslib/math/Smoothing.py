@@ -37,12 +37,14 @@ $Authors: Hannes Roest$
 
 import numpy
 
-def get_smooting_operator(use_scikit=False, use_linear=False):
+def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
   if use_linear: 
       return SmoothingLinear()
   try:
     if use_scikit: 
         raise ImportError
+    if use_external_r: 
+        return SmoothingRExtern(tmpdir)
     import rpy2.robjects as robjects
     return SmoothingR()
   except ImportError:
@@ -112,6 +114,81 @@ class SmoothingR:
         predicted_data = predict(self.sm, rxhat)
         predicted_result = numpy.array(predicted_data[1]).tolist()
         return predicted_result
+
+class SmoothingRExtern:
+    """Class to smooth data using the smooth.spline function from R (extern system call)
+    """
+
+    def __init__(self, TMPDIR="/tmp/"):
+        if TMPDIR is None:
+            raise Exception("Tempdir needs to be set (cannot be none)")
+        self.TMPDIR = TMPDIR
+
+    def initialize(self, data1, data2):
+        prediction_data = data2
+        arr = self.predict_R_(data1, data2, prediction_data, self.TMPDIR)
+
+        # Internally then use interpolation to actually predict
+        self.internal_interpolation = SmoothingInterpolation()
+        self.internal_interpolation.initialize(arr[:,0], arr[:,1])
+
+    def predict_R_(self, data1, data2, predict_data, TMPDIR):
+        import random
+        fname = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
+        fname_pred = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
+        fname_out = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
+        Rscript = TMPDIR + "/tmp.R"
+
+        # Input file with datapoints
+        fh = open(fname, "w")
+        fh.write("data1\tdata2\n")
+        for d1, d2 in zip(data1, data2):
+            fh.write("%s\t%s\n" % (d1,d2))
+        fh.close()
+
+        # File which datapoints to predict
+        fh = open(fname_pred, "w")
+        fh.write("predict_on\n")
+        for d2 in predict_data:
+            fh.write("%s\n" % (d2))
+        fh.close()
+
+        fh = open(Rscript, "w")
+        fh.write( """
+        args <- commandArgs(trailingOnly = TRUE)
+        # trailingOnly=TRUE means that only arguments after --args are returned
+        infile <- args[1]
+        predictionfile <- args[2]
+        outfile <- args[3]
+        df = read.csv(infile,header=TRUE, sep="\t")
+        predict_on = read.csv(predictionfile,header=TRUE, sep="\t")
+        sm = smooth.spline(df$data1,df$data2,cv=T)
+        prediction = predict(sm,predict_on[,1])$y 
+        write.table(data.frame(predict_on, prediction), outfile, sep="\t", row.names=FALSE)
+
+        """)
+        fh.close()
+
+        # Execute command
+        import os
+        cmd = "R --slave --args %s %s %s < %s" % (fname, fname_pred, fname_out, Rscript) 
+        os.system(cmd)
+
+        import csv
+        r = csv.reader(open(fname_out), delimiter="\t")
+        r.next()
+        arr = numpy.array([ (float(line[0]),float(line[1])) for line in r ])
+
+        # Cleanup
+        os.system("rm %s" % fname)
+        os.system("rm %s" % fname_pred)
+        os.system("rm %s" % fname_out)
+        os.system("rm %s" % Rscript)
+
+        return arr
+
+    def predict(self, xhat):
+        return self.internal_interpolation.predict(xhat)
 
 class SmoothingNull:
     """Null smoother that performs a null operation """
