@@ -298,7 +298,6 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 m.get_id() ))
 
         selected_pg = [p.peakgroups[0] for p in m.get_peptides() if len(p.peakgroups)==1 ] 
-        current_mz = float(selected_pg[0].get_value("m.z"))
         for rid in run_ids:
             peakgroups += 1
 
@@ -318,7 +317,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
                     rid, transformation_collection_, border_option)
-                newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms, current_mz,
+                newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
                                              border_l, border_r)
                 if newpg != "NA": 
                     imputation_succ += 1
@@ -379,7 +378,7 @@ def determine_integration_border(new_exp, selected_pg, rid, transformation_colle
 
     return integration_left, integration_right
 
-def integrate_chromatogram(template_pg, current_run, swath_chromatograms, current_mz, 
+def integrate_chromatogram(template_pg, current_run, swath_chromatograms, 
                            left_start, right_end):
     """ Integrate a chromatogram from left_start to right_end and store the sum.
 
@@ -387,7 +386,6 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
         template_pg(GeneralPeakGroup): A template peakgroup from which to construct the new peakgroup
         current_run(SWATHScoringReader.Run): current run where the missing value occured
         swath_chromatograms(dict): containing the objects pointing to the original chrom mzML
-        current_mz(float): m/z value of the current precursor
         left_start(float): retention time for integration (left border)
         right_end(float): retention time for integration (right border)
 
@@ -401,7 +399,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
-    for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "run_id", "m.z"]:
+    for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "run_id"]:
         newpg.set_value(element, template_pg.get_value(element))
     # newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
     newpg.set_value("align_runid", current_rid)
@@ -422,7 +420,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms, curren
     for chrom_id in chrom_ids:
         chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         if chromatogram is None:
-            print "chromatogram is None (tried to get %s with precursor %s mz from run %s)" % (chrom_id, current_mz, current_rid)
+            print "chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid)
             # Something is not right here, rather abort ...
             return "NA"
         integrated_sum += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
