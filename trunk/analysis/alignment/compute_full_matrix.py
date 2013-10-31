@@ -276,6 +276,45 @@ def handle_args():
 
     return args
 
+def fix_input_fnames(options, runs):
+    """ Fix the input filenames 
+
+    Replaces the run.orig_filename for each run with the filename that we think
+    was most likely the original one where the run originated from. This value
+    is taken from align_origfilename which probably contains the name of the
+    original mProphet output file.
+    """
+    inputfile_mapping = {}
+    aligned_run_id_name = "align_runid"
+    filename_name = "align_origfilename"
+    for file_nr, f in enumerate(options.infiles):
+      stdout.flush()
+      header_dict = {}
+      if f.endswith('.gz'):
+          import gzip 
+          filehandler = gzip.open(f,'rb')
+      else:
+          filehandler = open(f)
+      reader = csv.reader(filehandler, delimiter="\t")
+      header = reader.next()
+      for i,n in enumerate(header):
+        header_dict[n] = i
+
+      # Check if runs are already aligned (only one input file and correct header)
+      already_aligned = (len(options.infiles) == 1 and header_dict.has_key(aligned_run_id_name))
+
+      if not already_aligned:
+          raise Exception("Can only complete data matrix generation on fully aligned runs")
+
+      for this_row in reader:
+          runid = this_row[header_dict[aligned_run_id_name]]
+          filename = os.path.basename( this_row[header_dict[filename_name]] )
+          inputfile_mapping[ runid ] = filename
+
+    # Apply the fixed filenames
+    for r in runs:
+        r.orig_filename = inputfile_mapping[ r.get_id() ]
+
 def main(options):
     import time
 
@@ -287,6 +326,9 @@ def main(options):
     this_exp = MRExperiment()
     this_exp.set_runs(runs)
     print("Reading the input files took %ss" % (time.time() - start) )
+
+    # Fix input filenames
+    fix_input_fnames(options, runs)
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
