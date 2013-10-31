@@ -61,7 +61,7 @@ class Experiment(MRExperiment):
       return len(self.runs)*len(self.union_transition_groups_set)
 
     def estimate_real_fdr(self, multipeptides, fraction_needed_selected):
-        class DecoyStats(): 
+        class DecoyStats():
             def __init__(self):
                 self.est_real_fdr = 0.0
                 self.nr_decoys = 0
@@ -73,9 +73,9 @@ class Experiment(MRExperiment):
         precursors_to_be_used = [m for m in multipeptides if m.more_than_fraction_selected(fraction_needed_selected)]
 
         # count the decoys
-        d.nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+        d.nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
                           if prec.find_best_peptide_pg().peptide.get_decoy()])
-        d.nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used 
+        d.nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
                           if not prec.find_best_peptide_pg().peptide.get_decoy()])
         # estimate the real fdr by calculating the decoy ratio and dividing it
         # by the decoy ration obtained at @fdr_cutoff => which gives us the
@@ -85,7 +85,7 @@ class Experiment(MRExperiment):
         if self.estimated_decoy_pcnt is None: return d
         if (d.nr_targets + d.nr_decoys) == 0: return d
         d.decoy_pcnt = (d.nr_decoys * 100.0 / (d.nr_targets + d.nr_decoys) )
-        d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * self.initial_fdr_cutoff 
+        d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * self.initial_fdr_cutoff
         return d
 
     def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present, min_nrruns):
@@ -158,19 +158,21 @@ class Experiment(MRExperiment):
             print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors))
 
 
-        if outlier_detection is not None: 
+        if outlier_detection is not None:
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
     def _write_trafo_files(self):
         # Print out trafo data
         trafo_fnames = []
         for current_run in self.runs:
-          current_id = current_run.get_id()
-          ref_id = self.transformation_collection.getReferenceRunID() 
-          filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
-          trafo_fnames.append(filename)
-          self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
-          self.transformation_collection.readTransformationData(filename)
+            current_id = current_run.get_id()
+            ref_id = self.transformation_collection.getReferenceRunID()
+            fn = os.path.splitext(current_run.orig_filename)[0]
+            dirname = os.path.dirname(current_run.orig_filename)
+            filename = os.path.join(dirname, "%s-%s-%s.tr" % (fn, current_id, ref_id) )
+            trafo_fnames.append(filename)
+            self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
+            self.transformation_collection.readTransformationData(filename)
 
     def write_to_file(self, multipeptides, options):
 
@@ -245,7 +247,7 @@ class Experiment(MRExperiment):
               for row in reader:
                   f_id = row[ header_dict["id"]]
                   if selected_ids_dict.has_key(f_id):
-                      # Check the "id" and "transition_group_id" field. 
+                      # Check the "id" and "transition_group_id" field.
                       # Unfortunately the id can be non-unique, there we check both.
                       trgroup_id = selected_ids_dict[f_id].peptide.get_id()
                       unique_peptide_id = row[ header_dict["transition_group_id"]]
@@ -253,7 +255,7 @@ class Experiment(MRExperiment):
                           row_to_write = row
                           row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
                           writer.writerow(row_to_write)
- 
+
         self._write_trafo_files()
 
         if len(yaml_outfile) > 0:
@@ -262,7 +264,7 @@ class Experiment(MRExperiment):
                       "ReferenceRun" : self.transformation_collection.getReferenceRunID() }
             for current_run in self.runs:
                 current_id = current_run.get_id()
-                ref_id = self.transformation_collection.getReferenceRunID() 
+                ref_id = self.transformation_collection.getReferenceRunID()
                 filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
                 dirpath = os.path.realpath(os.path.dirname(current_run.orig_filename))
                 this = {"id" : current_id, "directory" : dirpath, "trafo_file" : os.path.realpath(filename)}
@@ -292,10 +294,10 @@ def detect_outliers(multipeptides, aligned_fdr_cutoff, outlier_threshold_seconds
             newpg = thispep.find_closest_in_iRT(mean_wo_outliers)
             print "Bad", out, rts, "-> o", outlier_rts, "m", mean_wo_outliers, thispep.get_selected_peakgroup().get_normalized_retentiontime(), \
                 " => exch", newpg.get_normalized_retentiontime(), newpg.get_fdr_score(), "/", thispep.get_selected_peakgroup().get_fdr_score()
-            if( #abs(newpg.get_normalized_retentiontime() - best_rt_diff) < rt_diff_cutoff and 
+            if( #abs(newpg.get_normalized_retentiontime() - best_rt_diff) < rt_diff_cutoff and
                 newpg.get_fdr_score() < aligned_fdr_cutoff):
                   thispep.get_selected_peakgroup().unselect_this_peakgroup()
-                  newpg.select_this_peakgroup() 
+                  newpg.select_this_peakgroup()
                   o.outliers_changed += 1
                   print "change!"
         else: pass
@@ -383,7 +385,7 @@ class ParamEst(object):
         else:
             # All is fine, we are within the limits
             pass
-        
+
         fdrrange = numpy.arange(start, end + 2*stepsize, stepsize) # add 2 extra steps for edge cases
         return self._find_iterate_fdr(multipeptides, decoy_frac, fdrrange)
 
@@ -557,7 +559,7 @@ def main(options):
             # lower than the target fdr, we can use the target fdr as aligned
             # cutoff but if its higher we have to guess (here we take
             # 2xcutoff).
-            if fdr_cutoff_calculated < options.target_fdr: 
+            if fdr_cutoff_calculated < options.target_fdr:
                 options.aligned_fdr_cutoff = options.target_fdr
             else:
                 options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
@@ -571,9 +573,9 @@ def main(options):
     # If we want to align runs
     if options.realign_runs:
         start = time.time()
-        spl_aligner = SplineAligner(options.alignment_score, 
-                                   options.use_scikit, 
-                                   options.use_linear, 
+        spl_aligner = SplineAligner(options.alignment_score,
+                                   options.use_scikit,
+                                   options.use_linear,
                                    options.use_external_r, options.tmpdir)
         tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         this_exp.transformation_collection = tcoll
