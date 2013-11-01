@@ -41,7 +41,7 @@ do
         echo "About: Wrapper around requantAlignedValues to execute it in parallel.
 
 Usage: Call this wrapper like an all-files-at-once requantAlignedValues run. It will automatically do parallelisation in the background.
-If \$THREADS is set use this value instead of #CPU threads."
+If [--threads n] argument is added, this value instead of #CPU threads are used."
         exit 1
     fi
     #parse args to variables: --in => $in
@@ -51,20 +51,20 @@ If \$THREADS is set use this value instead of #CPU threads."
 		declare "$varToUse=${!varToUse}$i "
 	fi
     #don't forward out/do_single_run args because they're overwritten by this script
-    if [ "$varToUse" != "out" -a "$varToUse" != "out_matrix" -a "$varToUse" != "do_single_run" ]; then
+    if [ "$varToUse" != "out" -a "$varToUse" != "out_matrix" -a "$varToUse" != "do_single_run" -a "$varToUse" != "threads" ]; then
         requantArgs+="$i "
     fi
 done
 
-[ -z "$THREADS" ] && THREADS=$(nproc --all|| echo 1)
-echo Using $THREADS threads
+[ -z "$threads" ] && threads=$(nproc --all|| echo 1)
+echo Using $threads threads
 
 uniqtmpdir=$(mktemp -d)
 for i in $in
 do
 	tempout=$(mktemp --tmpdir=$uniqtmpdir)
 	echo requantAlignedValues.py $requantArgs --out $tempout --do_single_run $i
-done | parallel --halt 2 -j $THREADS
+done | parallel --halt 2 -j $threads
 
 awk "NR==1 || FNR!=1" $uniqtmpdir/* $peakgroups_infile > $out
 rm -r $uniqtmpdir
