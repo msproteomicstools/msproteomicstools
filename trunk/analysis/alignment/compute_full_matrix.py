@@ -309,7 +309,8 @@ def fix_input_fnames(options, runs):
       for this_row in reader:
           runid = this_row[header_dict[aligned_run_id_name]]
           filename = os.path.basename( this_row[header_dict[filename_name]] )
-          inputfile_mapping[ runid ] = filename
+          if len(filename) > 0 and filename != "NA":
+              inputfile_mapping[ runid ] = filename
 
     # Apply the fixed filenames
     for r in runs:
