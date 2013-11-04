@@ -167,7 +167,7 @@ class Experiment(MRExperiment):
         for current_run in self.runs:
             current_id = current_run.get_id()
             ref_id = self.transformation_collection.getReferenceRunID()
-            fn = os.path.splitext(current_run.orig_filename)[0]
+            fn = os.path.basename(current_run.orig_filename)
             dirname = os.path.dirname(current_run.orig_filename)
             filename = os.path.join(dirname, "%s-%s-%s.tr" % (fn, current_id, ref_id) )
             trafo_fnames.append(filename)
