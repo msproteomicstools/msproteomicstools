@@ -363,6 +363,9 @@ def determine_integration_border(new_exp, selected_pg, rid, transformation_colle
     if border_option == "mean":
         integration_left = numpy.mean(pg_lefts)
         integration_right = numpy.mean(pg_rights)
+    elif border_option == "median":
+        integration_left = numpy.median(pg_lefts)
+        integration_right = numpy.median(pg_rights)
     elif border_option == "max_width":
         integration_left = numpy.min(pg_lefts)
         integration_right = numpy.max(pg_rights)
@@ -424,6 +427,10 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
             print "chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid)
             # Something is not right here, rather abort ...
             return "NA"
+        # Check whether we even have data between left_start and right_end ... 
+        if chromatogram.peaks[0][0] > left_start or chromatogram.peaks[-1][0] < right_end:
+            print "WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
+                chromatogram.peaks[0][0],chromatogram.peaks[-1][0], left_start, right_end)
         curr_int = sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
         peak_areas.append(curr_int)
         # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
@@ -478,12 +485,12 @@ def handle_args():
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
-    parser.add_argument('--border_option', default='max_width', metavar="max_width", help="How to determine integration border (possible values: max_width, mean)")
+    parser.add_argument('--border_option', default='median', metavar="median", help="How to determine integration border (possible values: max_width, mean, median). Max width will use the maximal possible width (most conservative since it will overestimate the background signal).")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
     parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
     parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
-    parser.add_argument('--verbosity', default=0, type=int, help="How to determine integration border (possible values: max_width, mean)")
+    parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
 
     experimental_parser = parser.add_argument_group('experimental options')
