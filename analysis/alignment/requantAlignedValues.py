@@ -453,11 +453,9 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
                 # Only write the newly imputed ones ... 
                 if float(selected_pg.get_value("m_score")) > 1.0:
                     row_to_write = selected_pg.row
-                    row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
                     writer.writerow(row_to_write)
             else:
                 row_to_write = selected_pg.row
-                row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
                 writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
