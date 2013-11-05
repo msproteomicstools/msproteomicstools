@@ -161,15 +161,21 @@ class Experiment(MRExperiment):
         if outlier_detection is not None:
             print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
 
+    def _getTrafoFilename(self, current_run, ref_id):
+        current_id = current_run.get_id()
+        input_basename = os.path.basename(current_run.orig_filename)
+        fn = os.path.splitext(input_basename)[0]
+        dirname = os.path.dirname(current_run.orig_filename)
+        filename = os.path.join(dirname, "%s-%s-%s.tr" % (fn, current_id, ref_id) )
+        return filename
+
     def _write_trafo_files(self):
         # Print out trafo data
         trafo_fnames = []
         for current_run in self.runs:
             current_id = current_run.get_id()
             ref_id = self.transformation_collection.getReferenceRunID()
-            fn = os.path.basename(current_run.orig_filename)
-            dirname = os.path.dirname(current_run.orig_filename)
-            filename = os.path.join(dirname, "%s-%s-%s.tr" % (fn, current_id, ref_id) )
+            filename = self._getTrafoFilename(current_run, ref_id)
             trafo_fnames.append(filename)
             self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
             self.transformation_collection.readTransformationData(filename)
@@ -265,9 +271,12 @@ class Experiment(MRExperiment):
             for current_run in self.runs:
                 current_id = current_run.get_id()
                 ref_id = self.transformation_collection.getReferenceRunID()
-                filename = os.path.join(os.path.dirname(current_run.orig_filename), "transformation-%s-%s.tr" % (current_id, ref_id) )
-                dirpath = os.path.realpath(os.path.dirname(current_run.orig_filename))
-                this = {"id" : current_id, "directory" : dirpath, "trafo_file" : os.path.realpath(filename)}
+                filename = self._getTrafoFilename(current_run, ref_id)
+                dirpath = os.path.dirname(current_run.orig_filename)
+                ### Use real path (not very useful when moving data from one computer to another)
+                ### filename = os.path.realpath(filename)
+                ### dirpath = os.path.realpath(dirpath)
+                this = {"id" : current_id, "directory" : dirpath, "trafo_file" : filename}
                 myYaml["RawData"].append(this)
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
