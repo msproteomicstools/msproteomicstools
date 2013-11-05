@@ -417,16 +417,23 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
+    peak_areas = []
     for chrom_id in chrom_ids:
         chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         if chromatogram is None:
             print "chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid)
             # Something is not right here, rather abort ...
             return "NA"
-        integrated_sum += sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
+        curr_int = sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
+        peak_areas.append(curr_int)
         # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
         # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid), newpg.get_value("transition_group_id")
 
+    integrated_sum = sum(peak_areas)
+    aggr_annotation = ";".join(chrom_ids)
+    aggr_peak_areas = ";".join([str(it) for it in peak_areas])
+    newpg.set_value("aggr_Peak_Area", aggr_peak_areas)
+    newpg.set_value("aggr_Fragment_Annotation", aggr_annotation)
     newpg.set_value("Intensity", integrated_sum)
     newpg.set_intensity(integrated_sum)
     return newpg
