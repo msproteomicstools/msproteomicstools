@@ -68,7 +68,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "imputeValues_1.out.tmp"
         tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.csv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -89,7 +89,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.csv"
 
         # We should get the same results if we cache the chromatograms in memory
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory --border_option median" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
