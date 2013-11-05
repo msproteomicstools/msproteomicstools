@@ -151,7 +151,6 @@ class TransformationCollection():
       """
       assert isinstance(data, list)
       assert not self.getTransformationData(s_from, s_to) is None
-      print len(data), len(self.getTransformationData(s_from, s_to)[0])
       assert len(data) == len(self.getTransformationData(s_from, s_to)[0])
       d = self._transformed_data.get(s_from, {})
       d[s_to] = data
