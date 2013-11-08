@@ -267,6 +267,7 @@ def handle_args():
 
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+    parser.add_argument('--output_method', default='none', help="Which output method is used (RT, score or none)")
     parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
 
     args = parser.parse_args(sys.argv[1:])
@@ -352,7 +353,7 @@ def main(options):
                pg.select_this_peakgroup()
 
     start = time.time()
-    write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides, options.min_frac_selected)
+    write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides, options.min_frac_selected, options.output_method)
     print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":

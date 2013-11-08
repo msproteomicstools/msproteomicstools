@@ -38,14 +38,22 @@ $Authors: Hannes Roest$
 import csv, os
 import numpy
 
-def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected):
+from msproteomicstoolslib.format.SWATHScoringReader import PeakGroupBase
+
+def write_out_matrix_file(matrix_outfile, allruns, multipeptides, 
+                          fraction_needed_selected, style="RT"):
     import scipy.stats
     matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
     run_ids = [r.get_id() for r in allruns]
     header = ["Peptide", "Protein"]
     for r in allruns:
         fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
-        header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
+        if style == "RT":
+          header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
+        elif style == "score":
+          header.extend(["Intensity_%s" % fname, "score_%s" % fname])
+        else:
+          header.extend(["Intensity_%s" % fname])
     header.extend(["RT_mean", "RT_std", "pg_pvalue"])
     matrix_writer.writerow(header)
     for m in multipeptides:
@@ -57,11 +65,23 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
             pg = None
             if m.has_peptide(rid):
                 pg = m.get_peptide(rid).get_selected_peakgroup()
+
             if pg is None:
+              if (style == "RT" or style == "score"):
                 line.extend(["NA", "NA"])
-            else:
+              else:
+                line.extend(["NA"])
+
+            elif style == "RT":
                 line.extend([pg.get_intensity(), pg.get_normalized_retentiontime()])
+            elif style == "score":
+                line.extend([pg.get_intensity(), pg.get_fdr_score()])
+            else:
+                line.extend([pg.get_intensity()])
+
+            if not pg is None:
                 rts.append(pg.get_normalized_retentiontime())
+
 
         # The d_score is a z-score which computed on the null / decoy
         # distribution which is (assumed) gaussian with u = 0, sigma = 1 
