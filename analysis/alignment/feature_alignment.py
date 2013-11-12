@@ -114,6 +114,7 @@ class Experiment(MRExperiment):
         nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
 
+        # More than one selected peakgroup and not a decoy
         nr_precursors_to_quant = len(set([ prec for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         nr_peptides_to_quant = len(set([ prec.find_best_peptide_pg().peptide.sequence for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
         target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]
@@ -132,7 +133,7 @@ class Experiment(MRExperiment):
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
-                "peakgroups quantified in at least %s run(s) above FDR %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
+                "peakgroups quantified in at least %s run(s) below FDR %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
@@ -575,7 +576,7 @@ def main(options):
 
         options.fdr_cutoff = fdr_cutoff_calculated
         print "Using an FDR cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
-        print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff)
+        print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
         print("Parameter estimation took %ss" % (time.time() - start) )
         print "-"*35
 
