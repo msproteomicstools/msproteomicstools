@@ -42,7 +42,9 @@ import getopt
 import glob
 import re
 from configobj     import ConfigObj
-from cluster     import HierarchicalClustering
+#DEPRECATED: from cluster     import HierarchicalClustering
+import numpy as np
+from sklearn.cluster import DBSCAN
 
 import     msproteomicstoolslib.format.speclib_db_lib         as         speclib_db_lib
 
@@ -63,9 +65,25 @@ def clusterRT(values, rt_maximal_distance) :
     #If not any sample is over the threshold --> return the list as it is
     if len(values) == 0 : return []
 
-    cl = HierarchicalClustering(values, lambda x,y: abs(x-y))
-    cl_output = cl.getlevel(rt_maximal_distance)     # get clusters of items closer than rt_maximal_distance
+    ## DEPRECATED : we don't use anymore the cluster library
+    #cl = HierarchicalClustering(values, lambda x,y: abs(x-y))
+    #cl_output = cl.getlevel(rt_maximal_distance)     # get clusters of items closer than rt_maximal_distance
 
+    v = [[val] for val in values]
+    db = DBSCAN(eps=rt_maximal_distance,min_samples=1).fit(np.asarray(v))
+    labels = db.labels_
+    
+    curr_l = -2
+    cl_output = []
+    curr_cluster = []
+    for i,l in enumerate(labels) :
+        if l != curr_l :
+            if len(curr_cluster) > 0 : cl_output.append(curr_cluster)
+            curr_l = l
+            curr_cluster = []
+        curr_cluster.append(values[i])
+    cl_output.append(curr_cluster)
+    
     return cl_output
 
 
