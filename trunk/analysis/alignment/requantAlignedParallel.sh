@@ -69,4 +69,4 @@ done | parallel --halt 2 -j $threads
 awk "NR==1 || FNR!=1" $uniqtmpdir/* $peakgroups_infile > $out
 rm -r $uniqtmpdir
 
-compute_full_matrix.py --in $out --out $out_matrix
+compute_full_matrix.py --in $out --out_matrix $out_matrix
