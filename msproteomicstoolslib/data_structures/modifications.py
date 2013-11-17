@@ -57,6 +57,9 @@ class Modifications:
         
         CAM             = Modification('C'      ,   'C[160]',   4,  '[CAM]',    False,    {'H': 3 ,'C': 2 ,'N':1 , 'O': 1 })
         Ox              = Modification('M'      ,   'M[147]',  35,  '[Oxi]',    False,    {'O': 1 })
+        WOx             = Modification('W'      ,   'W[202]',  35,  '[Oxi]',    False,    {'O': 1 })
+        HOx             = Modification('H'      ,   'H[153]',  35,  '[Oxi]',    False,    {'O': 1 })
+
         heavyK          = Modification('K'      ,   'K[136]', 259,  '[+08]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -2 , '15N' : 2 } )
         heavyR          = Modification('R'      ,   'R[166]', 267,  '[+10]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -4 , '15N' : 4 } )  
         EpyroGlu        = Modification('E'      ,   'E[111]',  27,  '[PGE]',    False,    {'H' : -2, 'O' : -1 })  
@@ -67,9 +70,12 @@ class Modifications:
         TPho            = Modification('T'      ,   'T[181]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
         YPho            = Modification('Y'      ,   'Y[243]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
         NDea            = Modification('N'      ,   'N[115]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
-    
+        QDea            = Modification('Q'      ,   'Q[129]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
+
         self.appendModification(CAM)
         self.appendModification(Ox)
+        self.appendModification(WOx)
+        self.appendModification(HOx)
         self.appendModification(heavyK)
         self.appendModification(heavyR)
         self.appendModification(EpyroGlu)
@@ -80,6 +86,7 @@ class Modifications:
         self.appendModification(TPho)
         self.appendModification(YPho)
         self.appendModification(NDea)
+        self.appendModification(QDea)
     
     def appendModification(self, modification) :
         self.list.append(modification)
