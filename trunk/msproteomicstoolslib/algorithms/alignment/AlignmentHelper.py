@@ -41,7 +41,7 @@ import numpy
 from msproteomicstoolslib.format.SWATHScoringReader import PeakGroupBase
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, 
-                          fraction_needed_selected, style="RT"):
+                          fraction_needed_selected, style="RT", write_requant=True):
     import scipy.stats
     matrix_writer = csv.writer(open(matrix_outfile, "w"), delimiter="\t")
     run_ids = [r.get_id() for r in allruns]
@@ -66,6 +66,10 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides,
             if m.has_peptide(rid):
                 pg = m.get_peptide(rid).get_selected_peakgroup()
 
+            if not write_requant:
+                if not pg is None and pg.get_fdr_score() > 1.0: 
+                    pg = None
+
             if pg is None:
               if (style == "RT" or style == "score"):
                 line.extend(["NA", "NA"])
@@ -82,7 +86,6 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides,
             if not pg is None:
                 rts.append(pg.get_normalized_retentiontime())
 
-
         # The d_score is a z-score which computed on the null / decoy
         # distribution which is (assumed) gaussian with u = 0, sigma = 1 
         # -> we thus compute a p-value from the z-score and assuming
@@ -95,7 +98,8 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides,
         matrix_writer.writerow(line)
     del matrix_writer
 
-def write_out_excel_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected, mscore_treshold=1.0, style="RT"):
+def write_out_excel_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
+                         mscore_treshold=1.0, style="RT", write_requant=True):
     import scipy.stats
     import xlwt
 
@@ -132,6 +136,11 @@ def write_out_excel_file(matrix_outfile, allruns, multipeptides, fraction_needed
             pg = None
             if m.has_peptide(rid):
                 pg = m.get_peptide(rid).get_selected_peakgroup()
+
+            if not write_requant:
+                if not pg is None and pg.get_fdr_score() > 1.0: 
+                    pg = None
+
             if pg is None:
                 ws.write(rowptr,colptr,"NA")
                 colptr+=1
