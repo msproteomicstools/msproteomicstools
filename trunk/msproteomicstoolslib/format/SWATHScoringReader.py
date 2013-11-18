@@ -564,7 +564,13 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             intensity = float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
-        run_id = int(this_row[run.header_dict[run_id_name]])
+
+        # Get run id
+        fl = float(this_row[run.header_dict[run_id_name]])
+        if abs( fl - int(fl) ) > 0.01:
+            raise Exception("Run id was expected to be an integer but was %s" % 
+                            this_row[run.header_dict[run_id_name]])
+        run_id = int(fl)
 
         if not run.all_peptides.has_key(trgr_id):
           p = self.Precursor(trgr_id, run)
