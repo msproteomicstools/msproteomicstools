@@ -44,7 +44,7 @@ from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file,write_out_excel_file
 
 class Experiment(MRExperiment):
     """
@@ -156,6 +156,7 @@ class Experiment(MRExperiment):
         infiles = options.infiles
         outfile = options.outfile
         matrix_outfile = options.matrix_outfile
+        matrix_excelfile = options.matix_excel
         yaml_outfile = options.yaml_outfile
         ids_outfile = options.ids_outfile
         fraction_needed_selected = options.min_frac_selected
@@ -181,6 +182,7 @@ class Experiment(MRExperiment):
 
         if len(matrix_outfile) > 0:
             write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected)
+
 
         if len(outfile) > 0 and options.readmethod == "full":
             # write out the complete original files 
@@ -264,6 +266,7 @@ def handle_args():
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
+    parser.add_argument("--out_excel", dest="matrix_excel", default="", help="Matrix containing colored peak groups in XLS format")
 
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
@@ -353,7 +356,10 @@ def main(options):
                pg.select_this_peakgroup()
 
     start = time.time()
-    write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides, options.min_frac_selected, options.output_method)
+    if len(options.matrix_outfile) > 0:
+        write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides, options.min_frac_selected, style=options.output_method)
+    if len(options.matrix_excel) > 0:
+        write_out_excel_file(options.matrix_excel,this_exp.runs, multipeptides, options.min_frac_selected, style=options.output_method)
     print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":

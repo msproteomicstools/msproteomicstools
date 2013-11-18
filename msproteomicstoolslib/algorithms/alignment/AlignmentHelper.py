@@ -95,3 +95,85 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides,
         matrix_writer.writerow(line)
     del matrix_writer
 
+def write_out_excel_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected, mscore_treshold=1.0, style="RT"):
+    import scipy.stats
+    import xlwt
+
+    redstyle = xlwt.easyxf('font: color red;')
+    bluestyle = xlwt.easyxf('font: color blue;')
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('0')
+    rowptr = 0
+    run_ids = [r.get_id() for r in allruns]
+    header = ["Peptide", "Protein"]
+    for r in allruns:
+        print "SYPE",style
+        fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
+        if style == "RT":
+          header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
+        elif style == "score":
+          header.extend(["Intensity_%s" % fname, "score_%s" % fname])
+        else:
+          header.extend(["Intensity_%s" % fname])
+    header.extend(["RT_mean", "RT_std", "pg_pvalue"])
+
+    for col,val in enumerate(header):
+        ws.write(rowptr,col,val)
+    rowptr+=1
+    for m in multipeptides:
+        ws.write(rowptr,0,m.get_id())
+        ws.write(rowptr,1,m.find_best_peptide_pg().peptide.protein_name)
+        colptr = 2
+        rts = []
+        selected_peakgroups = m.get_selected_peakgroups()
+        if (len(selected_peakgroups)*1.0 / len(allruns) < fraction_needed_selected) : continue
+
+        for rid in run_ids:
+            pg = None
+            if m.has_peptide(rid):
+                pg = m.get_peptide(rid).get_selected_peakgroup()
+            if pg is None:
+                ws.write(rowptr,colptr,"NA")
+                colptr+=1
+                if style == "RT" or style == "score":
+                    ws.write(rowptr,colptr,"NA")
+                    colptr+=1
+            else:
+                if abs(pg.get_fdr_score() - 2.0) < 0.01:
+                    ws.write(rowptr,colptr, pg.get_intensity(),redstyle)
+                    colptr+=1
+                elif pg.get_fdr_score() > mscore_treshold:
+                    ws.write(rowptr,colptr, pg.get_intensity(),bluestyle)
+                    colptr+=1
+                else:
+                    ws.write(rowptr,colptr, pg.get_intensity())
+                    colptr+=1
+
+                if style == "RT":
+                    ws.write(rowptr,colptr, pg.get_normalized_retentiontime())
+                    colptr+=1
+                elif style == "score":
+                    ws.write(rowptr,colptr, pg.get_fdr_score())
+                    colptr+=1
+
+            if not pg is None:
+                rts.append(pg.get_normalized_retentiontime())
+
+        # The d_score is a z-score which computed on the null / decoy
+        # distribution which is (assumed) gaussian with u = 0, sigma = 1
+        # -> we thus compute a p-value from the z-score and assuming
+        # independent measurements, we multiply the p-values to compute a
+        # peakgroup p-value.
+        # We use norm.sf (1-cdf) on the vector of z-scores.
+        pvals = [ float(pg.get_dscore()) for pg in m.get_selected_peakgroups() if not pg is None and not pg.get_dscore() is None]
+        pvalue = numpy.prod(scipy.stats.norm.sf(pvals))
+
+        ws.write(rowptr,colptr, numpy.mean(rts))
+        colptr+=1
+        ws.write(rowptr,colptr, numpy.std(rts))
+        colptr+=1
+        ws.write(rowptr,colptr, pvalue)
+        colptr+=1
+        rowptr+=1
+
+    wb.save(matrix_outfile)
