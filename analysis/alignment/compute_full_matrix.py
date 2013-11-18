@@ -272,6 +272,7 @@ def handle_args():
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument('--output_method', default='none', help="Which output method is used (RT, score or none)")
     parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
+    parser.add_argument('--remove_requant_values', action='store_true', default=False)
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -356,10 +357,15 @@ def main(options):
                pg.select_this_peakgroup()
 
     start = time.time()
+<<<<<<< HEAD
     if len(options.matrix_outfile) > 0:
-        write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides, options.min_frac_selected, style=options.output_method)
+        write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides,
+                              options.min_frac_selected, style=options.output_method, 
+                              write_requant = not options.remove_requant_values)
     if len(options.matrix_excel) > 0:
-        write_out_excel_file(options.matrix_excel,this_exp.runs, multipeptides, options.min_frac_selected, style=options.output_method)
+        write_out_excel_file(options.matrix_excel,this_exp.runs, multipeptides, 
+                             options.min_frac_selected, style=options.output_method,
+                             write_requant = not options.remove_requant_values)
     print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
