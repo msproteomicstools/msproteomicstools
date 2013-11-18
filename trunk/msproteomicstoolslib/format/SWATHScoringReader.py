@@ -565,18 +565,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
 
-        # Get run id
-        fl = float(this_row[run.header_dict[run_id_name]])
-        if abs( fl - int(fl) ) > 0.01:
-            raise Exception("Run id was expected to be an integer but was %s" % 
-                            this_row[run.header_dict[run_id_name]])
-        run_id = int(fl)
-
         if not run.all_peptides.has_key(trgr_id):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
-          p.run_id = run_id
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
         if self.readmethod == "minimal":
@@ -735,5 +727,4 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else: raise NotImplemented
-
 
