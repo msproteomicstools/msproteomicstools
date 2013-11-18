@@ -445,7 +445,7 @@ class SWATHScoringReader:
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
-    def parse_files(self, read_exp_RT=True):
+    def parse_files(self, read_exp_RT=True, verbosity=10):
       """Parse the input file(s) (CSV).
 
       Args:
@@ -468,8 +468,9 @@ class SWATHScoringReader:
       skipped = 0; read = 0
       runs = []
       for file_nr, f in enumerate(self.infiles):
-        stdout.write("\rReading %s" % str(f))
-        stdout.flush()
+        if verbosity >= 10:
+            stdout.write("\rReading %s" % str(f))
+            stdout.flush()
         header_dict = {}
         if f.endswith('.gz'):
             import gzip 
@@ -480,8 +481,9 @@ class SWATHScoringReader:
         header = reader.next()
         for i,n in enumerate(header):
           header_dict[n] = i
-        stdout.write("\rReading file %s" % (str(f)) )
-        stdout.flush()
+        if verbosity >= 10:
+            stdout.write("\rReading file %s" % (str(f)) )
+            stdout.flush()
 
         # Check if runs are already aligned (only one input file and correct header)
         already_aligned = (len(self.infiles) == 1 and header_dict.has_key(self.aligned_run_id_name))
@@ -513,7 +515,7 @@ class SWATHScoringReader:
 
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
-      stdout.write("\r\r\n") # clean up
+      if verbosity >= 10: stdout.write("\r\r\n") # clean up
       print "Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped)
       return runs
 

@@ -481,6 +481,7 @@ def handle_args():
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall). The global option will also move peaks which are below the selected FDR threshold.")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+    parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
 
     experimental_parser = parser.add_argument_group('experimental options')
 
@@ -533,17 +534,17 @@ def main(options):
     # Read the files
     start = time.time()
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod, readfilter)
-    runs = reader.parse_files(options.realign_runs)
+    runs = reader.parse_files(options.realign_runs, options.verbosity)
     # Create experiment
     this_exp = Experiment()
     this_exp.set_runs(runs)
-    print("Reading the input files took %ss" % (time.time() - start) )
+    if options.verbosity >= 5: print("Reading the input files took %ss" % (time.time() - start) )
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
     start = time.time()
-    multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=True)
-    print("Mapping the precursors took %ss" % (time.time() - start) )
+    multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=False, verbosity=options.verbosity)
+    if options.verbosity >= 5: print("Mapping the precursors took %ss" % (time.time() - start) )
 
     if options.target_fdr > 0:
         ### Do parameter estimation
@@ -594,7 +595,7 @@ def main(options):
         tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         this_exp.transformation_collection = tcoll
 
-        print("Aligning the runs took %ss" % (time.time() - start) )
+        if options.verbosity >= 5: print("Aligning the runs took %ss" % (time.time() - start) )
 
     try:
         options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
@@ -607,7 +608,7 @@ def main(options):
     start = time.time()
     alignment = AlignmentAlgorithm().align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
 
-    print("Re-aligning peak groups took %ss" % (time.time() - start) )
+    if options.verbosity >= 5: print("Re-aligning peak groups took %ss" % (time.time() - start) )
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
@@ -627,7 +628,7 @@ def main(options):
     start = time.time()
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
     this_exp.write_to_file(multipeptides, options)
-    print("Writing output took %ss" % (time.time() - start) )
+    if options.verbosity >= 5: print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
     options = handle_args()
