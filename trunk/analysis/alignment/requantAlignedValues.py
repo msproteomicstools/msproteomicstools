@@ -423,14 +423,19 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     peak_areas = []
     for chrom_id in chrom_ids:
         chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
+        # Check if we got a chromatogram with at least 1 peak: 
         if chromatogram is None:
             print "chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid)
-            # Something is not right here, rather abort ...
             return "NA"
+        if len(chromatogram.peaks) == 0:
+            print "chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid)
+            return "NA"
+
         # Check whether we even have data between left_start and right_end ... 
         if chromatogram.peaks[0][0] > left_start or chromatogram.peaks[-1][0] < right_end:
             print "WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
                 chromatogram.peaks[0][0],chromatogram.peaks[-1][0], left_start, right_end)
+
         curr_int = sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
         peak_areas.append(curr_int)
         # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
