@@ -357,7 +357,6 @@ def main(options):
                pg.select_this_peakgroup()
 
     start = time.time()
-<<<<<<< HEAD
     if len(options.matrix_outfile) > 0:
         write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides,
                               options.min_frac_selected, style=options.output_method, 
