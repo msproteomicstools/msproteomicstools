@@ -402,15 +402,22 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
-    for element in ["transition_group_id", "decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "run_id"]:
+    for element in ["transition_group_id", "run_id"]:
         newpg.set_value(element, template_pg.get_value(element))
-    # newpg.set_value("transition_group_record", template_pg.get_value("transition_group_id") + "_%s" % current_rid)
+    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "align_origfilename", "filename", "m.z", "m/z", "nr_peaks"]:
+        try:
+            newpg.set_value(element, template_pg.get_value(element))
+        except KeyError:
+            # These are non-essential column names, we can just skip them ...
+            pass
+
     newpg.set_value("align_runid", current_rid)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
     newpg.set_value("m_score", 2.0)
     newpg.set_value("d_score", '-10') # -10 has a p value of 1.0 for 1-right side cdf
+    newpg.set_value("peak_group_rank", -1)
 
     import uuid 
     thisid = str(uuid.uuid1() )

@@ -1,0 +1,81 @@
+# General
+
+INSTALL:
+    Dependencies:
+        - pymzML (from https://github.com/hroest/pymzML)
+        - Python >= 2.5
+        - numpy / scipy
+        - PyQt4 >= 4.3
+        - PyQwt >= 5.2
+        - PIL (Python Imaging Library, maybe not necessary...)
+        - guidata
+        - guiqwt
+
+
+########### Windows
+
+Install Python 2.7
+
+# http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
+
+go to
+http://www.lfd.uci.edu/~gohlke/pythonlibs/
+
+Get numpy
+Get PyQt
+Get PyQwt
+Get Pip
+Get Setuptools
+
+# Open command prompt
+cd \my\home\dir
+#download and install pymzml:
+git clone https://github.com/pymzml/pymzML.git
+C:\Python27\python.exe setup.py install
+
+#download msproteomicstools
+svn checkout http://msproteomicstools.googlecode.com/svn/trunk/ msproteomicstools
+cd msproteomicstool
+
+
+########### Mac
+# This install was tested on OS X 10.8
+
+1. Install msproteomicstools
+svn checkout http://msproteomicstools.googlecode.com/svn/trunk/ msproteomicstools-read-only
+
+
+2. Install Homebrew
+ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+
+brew doctor
+
+3. Dependencies
+brew install python
+brew install gfortran
+brew install numpy
+brew install scipy
+
+4. Add to ~/.bash_profile
+export PYTHONPATH=/usr/local/lib/python2.7/site-packages:$PYTHONPATH
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+5. Install Python and Qt dependencies
+source ~/.bash_profile
+pip install numpy
+pip install scipy
+
+brew install pyqt
+brew install pyqwt
+
+pip install guiqwt
+pip install guidata
+
+6. Install pymzML
+cd /tmp
+git clone https://github.com/hroest/pymzML 
+cd pymzML
+sudo python setup.py install
+cd ..
+sudo rm -rf pymzML
