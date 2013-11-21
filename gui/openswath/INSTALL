@@ -1,3 +1,7 @@
+#
+
+###########################################################################
+###########################################################################
 # General
 
 INSTALL:
@@ -11,34 +15,55 @@ INSTALL:
         - guidata
         - guiqwt
 
+###########################################################################
+###########################################################################
+# Linux install 
 
-########### Windows
+- Debian/Ubuntu/ArchLinux: guiqwt should be packaged, basically install these
+  packages
+sudo apt-get install python python-numpy python-qt4 python-qwt5-qt4 python-guiqwt
 
-Install Python 2.7
+- RedHat: PyQwt, PyQt, scipy, numpy, python-imaging should be the packages
 
-# http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
+# Then install the pymzml and msproteomicstools
+git clone https://github.com/pymzml/pymzML.git
+python setup.py install
+svn checkout http://msproteomicstools.googlecode.com/svn/trunk/ msproteomicstools
+cd msproteomicstool
 
-go to
+###########################################################################
+###########################################################################
+Windows
+
+Install Python (e.g. version 2.7) from http://www.python.org/getit/
+
+# go to the following website and download these binary packages (the following
+# assumes 32 bit window, for 64 bit please choose the appropriate package):
 http://www.lfd.uci.edu/~gohlke/pythonlibs/
 
-Get numpy
-Get PyQt
-Get PyQwt
-Get Pip
-Get Setuptools
+Get numpy (numpy-MKL-1.7.2rc1.win32-py2.7.exe)
+Get PyQt (PyQt-Py2.7-x32-gpl-4.9.6-1.exe)
+Get PyQwt (PyQwt-5.2.1-py2.7-x32-pyqt4.9.6-numpy1.7.1.exe)
 
-# Open command prompt
+# Open command prompt, go to your home
+# This assumes you have a git and svn client. If you dont, one essay solution
+# on windows for this is to use http://downloadsvn.codeplex.com/ to checkout
+# the pymzml and msproteomicstools projects.
 cd \my\home\dir
-#download and install pymzml:
+# download and install pymzml:
 git clone https://github.com/pymzml/pymzML.git
 C:\Python27\python.exe setup.py install
 
 #download msproteomicstools
 svn checkout http://msproteomicstools.googlecode.com/svn/trunk/ msproteomicstools
 cd msproteomicstool
+# Edit ./gui/openswath/AlignmentGUI.py and set USE_GUIQWT to False (replace "True" with "False")
+C:\Python27\python.exe gui\openswath\AlignmentGUI.py
 
-
-########### Mac
+###########################################################################
+###########################################################################
+# Mac
+# Thanks to George Rosenberger
 # This install was tested on OS X 10.8
 
 1. Install msproteomicstools
