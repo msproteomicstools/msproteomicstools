@@ -622,9 +622,20 @@ class DataModel(object):
         transformation_collection_.initialize_from_data(reverse=True)
 
     def read_peakgroup_files(self, aligned_pg_files, swathfiles):
+        """
+        The peakgroup files have to have the following columns:
+            - FullPeptideName
+            - Charge
+            - leftWidth
+            - rightWidth
+            - m_score
+            - Intensity
+            - align_runid
+            - transition_group_id
+        """
 
         # Read in the peakgroup files, parse them and map across runs
-        reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="complete")
+        reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="gui", errorHandling="loose")
         new_exp = Experiment()
         new_exp.runs = reader.parse_files(REALIGN_RUNS)
         multipeptides = new_exp.get_all_multipeptides(FDR_CUTOFF, verbose=False)
@@ -633,7 +644,8 @@ class DataModel(object):
         peakgroup_map = {}
         for m in multipeptides:
             pg = m.find_best_peptide_pg()
-            peakgroup_map[ pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")] = m
+            identifier = pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")
+            peakgroup_map[ identifier ] = m
 
         for swathrun in swathfiles.getSwathFiles():
             if ONLY_SHOW_QUANTIFIED:
@@ -649,12 +661,9 @@ class DataModel(object):
                 m = peakgroup_map[ precursor_id ]
                 if m.has_peptide(swathrun.runid):
                     pg = m.get_peptide(swathrun.runid).get_best_peakgroup()
-                    try:
-                        swathrun._range_mapping[precursor_id]       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
-                        swathrun._score_mapping[precursor_id]       = float(pg.get_value("m_score"))
-                        swathrun._intensity_mapping[precursor_id]   = float(pg.get_value("Intensity"))
-                    except Exception: 
-                        pass
+                    swathrun._range_mapping[precursor_id]       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
+                    swathrun._score_mapping[precursor_id]       = float(pg.get_value("m_score"))
+                    swathrun._intensity_mapping[precursor_id]   = float(pg.get_value("Intensity"))
                     
     def load_from_yaml(self, yamlfile):
 
