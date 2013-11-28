@@ -434,8 +434,13 @@ class MainWindow(QtGui.QMainWindow):
         start = time.time() 
         if len(pyFileList) == 1 and pyFileList[0].endswith(".yaml"):
             self.data_model.load_from_yaml(pyFileList[0])
-        else:
+        elif all( [f.endswith(".mzML") for f in pyFileList] ):
             self.data_model.loadFiles(pyFileList)
+        else:
+            # Check whether one of them is not mzML
+            mzmls = [f for f in pyFileList if f.endswith("mzML")]
+            others = [f for f in pyFileList if not f.endswith("mzML")]
+            self.data_model.loadMixedFiles(mzmls, others)
         self._refresh_view(time=time.time()-start)
 
     def _refresh_view(self, time=0):
