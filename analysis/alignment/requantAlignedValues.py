@@ -284,9 +284,12 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
     """
     # Go through all aligned peptides
     run_ids = [r.get_id() for r in new_exp.runs]
-    imputations = 0
-    imputation_succ = 0
-    peakgroups = 0
+    class CounterClass: pass
+    cnt = CounterClass()
+    cnt.integration_bnd_warnings = 0
+    cnt.imputations = 0
+    cnt.imputation_succ = 0
+    cnt.peakgroups = 0
     print "Will work on %s peptides" % (len(multipeptides))
     for i,m in enumerate(multipeptides):
         if i % 500 == 0: print "Done with %s out of %s" % (i, len(multipeptides))
@@ -299,14 +302,14 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
 
         selected_pg = [p.peakgroups[0] for p in m.get_peptides() if len(p.peakgroups)==1 ] 
         for rid in run_ids:
-            peakgroups += 1
+            cnt.peakgroups += 1
 
             # Check whether we have a peakgroup for this run id, if yes we mark
             # this peakgroup as selected for output, otherwise we try to impute.
             if m.has_peptide(rid):
                 m.get_peptide(rid).peakgroups[0].select_this_peakgroup()
             else:
-                imputations += 1
+                cnt.imputations += 1
                 imputed=True
 
                 if not onlyExtractFromRun is None:
@@ -318,17 +321,18 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 border_l, border_r = determine_integration_border(new_exp, selected_pg, 
                     rid, transformation_collection_, border_option)
                 newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
-                                             border_l, border_r)
+                                             border_l, border_r, cnt)
                 if newpg != "NA": 
-                    imputation_succ += 1
+                    cnt.imputation_succ += 1
                     precursor = GeneralPrecursor(newpg.get_value("transition_group_id"), rid)
                     # Select for output, add to precursor
                     newpg.select_this_peakgroup()
                     precursor.add_peakgroup(newpg)
                     m.insert(rid, precursor)
 
-    print "Imputations:", imputations, "Successful:", imputation_succ, "Still missing", imputations - imputation_succ
-    print "Peakgroups:", peakgroups
+    print "Imputations:", cnt.imputations, "Successful:", cnt.imputation_succ, "Still missing", cnt.imputations - cnt.imputation_succ
+    print "WARNING: %s times: Chromatogram does not cover full range"  % (cnt.integration_bnd_warnings)
+    print "Peakgroups:", cnt.peakgroups
     return multipeptides 
 
 def determine_integration_border(new_exp, selected_pg, rid, transformation_collection_, border_option):
@@ -382,7 +386,7 @@ def determine_integration_border(new_exp, selected_pg, rid, transformation_colle
     return integration_left, integration_right
 
 def integrate_chromatogram(template_pg, current_run, swath_chromatograms, 
-                           left_start, right_end):
+                           left_start, right_end, cnt):
     """ Integrate a chromatogram from left_start to right_end and store the sum.
 
     Args:
@@ -440,8 +444,9 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
         # Check whether we even have data between left_start and right_end ... 
         if chromatogram.peaks[0][0] > left_start or chromatogram.peaks[-1][0] < right_end:
-            print "WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
-                chromatogram.peaks[0][0],chromatogram.peaks[-1][0], left_start, right_end)
+            cnt.integration_bnd_warnings += 1
+            # print "WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
+            #     chromatogram.peaks[0][0],chromatogram.peaks[-1][0], left_start, right_end)
 
         curr_int = sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
         peak_areas.append(curr_int)
