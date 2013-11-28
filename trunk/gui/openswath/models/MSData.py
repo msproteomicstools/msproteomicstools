@@ -98,8 +98,11 @@ class RunDataModel():
         if openswath_format:
             if len( self._run.info['offsets'] ) > 0:
                 for key in self._run.info['offsets'].keys():
-                    # specific to pymzl, we need to get rid of those two entries
+                    # specific to pymzl, we need to get rid of those two entries or
+                    # when the key is zero
                     if key in ("indexList", "TIC"): continue
+                    if len(key) == 0: continue
+                    #
                     trgr_nr = self._compute_transitiongroup_from_key(key)
                     tmp = self._precursor_mapping.get(trgr_nr, [])
                     tmp.append(key)
@@ -134,13 +137,27 @@ class RunDataModel():
         self._run = result
 
     def _compute_transitiongroup_from_key(self, key):
-        # The precursor identifier is the second (or third for
-        # decoys) element of the openswath format. Decoys should
-        # get a different identifier!
+        """ Transforms an input chromatogram id to a string of [DECOY]_xx/yy
+
+        Possible Input Formats:
+
+        i) [DECOY_]id_xx/yy_zz
+        ii) [DECOY_]id_xx_yy
+
+        Where the DECOY_ prefix is optional, xx is the sequence and yy is the
+        charge. zz is an additional, optional annotation.
+
+        We want to return only [DECOY]_xx/yy (ensuring that decoys get a
+        different identifier than targets).
+        """
         components = key.split("_")
         trgr_nr = str(components[1])
         if components[0].startswith("DECOY"):
             trgr_nr = "DECOY_" + str(components[2])
+
+        # Format ii) (second component doesnt contain a slash)
+        if trgr_nr.find("/") == -1:
+            trgr_nr += "/" + str(components[-1])
         return trgr_nr
 
     def _has_openswath_format(self, run):
@@ -157,6 +174,7 @@ class RunDataModel():
             keys = run.info['offsets'].keys()
             for key in run.info['offsets'].keys():
                 if key in ("indexList", "TIC"): continue
+                if len(key) == 0: continue
                 break
 
             if len(key.split("_")) >= 3:
@@ -168,7 +186,10 @@ class RunDataModel():
                     trgr_nr = int(trgr_nr)
                     return True
                 except ValueError:
+                    print "Format determination: Could not convert", trgr_nr, "to int."
                     return False
+
+        return False
 
     def _group_precursors_by_sequence(self):
         """Group together precursors with the same charge state"""
