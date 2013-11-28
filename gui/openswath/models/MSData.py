@@ -349,7 +349,6 @@ class SwathRun(object):
 
     def remove_precursors(self, toremove):
         for run_key, run in self.all_swathes.iteritems():
-                # self._sequence_run_map[key] = run_key
             for key in toremove:
                 run._precursor_mapping.pop(key, None)
                 self._precursor_run_map.pop(key, None)
@@ -431,6 +430,15 @@ class SwathRunCollection(object):
             import glob
             files = glob.glob(os.path.join(dname + "/*.mzML") )
             self.swath_chromatograms[ runid ] = SwathRun(files, runid)
+
+    def initialize_from_chromatograms(self, runid_mapping):
+        """Initialize from a set of chromatograms.
+
+        Requires a dictionary of form { run_id : [chromatogram_files] }
+        """
+        self.swath_chromatograms = {}
+        for runid, chromfiles in runid_mapping.iteritems():
+            self.swath_chromatograms[ runid ] = SwathRun(chromfiles, runid)
 
     def initialize_from_files(self, filenames):
         """Initialize from individual files, setting the runid as increasing
@@ -531,16 +539,80 @@ class DataModel(object):
         return self.runs
 
 
-    def loadFiles_with_peakgroups(self, trafo_filenames, aligned_pg_files):
+    def loadFiles_with_peakgroups(self, RawData, aligned_pg_files):
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in trafo_filenames] ) )
+        try:
+            swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in RawData] ) )
+        except KeyError:
+            swathfiles.initialize_from_chromatograms( dict( [ (d["id"], d["chromatograms"]) for d in RawData] ) )
         self.runs = [run for run in swathfiles.getSwathFiles()]
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
 
-        self.read_trafo(trafo_filenames)
+        try:
+            self.read_trafo(RawData)
+        except IOError:
+            self.read_peakgroup_files(aligned_pg_files, swathfiles)
+
+    def loadMixedFiles(self, rawdata_files, aligned_pg_files):
+        """ Load files that contain raw data files and aligned peakgroup files.
+
+        Since no mapping is present here, we need to infer it from the data.
+        Basically, we try to map the column align_runid to the filenames of the
+        input .chrom.mzML hopeing that the user did not change the filenames.
+        """
+
+        print "Input contained no mapping of run_id to the chromatograms."
+        print "Try to infer mapping - if this fails, please provide a yaml input."
+        mapping = {}
+        import csv, os
+        for file_nr, f in enumerate(aligned_pg_files):
+            header_dict = {}
+            if f.endswith('.gz'):
+                import gzip 
+                filehandler = gzip.open(f,'rb')
+            else:
+                filehandler = open(f)
+            reader = csv.reader(filehandler, delimiter="\t")
+            header = reader.next()
+            for i,n in enumerate(header):
+                header_dict[n] = i
+            if not header_dict.has_key("align_origfilename") or not header_dict.has_key("align_runid"):
+                raise Exception("need column header align_origfilename and align_runid")
+
+            for this_row in reader:
+
+                # 1. Get the original filename (find a non-NA entry) and the corresponding run id
+                if this_row[ header_dict["align_origfilename"] ] == "NA": continue
+                aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
+                if aligned_id in mapping: continue 
+                aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
+
+                # 2. Go through all chromatogram input files and try to find
+                # one that matches the one from align_origfilename
+                for rfile in rawdata_files:
+                    # 2.1 remove common file endings from the raw data
+                    rfile_base = os.path.basename(rfile)
+                    for ending in [".mzML", ".chrom"]:
+                        rfile_base = rfile_base.split(ending)[0]
+                    # 2.2 remove common file endings from the tsv data
+                    for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
+                        aligned_fname = aligned_fname.split(ending)[0]
+                    # 2.3 Check if we have a match
+                    if aligned_fname == rfile_base:
+                        print "- Found match:", rfile_base, aligned_fname
+                        mapping[aligned_id] = [rfile]
+
+        print "Found the following mapping: mapping", mapping
+
+        # Read the chromatograms
+        swathfiles = SwathRunCollection()
+        swathfiles.initialize_from_chromatograms(mapping)
+        self.runs = [run for run in swathfiles.getSwathFiles()]
         self.read_peakgroup_files(aligned_pg_files, swathfiles)
+        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
+        
 
     def read_trafo(self, trafo_filenames):
         # Read the transformations
