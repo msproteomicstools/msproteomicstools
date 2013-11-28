@@ -109,9 +109,34 @@ class RunDataModel():
                     self._precursor_mapping[trgr_nr] = tmp
 
         else:
-            # TODO fallback option!!!
-            pass
-            raise Exception("Could not parse chromatogram ids ... ")
+            print "Fall-back: Could not group chromatograms by their id alone, try using precursor information."
+            self._group_by_precursor_by_mass()
+
+    def _group_by_precursor_by_mass(self):
+        """
+        Populate the mapping between precursors and the chromatogram ids using the chromatogram information.
+
+        Try to use the mass or the precursor tag to infer which chromatograms
+        belong to the same peptide. See _compute_transitiongroup_from_precursor
+        """
+
+        for key in self._run.info['offsets'].keys():
+            # specific to pymzl, we need to get rid of those two entries or
+            # when the key is zero
+            if key in ("indexList", "TIC"): continue
+            if len(key) == 0: continue
+            #
+            chromatogram = self._run[key]
+            if len(chromatogram["precursors"]) == 1:
+                precursor = chromatogram["precursors"][0]
+                trgr_nr = self._compute_transitiongroup_from_precursor(precursor)
+                tmp = self._precursor_mapping.get(trgr_nr, [])
+                tmp.append(key)
+                self._precursor_mapping[trgr_nr] = tmp
+
+            else:
+                print "Something is wrong"
+                raise Exception("Could not parse chromatogram ids ... neither ids nor precursors lead to sensible grouping")
 
     def _group_by_precursor_in_memory(self):
         """
@@ -159,6 +184,25 @@ class RunDataModel():
         if trgr_nr.find("/") == -1:
             trgr_nr += "/" + str(components[-1])
         return trgr_nr
+
+    def _compute_transitiongroup_from_precursor(self, precursor):
+        """ Transforms an input precursor to a string of [DECOY]_xx/yy
+        """
+        charge = "0"
+        if precursor.has_key("charge"):
+            charge = str(precursor["charge"])
+
+        # Check if there is a user-parameter describing the peptide sequence
+        # which would allow us to asseble the SEQ/ch pair.
+        if precursor.has_key("userParams"):
+            if precursor["userParams"].has_key("peptide_sequence"):
+                return precursor["userParams"]["peptide_sequence"] + "/" + charge
+            if precursor["userParams"].has_key("PeptideSequence"):
+                return precursor["userParams"]["PeptideSequence"] + "/" + charge
+
+        if precursor.has_key("mz"):
+            # TODO have some reproducible rounding here
+            return str(precursor["mz"]) + "GENERIC/" + charge
 
     def _has_openswath_format(self, run):
         """Checks whether the chromatogram id follows a specific format which
