@@ -355,6 +355,9 @@ class SwathRun(object):
                 self._precursor_run_map.pop(key, None)
             run._group_precursors_by_sequence()
 
+        # Re-initialize self to produce correct mapping
+        self._initialize()
+
     #
     ## Getters (info)
     #
