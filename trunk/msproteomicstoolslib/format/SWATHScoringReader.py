@@ -162,6 +162,35 @@ class MinimalPeakGroup(PeakGroupBase):
         self.selected_ = False
         self.peptide.unselect_pg(self.get_feature_id() )
 
+class GuiPeakGroup(PeakGroupBase):
+    """
+    A single peakgroup that is defined by a retention time in a chromatogram
+    of multiple transitions.
+    """
+    def __init__(self, fdr_score, intensity, leftWidth, rightWidth, peptide):
+      super(PeakGroupBase, self).__init__()
+      self.fdr_score = fdr_score
+      self.intensity_ = intensity
+      self.leftWidth_ = leftWidth
+      self.rightWidth_ = rightWidth
+      self.peptide = peptide
+  
+    def get_value(self, value):
+        if value == "m_score":
+            return self.fdr_score
+        elif value == "Intensity":
+            return self.intensity_
+        elif value == "rightWidth":
+            return self.rightWidth_
+        elif value == "leftWidth":
+            return self.leftWidth_
+        elif value == "FullPeptideName":
+            return self.peptide.sequence
+        elif value == "Charge":
+            return self.peptide.charge
+        else:
+            raise Exception("Do not have value " + value)
+
 class GeneralPeakGroup(PeakGroupBase):
 
     def __init__(self, row, run, peptide):
@@ -434,10 +463,10 @@ class SWATHScoringReader:
         raise Exception("Abstract method")
 
     @staticmethod
-    def newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter()):
+    def newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict"):
         """Factory to create a new reader"""
         if filetype  == "openswath": 
-            return OpenSWATH_SWATHScoringReader(infiles, readmethod, readfilter)
+            return OpenSWATH_SWATHScoringReader(infiles, readmethod, readfilter, errorHandling)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -521,14 +550,20 @@ class SWATHScoringReader:
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict"):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
         self.aligned_run_id_name = "align_runid"
         self.readfilter = readfilter
+        self.errorHandling = errorHandling
+        self.sequence_col = "Sequence"
         if readmethod == "minimal":
             self.Precursor = Precursor
+        elif readmethod == "gui":
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GuiPeakGroup
+            self.sequence_col = "FullPeptideName"
         else:
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
@@ -541,10 +576,12 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         diff_from_assay_in_sec_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "ProteinName"
-        sequence_col = "Sequence"
         unique_feature_id_name = "id"
         intensity_name = "Intensity"
         decoy = "FALSE"
+        left_width_name = "leftWidth"
+        right_width_name = "rightWidth"
+        charge_name = "Charge"
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
@@ -554,29 +591,50 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             diff_from_assay_in_sec_name = "RT"
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
-        protein_name = this_row[run.header_dict[protein_id_col]]
-        sequence = this_row[run.header_dict[sequence_col]]
-        thisid = this_row[run.header_dict[unique_feature_id_name]]
-        fdr_score = float(this_row[run.header_dict[fdr_score_name]])
-        diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
-        d_score = float(this_row[run.header_dict[dscore_name]])
+        sequence = this_row[run.header_dict[self.sequence_col]]
+
+        # Attributes that only need to be present in strict mode
+        diff_from_assay_seconds = -1
+        fdr_score = -1
+        protein_name = "NA"
+        thisid = -1
+        try:
+            fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+            protein_name = this_row[run.header_dict[protein_id_col]]
+            thisid = this_row[run.header_dict[unique_feature_id_name]]
+            diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+            d_score = float(this_row[run.header_dict[dscore_name]])
+        except KeyError:
+            if self.errorHandling == "strict": 
+                raise Exception("Did not find essential column.")
+
+        # Optional attributes
         intensity = -1
         if run.header_dict.has_key(intensity_name):
             intensity = float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
 
+        # If the peptide does not yet exist
         if not run.all_peptides.has_key(trgr_id):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
+
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
-        else:
+        elif self.readmethod == "gui":
+          leftWidth = this_row[run.header_dict[left_width_name]]
+          rightWidth = this_row[run.header_dict[right_width_name]]
+          charge = this_row[run.header_dict[charge_name]]
+          run.all_peptides[trgr_id].charge = charge
+          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.all_peptides[trgr_id])
+          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
+        elif self.readmethod == "complete":
           peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
           peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
           peakgroup.set_fdr_score(fdr_score)
