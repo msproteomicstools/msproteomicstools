@@ -47,6 +47,22 @@ Usage:
 TODO: 
     use QDockWidget
 
+Structure
+- AlignmentGUI.py (main)
+./models
+    - ./models/TreeModels.py (contains the generic tree models)
+    - ./models/PeptideTree.py (contains the specific implementation of the left side peptide tree)
+    - ./models/ChromatogramTransition.py (contains the chromatogram transition abstraction which is stored in the peptide tree view)
+
+    - ./models/SingleChromatogramFile.py (data model for a single chrom.mzML file)
+    - ./models/SwathRun.py (data model for a single SWATH-MS run, may contain multiple chrom.mzML files)
+    - ./models/SwathRunCollection.py (data model for a set of SWATH-MS runs)
+    - ./models/MSData.py (contains the mass spectrometric data models)
+
+./views
+    - ./views/PeptideTree.py (contains the tree view implementation, derived from QtGui.QTreeView)
+    - ./views/Plot.py (contains the plot view, derived from Qwt.QwtPlot for the Qwt implementation or from the GuiQwt library)
+
 """
 
 import sys,time, re
@@ -58,6 +74,8 @@ from PyQt4.QtCore import Qt, QModelIndex
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
 AUTOSCALE_Y_AXIS = True
+# Turning off guiqwt (USE_GUIQWT=False) should be safer, it then uses the
+# fallback to plain Qwt.
 USE_GUIQWT = True
 
 class Communicate(QtCore.QObject):

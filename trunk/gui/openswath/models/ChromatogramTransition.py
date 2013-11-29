@@ -45,7 +45,7 @@ CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
 
 class ChromatogramTransition(object):
     """
-    Internal tree structure object representing one row in the in the left side tree
+    Internal tree structure object representing one row in the in the left side tree.
 
     This is the bridge between the view and the data model
 
@@ -90,7 +90,7 @@ class ChromatogramTransition(object):
 
         If we have a single precursors or a peptide with only one precursor, we
         show the same data as for the precursor itself. For a peptide with
-        multiple precusors, we show all precursors as individual curves. For a
+        multiple precursors, we show all precursors as individual curves. For a
         single transition, we simply plot that transition.
         """
         if CHROMTYPES[self.mytype] == "Precursor" :

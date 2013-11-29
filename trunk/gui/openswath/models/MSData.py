@@ -55,6 +55,11 @@ ONLY_SHOW_QUANTIFIED = False
 ONLY_SHOW_QUANTIFIED = True
 
 class PrecursorModel():
+    """ A simplistic precursor model
+
+    It is initialized with an ID and knows how to parse the sequence and the
+    charge from that string.
+    """
 
     def __init__(self, chrom_id):
         self.chrom_id = chrom_id
@@ -72,16 +77,34 @@ class PrecursorModel():
             return "NA"
 
 class DataModel(object):
+    """The main data model
+
+    It stores the SwathRun objects and can be initialized from a list of files. 
+
+    Attributes:
+        runs:     A list of SwathRun objects
+
+    Methods:
+        get_precursors_tree:  Returns a list of ChromatogramTransition root elements (rows) to display in the left side tree
+                              view. Each element may contain nested ChromatogramTransition elements (tree elements).
+
+        get_runs:             Returns the list of SwathRun objects of this
+                              current data model
+
+        loadFiles:            Load a set of chromatogram files (no peakgroup information).
+
+        loadMixedFiles:       Load a set of chromatogram files (flat file list) and aligned peakgroup files. 
+
+        load_from_yaml:       Load a yaml file containing a mapping of chromatogram files and aligned peakgroup files.
+
+    """
 
     def __init__(self):
         self.runs = []
 
-    def loadFiles(self, filenames):
-
-        swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_files(filenames)
-        self.runs = [run for run in swathfiles.getSwathFiles()]
-
+    #
+    ## Getters
+    #
     def getStatus(self):
         if len(self.get_runs()) == 0:
             return "Ready"
@@ -96,60 +119,17 @@ class DataModel(object):
     def get_precursor_tree(self):
         return self._build_tree()
 
-    def _build_tree(self):
-
-        peptide_sequences = set([])
-        for r in self.get_runs():
-            peptide_sequences.update( r.get_all_peptide_sequences() )
-
-        ## The peptide sequences are our top-level items
-        # print "pepseqs", peptide_sequences
-        elements = []
-        for seq in peptide_sequences:
-
-            # get all precursors from all runs
-            precursors = set([])
-            for r in self.get_runs():
-                precursors.update( r.get_precursors_for_sequence(seq) )
-
-            # print "found precursros", precursors
-            pelements = []
-            for p in precursors:
-
-                # get all transitions from all runs
-                transitions = set([])
-                for r in self.get_runs():
-                    transitions.update( r.get_transitions_for_precursor(p) )
-                tr_elements = []
-                pm = PrecursorModel(p)
-                for tr in transitions:
-                    if DRAW_TRANSITIONS:
-                        tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr, peptideSequence = pm.getFullSequence(), datatype="Transition") )
-                pelements.append(ChromatogramTransition(p, pm.getCharge(), tr_elements, 
-                       peptideSequence = pm.getFullSequence(), datatype="Precursor") )
-            elements.append(ChromatogramTransition(seq, "NA", pelements, datatype="Peptide", 
-                       peptideSequence=pm.getFullSequence()) )
-        return elements
-
     def get_runs(self):
         return self.runs
 
+    #
+    ## Data loading
+    #
+    def loadFiles(self, filenames):
 
-    def loadFiles_with_peakgroups(self, RawData, aligned_pg_files):
-
-        # Read the chromatograms
         swathfiles = SwathRunCollection()
-        try:
-            swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in RawData] ) )
-        except KeyError:
-            swathfiles.initialize_from_chromatograms( dict( [ (d["id"], d["chromatograms"]) for d in RawData] ) )
+        swathfiles.initialize_from_files(filenames)
         self.runs = [run for run in swathfiles.getSwathFiles()]
-        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
-
-        try:
-            self.read_trafo(RawData)
-        except IOError:
-            self.read_peakgroup_files(aligned_pg_files, swathfiles)
 
     def loadMixedFiles(self, rawdata_files, aligned_pg_files):
         """ Load files that contain raw data files and aligned peakgroup files.
@@ -206,18 +186,21 @@ class DataModel(object):
         swathfiles = SwathRunCollection()
         swathfiles.initialize_from_chromatograms(mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
-        self.read_peakgroup_files(aligned_pg_files, swathfiles)
+        self._read_peakgroup_files(aligned_pg_files, swathfiles)
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
-        
+                    
+    def load_from_yaml(self, yamlfile):
 
-    def read_trafo(self, trafo_filenames):
-        # Read the transformations
-        transformation_collection_ = TransformationCollection()
-        for filename in [d["trafo_file"] for d in trafo_filenames]:
-          transformation_collection_.readTransformationData(filename)
-        transformation_collection_.initialize_from_data(reverse=True)
+        import yaml
+        data = yaml.load(open(yamlfile) )["AlignedSwathRuns"]
+        alignment_files = data["PeakGroupData"]
+        trafo_fnames = [d["trafo_file"] for d in data["RawData"]]
+        self._loadFiles_with_peakgroups(data["RawData"], alignment_files)
 
-    def read_peakgroup_files(self, aligned_pg_files, swathfiles):
+    #
+    ## Private functions
+    #
+    def _read_peakgroup_files(self, aligned_pg_files, swathfiles):
         """
         The peakgroup files have to have the following columns:
             - FullPeptideName
@@ -260,14 +243,62 @@ class DataModel(object):
                     swathrun._range_mapping[precursor_id]       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
                     swathrun._score_mapping[precursor_id]       = float(pg.get_value("m_score"))
                     swathrun._intensity_mapping[precursor_id]   = float(pg.get_value("Intensity"))
-                    
-    def load_from_yaml(self, yamlfile):
 
-        import yaml
-        data = yaml.load(open(yamlfile) )["AlignedSwathRuns"]
-        alignment_files = data["PeakGroupData"]
-        trafo_fnames = [d["trafo_file"] for d in data["RawData"]]
-        self.loadFiles_with_peakgroups(data["RawData"], alignment_files)
+    def _loadFiles_with_peakgroups(self, RawData, aligned_pg_files):
 
+        # Read the chromatograms
+        swathfiles = SwathRunCollection()
+        try:
+            swathfiles.initialize_from_directories( dict( [ (d["id"], d["directory"]) for d in RawData] ) )
+        except KeyError:
+            swathfiles.initialize_from_chromatograms( dict( [ (d["id"], d["chromatograms"]) for d in RawData] ) )
+        self.runs = [run for run in swathfiles.getSwathFiles()]
+        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
 
+        try:
+            self._read_trafo(RawData)
+        except IOError:
+            self._read_peakgroup_files(aligned_pg_files, swathfiles)
+
+    def _read_trafo(self, trafo_filenames):
+        # Read the transformations
+        transformation_collection_ = TransformationCollection()
+        for filename in [d["trafo_file"] for d in trafo_filenames]:
+          transformation_collection_.readTransformationData(filename)
+        transformation_collection_.initialize_from_data(reverse=True)
+
+    def _build_tree(self):
+
+        peptide_sequences = set([])
+        for r in self.get_runs():
+            peptide_sequences.update( r.get_all_peptide_sequences() )
+
+        ## The peptide sequences are our top-level items
+        # print "pepseqs", peptide_sequences
+        elements = []
+        for seq in peptide_sequences:
+
+            # get all precursors from all runs
+            precursors = set([])
+            for r in self.get_runs():
+                precursors.update( r.get_precursors_for_sequence(seq) )
+
+            # print "found precursros", precursors
+            pelements = []
+            for p in precursors:
+
+                # get all transitions from all runs
+                transitions = set([])
+                for r in self.get_runs():
+                    transitions.update( r.get_transitions_for_precursor(p) )
+                tr_elements = []
+                pm = PrecursorModel(p)
+                for tr in transitions:
+                    if DRAW_TRANSITIONS:
+                        tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr, peptideSequence = pm.getFullSequence(), datatype="Transition") )
+                pelements.append(ChromatogramTransition(p, pm.getCharge(), tr_elements, 
+                       peptideSequence = pm.getFullSequence(), datatype="Precursor") )
+            elements.append(ChromatogramTransition(seq, "NA", pelements, datatype="Peptide", 
+                       peptideSequence=pm.getFullSequence()) )
+        return elements
 

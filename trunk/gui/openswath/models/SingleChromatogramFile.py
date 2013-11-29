@@ -37,13 +37,26 @@ $Authors: Hannes Roest$
 
 import os
 
+class SingleChromatogramFile():
+    """Data Model for a single file from one run.
 
-class RunDataModel():
-    """Data Model for a single file from one run
+    One run may contain multiple mzML files
+
+    Public Attributes:
+        runid:          Current run id
+
+    Private Attributes:
+        _run:        A pymzml.run.Reader object
+        _filename:   Original filename
+        _basename:   Original filename basename
+        _precursor_mapping:   Dictionary { FullPrecursorName : [transition_id, transition_id] }
+        _sequences_mapping:   Dictionary { StrippedSequence : [FullPrecursorName, FullPrecursorName]}
+
     """
 
     def __init__(self, run, filename, load_in_memory=False):
         import os
+        print type(run)
         self._run = run
         self._filename = filename
         self._basename = os.path.basename(filename)
@@ -55,9 +68,9 @@ class RunDataModel():
         self._sequences_mapping = {}
 
         # may contain extra info for each precursor
-        self._range_mapping = {}
-        self._score_mapping = {}
-        self._intensity_mapping = {}
+        # self._range_mapping = {}
+        # self._score_mapping = {}
+        # self._intensity_mapping = {}
 
         if load_in_memory:
             # Load 10s, 580 MB for 3 files. takes ca 0.15 seconds to display
@@ -235,9 +248,6 @@ class RunDataModel():
     #
     ## Getters (data) -> see ChromatogramTransition.getData
     #
-    def get_data_for_transition(self, chrom_id):
-        c = self._run[str(chrom_id)] 
-        return [ [c.time, c.i] ]
 
     def getTransitionCount(self):
         if self._in_memory:
@@ -262,14 +272,14 @@ class RunDataModel():
 
         return transitions
 
-    def get_range_data(self, precursor):
-        return self._range_mapping.get(precursor, [0,0])
+    # def get_range_data(self, precursor):
+    #     return self._range_mapping.get(precursor, [0,0])
 
-    def get_score_data(self, precursor):
-        return self._score_mapping.get(precursor, None)
+    # def get_score_data(self, precursor):
+    #     return self._score_mapping.get(precursor, None)
 
-    def get_intensity_data(self, precursor):
-        return self._intensity_mapping.get(precursor, None)
+    # def get_intensity_data(self, precursor):
+    #     return self._intensity_mapping.get(precursor, None)
 
     def get_id(self):
         return self._basename
