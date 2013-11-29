@@ -266,9 +266,8 @@ class RunDataModel():
 
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            c = self._run[str(chrom_id)] 
-            chromatogram = c
-            transitions.append([c.time, c.i])
+            chromatogram = self._run[str(chrom_id)] 
+            transitions.append([chromatogram.time, chromatogram.i])
 
         if len(transitions) == 0: 
             return [ [ [0], [0] ] ]
@@ -291,7 +290,21 @@ class RunDataModel():
     ## Getters (info)
     #
     def get_transitions_for_precursor(self, precursor):
+        """
+        Return the transition names for a specific precursor
+        """
         return self._precursor_mapping.get(str(precursor), [])
+
+    def get_transitions_with_mass_for_precursor(self, precursor):
+        """
+        Return the transition names prepended with the mass for a specific precursor
+        """
+        transitions = []
+        for chrom_id in self._precursor_mapping[str(precursor)]:
+            chromatogram = self._run[str(chrom_id)] 
+            mz = chromatogram['precursors'][0]['mz']
+            transitions.append(str(mz) + " m/z (" + chrom_id + ")")
+        return transitions
 
     def get_precursors_for_sequence(self, sequence):
         return self._sequences_mapping.get(sequence, [])
@@ -368,6 +381,12 @@ class SwathRun(object):
         if run is None:
             return []
         return self.all_swathes[run].get_transitions_for_precursor(precursor)
+
+    def get_transitions_for_precursor_display(self, precursor):
+        run = self._precursor_run_map.get( str(precursor), None)
+        if run is None:
+            return []
+        return self.all_swathes[run].get_transitions_with_mass_for_precursor(precursor)
 
     def get_all_precursor_ids(self):
         return self._precursor_run_map.keys()
@@ -765,16 +784,23 @@ class ChromatogramTransition(object): # your internal structure
         return -1.0
 
     def getLabel(self, run):
-        return [l.split("/")[-1][2:] for l in self._getLabel(run)]
+        """
+        Get the labels for a curve (corresponding to the raw data from getData
+        call) for a certain object.
 
-    def _getLabel(self, run):
+        If we have a single precursors or a peptide with only one precursor, we
+        show the same data as for the precursor itself. For a peptide with
+        multiple precusors, we show all precursors as individual curves. For a
+        single transition, we simply plot that transition.
+        """
         if CHROMTYPES[self.mytype] == "Precursor" :
-            return run.get_transitions_for_precursor(self.getName())
+            return run.get_transitions_for_precursor_display(self.getName())
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
-                return run.get_transitions_for_precursor(prec[0])
+                return run.get_transitions_for_precursor_display(prec[0])
             else:
+                # Peptide view with multiple precursors
                 return prec
         elif CHROMTYPES[self.mytype] == "Transition" :
             return [self.getName()]
