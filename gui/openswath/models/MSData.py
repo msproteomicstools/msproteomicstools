@@ -258,7 +258,7 @@ class RunDataModel():
             return len(self._run.info['offsets']) -2
 
     def get_data_for_precursor(self, precursor):
-        """Retrieve data for a specific precursor - data will be as list of
+        """Retrieve raw data for a specific precursor - data will be as list of
         pairs (timearray, intensityarray)"""
 
         if not self._precursor_mapping.has_key(str(precursor)):
@@ -701,7 +701,21 @@ CHROMTYPES = {
 
 CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
 
-class ChromatogramTransition(object): # your internal structure
+class ChromatogramTransition(object):
+    """
+    Internal tree structure object representing one row in the in the left side tree
+
+    This is the bridge between the view and the data model
+
+    Pointers to objects of ChromatogramTransition are passed to callback
+    functions when the selection of the left side tree changes. The object
+    needs to have store information about all the column present in the rows
+    (PeptideSequence, Charge, Name) which are requested by the PeptideTree
+    model.
+
+    Also it needs to know how to access the raw data as well as meta-data for a
+    certain transition.  This is done through getData, getLabel etc.
+    """
 
     def __init__(self, name, charge, subelements, peptideSequence=None, fullName=None, datatype="Precursor"):
         self._name = name
@@ -729,6 +743,14 @@ class ChromatogramTransition(object): # your internal structure
         return CHROMTYPES[self.mytype]
 
     def getData(self, run):
+        """
+        Get raw data for a certain object
+
+        If we have a single precursors or a peptide with only one precursor, we
+        show the same data as for the precursor itself. For a peptide with
+        multiple precusors, we show all precursors as individual curves. For a
+        single transition, we simply plot that transition.
+        """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_data_for_precursor(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
@@ -736,8 +758,9 @@ class ChromatogramTransition(object): # your internal structure
             if len(prec) == 1:
                 return run.get_data_for_precursor(prec[0]) 
             else:
+                # Peptide view with multiple precursors
+                # -> Sum up the data for all individual precursors
                 final_data = []
-                # Sum up the data for all individual precursors
                 for p in prec:
                     timedata = None
                     intdata = None
