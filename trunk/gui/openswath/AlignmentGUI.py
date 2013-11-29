@@ -173,6 +173,9 @@ class GraphArea(QtGui.QWidget):
     def update_all_plots(self, chr_transition):
         """
         We update the plots for all runs.
+
+        1. Load the data from the ChromatogramTransition object
+        2. Plot the data for each plot, calling update_all_curves on each plot
         """
         # Get all data, compute overall min/max
         xmins = []
@@ -426,6 +429,9 @@ class MainWindow(QtGui.QMainWindow):
         self.statusBar().showMessage(self.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time_taken))
 
     def showDialog(self):
+        """
+        Show the open file dialog to load a new file.
+        """
 
         fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file')
         pyFileList = [str(f) for f in fileList]
@@ -444,8 +450,11 @@ class MainWindow(QtGui.QMainWindow):
         self._refresh_view(time=time.time()-start)
 
     def _refresh_view(self, time=0):
+        """
+        Refresh the whole application view (e.g. after loading new files)
+        """
 
-        # get precursors from data and set it 
+        # Get precursors from data model and then set the precursor tree structure
         precursor_model = self.application.get_precursor_model()
         precursor_model.set_precursor_tree_structure(self.data_model.get_precursor_tree())
         tmessage = ""
