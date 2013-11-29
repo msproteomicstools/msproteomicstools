@@ -42,17 +42,34 @@ from SwathRun import SwathRun
 class SwathRunCollection(object):
     """A collection of SWATH files
 
-    Contains multiple SwathRun objects which each represent one injection.
+    Contains multiple SwathRun objects which each represent one single mass
+    spectrometric injection. It can be initialized in three different ways,
+    either from a set of directories (assuming each directory is one run), a
+    set of files mapped to a run id (multiple files may be mapped to run id) or
+    a simple flat list of chromatogram files.
+    
+    Attributes:
+        swath_chromatograms     Dictionary mapping of the form { run_id : SwathRun}
+
+    Methods:
+        getSwathFiles:      Returns a list of SwathRun objects
+        getSwathFile:       Returns a SwathRun specified by the run id
+        getRunIds:          Returns all available run ids
+
     """
 
     def __init__(self):
         self.swath_chromatograms = {}
 
     def initialize_from_directories(self, runid_mapping):
-        """Initialize from a directory, assuming that all .mzML files in the
-        same directory are from the same run.
+        """Initialize from a directory
+        
+        This assumes that all .mzML files in the same directory are from the
+        same run. There may be multiple chromatogram (chrom.mzML) files mapped
+        to one run id.
 
-        Requires a dictionary of form { run_id : directory }
+        Args:
+            runid_mapping(dict): a dictionary of form { run_id : directory }
         """
         self.swath_chromatograms = {}
         for runid, dname in runid_mapping.iteritems():
@@ -61,9 +78,11 @@ class SwathRunCollection(object):
             self.swath_chromatograms[ runid ] = SwathRun(files, runid)
 
     def initialize_from_chromatograms(self, runid_mapping):
-        """Initialize from a set of chromatograms.
+        """Initialize from a set of mapped chromatogram files. There may be
+        multiple chromatogram (chrom.mzML) files mapped to one run id.
 
-        Requires a dictionary of form { run_id : [chromatogram_files] }
+        Args:
+            runid_mapping(dict): a dictionary of form { run_id : [chromatogram_files] }
         """
         self.swath_chromatograms = {}
         for runid, chromfiles in runid_mapping.iteritems():
@@ -71,7 +90,12 @@ class SwathRunCollection(object):
 
     def initialize_from_files(self, filenames):
         """Initialize from individual files, setting the runid as increasing
-        integers.  
+        integers. 
+
+        This assumes that each .mzML file is from a separate run.
+
+        Args:
+            filenames(list): a list of filenames
         """
         self.swath_chromatograms = {}
         for i,f in enumerate(filenames):
