@@ -76,6 +76,7 @@ AXIS_FONT_SIZE = 8
 AUTOSCALE_Y_AXIS = True
 # Turning off guiqwt (USE_GUIQWT=False) should be safer, it then uses the
 # fallback to plain Qwt.
+USE_GUIQWT = False
 USE_GUIQWT = True
 
 class Communicate(QtCore.QObject):
@@ -108,6 +109,7 @@ class GraphArea(QtGui.QWidget):
 
         self.initUI()
         self._wcount = 1
+        self.nr_rows = 3
         self.plots = []
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
@@ -176,7 +178,7 @@ class GraphArea(QtGui.QWidget):
 
             self.plot.zoomChanged.connect(self.plotZoomChanged) 
 
-            self.layout.addWidget(self.plot, i % 3, int(i/3) )
+            self.layout.addWidget(self.plot, i % self.nr_rows, int(i/self.nr_rows) )
             self.plots.append(self.plot)
 
     def reset_axis_all_plots(self, x_range, y_range, autoscale_y=False):
@@ -329,6 +331,7 @@ class PeptideTreeWidget(QtGui.QWidget):
     def get_precursor_model(self):
         return self._precursor_model
 
+
 #
 ## Main Widget
 # 
@@ -383,6 +386,77 @@ class ApplicationView(QtGui.QWidget):
         print "clicked iittt"
 
 
+
+#
+## Settings object
+# 
+class Settings(object):
+
+    def __init__(self):
+        self.check = False
+        self.nr_rows = 3
+
+#
+## Configuration Dialog
+# 
+class ConfigDialog(QtGui.QDialog):
+
+    def __init__(self, parent, settings):
+        QtGui.QDialog.__init__(self, parent)
+        self.settings = settings
+        self.parent = parent
+        self.initUI()
+
+    def closeAndSave(self):
+        self.settings.nr_rows = int(self.nr_rows.text())
+        self.parent.updateSettings(self.settings)
+        self.close()
+
+    def initUI(self):
+
+        # Right side layout
+        # contentsWidget = QtGui.QListWidget()
+
+        # Close button
+        self.closeButton = QtGui.QPushButton("Close");
+        self.closeButton.clicked.connect(self.closeAndSave)
+        # connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
+
+        # Left side layout
+        updateGroup = QtGui.QGroupBox("OpenSWATH settings");
+        self.checkbox = QtGui.QCheckBox("Check box");
+        label_rows = QtGui.QLabel("Number of window rows");
+        self.nr_rows = QtGui.QLineEdit();
+
+        self.checkbox.setChecked( self.settings.check )
+        self.nr_rows.setText( str(self.settings.nr_rows) )
+
+        updateLayout = QtGui.QVBoxLayout()
+        # updateLayout.addWidget(self.systemCheckBox);
+        updateLayout.addWidget(label_rows);
+        updateLayout.addWidget(self.nr_rows);
+        updateGroup.setLayout(updateLayout);
+
+        ###################################
+        # Composition of elements
+        ###################################
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        # self.horizontalLayout.addWidget(contentsWidget);
+        self.horizontalLayout.addWidget(updateGroup);
+
+        self.buttonsLayout = QtGui.QHBoxLayout()
+        self.buttonsLayout.addStretch(1);
+        self.buttonsLayout.addWidget(self.closeButton);
+
+        mainLayout = QtGui.QVBoxLayout()
+        mainLayout.addLayout(self.horizontalLayout);
+        mainLayout.addStretch(1);
+        mainLayout.addSpacing(12);
+        mainLayout.addLayout(self.buttonsLayout);
+        self.setLayout(mainLayout);
+
+        self.setWindowTitle("Config Dialog");
+
 #
 ## Main Window
 # 
@@ -397,6 +471,8 @@ class MainWindow(QtGui.QMainWindow):
         self.initUI()
         
     def initUI(self):               
+
+        self.settings = Settings()
         
         self.application = ApplicationView(self)
         self.application.set_communication(self.c)
@@ -413,6 +489,10 @@ class MainWindow(QtGui.QMainWindow):
         openFile.setStatusTip('Open new File')
         openFile.triggered.connect(self.showDialog)
 
+        openSettings = QtGui.QAction(icon, 'Open Settings', self)
+        openSettings.setStatusTip('Open settings dialog')
+        openSettings.triggered.connect(self.showSettings)
+
         exitAction = QtGui.QAction(icon, 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
@@ -426,6 +506,7 @@ class MainWindow(QtGui.QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(openFile)       
+        fileMenu.addAction(openSettings)       
         fileMenu.addAction(exitAction)
 
         ###################################
@@ -433,6 +514,7 @@ class MainWindow(QtGui.QMainWindow):
         ###################################
         toolbar = self.addToolBar('Exit')
         toolbar.addAction(openFile)
+        toolbar.addAction(openSettings)
         # toolbar.addAction(exitAction)
         
         # self.setGeometry(300, 300, 250, 150)
@@ -467,9 +549,20 @@ class MainWindow(QtGui.QMainWindow):
             self.data_model.loadMixedFiles(mzmls, others)
         self._refresh_view(time=time.time()-start)
 
+    def updateSettings(self, settings):
+        """
+        Update global settings (after closing the settings dialog)
+        """
+        self.application.graph_layout.nr_rows = settings.nr_rows
+        self._refresh_view()
+
+    def showSettings(self):
+        settings = ConfigDialog(self, self.settings)
+        settings.show()
+
     def _refresh_view(self, time=0):
         """
-        Refresh the whole application view (e.g. after loading new files)
+        Refresh the whole application view (e.g. after loading new files or changing the view)
         """
 
         # Get precursors from data model and then set the precursor tree structure
