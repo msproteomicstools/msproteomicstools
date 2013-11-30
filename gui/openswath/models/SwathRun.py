@@ -86,7 +86,11 @@ class SwathRun(object):
         accessible through the m/z of the first precursor.
         """
         for f in files:
+            print "Loading file", f
+            import time
+            start = time.time()
             run_ = pymzml.run.Reader(f, build_index_from_scratch=True)
+            print "Loading file", f, "took", time.time() - start
             run_.original_file = f
             first = run_.next()
             mz = first['precursors'][0]['mz']
