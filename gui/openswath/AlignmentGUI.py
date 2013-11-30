@@ -73,7 +73,6 @@ from PyQt4.QtCore import Qt, QModelIndex
 # global parameters
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
-AUTOSCALE_Y_AXIS = True
 # Turning off guiqwt (USE_GUIQWT=False) should be safer, it then uses the
 # fallback to plain Qwt.
 USE_GUIQWT = False
@@ -110,6 +109,7 @@ class GraphArea(QtGui.QWidget):
         self.initUI()
         self._wcount = 1
         self.nr_rows = 3
+        self.autoscale_y_axis = True
         self.plots = []
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
@@ -117,7 +117,7 @@ class GraphArea(QtGui.QWidget):
     @QtCore.pyqtSlot(float, float, float, float)
     def plotZoomChanged(self, xmin, xmax, ymin, ymax):
         # after (moving the image), adjust and replot _all_ plots
-        self.reset_axis_all_plots([xmin, xmax], [ymin, ymax], AUTOSCALE_Y_AXIS)
+        self.reset_axis_all_plots([xmin, xmax], [ymin, ymax], self.autoscale_y_axis)
 
     # def react_to_mouse(self):
     #     print "react to mouse press"
@@ -181,16 +181,16 @@ class GraphArea(QtGui.QWidget):
             self.layout.addWidget(self.plot, i % self.nr_rows, int(i/self.nr_rows) )
             self.plots.append(self.plot)
 
-    def reset_axis_all_plots(self, x_range, y_range, autoscale_y=False):
+    def reset_axis_all_plots(self, x_range, y_range, autoscale_y_axis=False):
         for i, pl in enumerate(self.plots):
             pl.set_x_limits(x_range[0], x_range[1])
-            if autoscale_y:
+            if autoscale_y_axis:
                 pl.set_y_limits_auto(x_range[0], x_range[1])
             else:
                 pl.set_y_limits(y_range[0], y_range[1])
             pl.replot()
 
-    def update_all_plots(self, chr_transition):
+    def update_all_plots(self, chr_transition, show_legend):
         """
         We update the plots for all runs.
 
@@ -215,7 +215,7 @@ class GraphArea(QtGui.QWidget):
             mscore = chr_transition.getProbScore(pl.run) 
             intensity = chr_transition.getIntensity(pl.run) 
             # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
-            pl.update_all_curves(data, labels, ranges, mscore, intensity)
+            pl.update_all_curves(data, labels, ranges, mscore, intensity, show_legend)
             pl.set_x_limits(min(xmins),max(xmaxs))
             pl.replot()
 
@@ -340,16 +340,17 @@ class ApplicationView(QtGui.QWidget):
     # Signals
     plotsUpdated = QtCore.pyqtSignal(float)
 
-    def __init__(self, parent):
+    def __init__(self, parent, settings):
         super(ApplicationView, self).__init__()
         self.parent = None
         self.treeiter = None
         self.initUI()
+        self.settings = settings
         
     @QtCore.pyqtSlot(QModelIndex)
     def treeSelectionChanged(self, idx):
         s = time.time()
-        self.graph_layout.update_all_plots(idx.internalPointer().ref)
+        self.graph_layout.update_all_plots(idx.internalPointer().ref, self.settings.show_legend)
         self.plotsUpdated.emit(time.time()-s)
 
     def initUI(self):
@@ -393,7 +394,8 @@ class ApplicationView(QtGui.QWidget):
 class Settings(object):
 
     def __init__(self):
-        self.check = False
+        self.show_legend = True
+        self.autoscale_y_axis = True
         self.nr_rows = 3
 
 #
@@ -409,6 +411,8 @@ class ConfigDialog(QtGui.QDialog):
 
     def closeAndSave(self):
         self.settings.nr_rows = int(self.nr_rows.text())
+        self.settings.show_legend = self.show_legend.isChecked()
+        self.settings.autoscale_y_axis = self.autoscale_y_axis.isChecked()
         self.parent.updateSettings(self.settings)
         self.close()
 
@@ -424,15 +428,18 @@ class ConfigDialog(QtGui.QDialog):
 
         # Left side layout
         updateGroup = QtGui.QGroupBox("OpenSWATH settings");
-        self.checkbox = QtGui.QCheckBox("Check box");
+        self.show_legend = QtGui.QCheckBox("Show legend");
+        self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
         label_rows = QtGui.QLabel("Number of window rows");
         self.nr_rows = QtGui.QLineEdit();
 
-        self.checkbox.setChecked( self.settings.check )
+        self.show_legend.setChecked( self.settings.show_legend )
+        self.autoscale_y_axis.setChecked( self.settings.autoscale_y_axis )
         self.nr_rows.setText( str(self.settings.nr_rows) )
 
         updateLayout = QtGui.QVBoxLayout()
-        # updateLayout.addWidget(self.systemCheckBox);
+        updateLayout.addWidget(self.show_legend);
+        updateLayout.addWidget(self.autoscale_y_axis);
         updateLayout.addWidget(label_rows);
         updateLayout.addWidget(self.nr_rows);
         updateGroup.setLayout(updateLayout);
@@ -474,7 +481,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.settings = Settings()
         
-        self.application = ApplicationView(self)
+        self.application = ApplicationView(self, self.settings)
         self.application.set_communication(self.c)
         self.application.plotsUpdated.connect(self.plotsUpdated)
         self.setCentralWidget(self.application)
@@ -554,6 +561,7 @@ class MainWindow(QtGui.QMainWindow):
         Update global settings (after closing the settings dialog)
         """
         self.application.graph_layout.nr_rows = settings.nr_rows
+        self.application.graph_layout.autoscale_y_axis = settings.autoscale_y_axis
         self._refresh_view()
 
     def showSettings(self):
