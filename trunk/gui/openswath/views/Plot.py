@@ -106,7 +106,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
         self.get_plot().set_axis_font("left", ax_font)
         self.get_plot().set_axis_font("bottom", ax_font)
 
-    def create_curves(self, labels, this_range):
+    def create_curves(self, labels, this_range, show_legend=True):
 
         self.curves = []
         plot = self.get_plot()
@@ -123,7 +123,8 @@ class GuiQwtMultiLinePlot(CurveDialog):
             plot.add_item( curve )
             curve.setRenderHint(QwtPlotItem.RenderAntialiased, USE_ANTIALIASING)
             l = make.legend("TR")
-            plot.add_item( l )
+            if show_legend:
+                plot.add_item( l )
 
         self.myrange = make.range(this_range[0], this_range[1])
         self.myrange.itemChanged()
@@ -178,10 +179,10 @@ class GuiQwtMultiLinePlot(CurveDialog):
         if len(allmin) == 0 or len(allmax) == 0 : return
         self.set_y_limits(min(allmin), max(allmax) )
 
-    def update_all_curves(self, data, labels, ranges, mscore, intensity):
+    def update_all_curves(self, data, labels, ranges, mscore, intensity, show_legend=True):
 
         assert len(data) == len(labels)
-        self.create_curves(labels, ranges)
+        self.create_curves(labels, ranges, show_legend)
         if mscore is not None: 
             self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
             self.get_plot().add_item( self.mscore_label )
@@ -255,7 +256,7 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         self.panner = Qwt.QwtPlotPanner( self.canvas() )
         self.panner.setMouseButton(Qt.Qt.MidButton)
 
-    def create_curves(self, labels, this_range):
+    def create_curves(self, labels, this_range, show_legend=True):
 
         # delete / detach all old curves
         for c in self.curves:
@@ -277,8 +278,10 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             curve.setRenderHint(QwtPlotItem.RenderAntialiased, USE_ANTIALIASING)
             self.curves.append(curve)
 
-        legend = Qwt.QwtLegend()
-        self.insertLegend(legend, Qwt.QwtPlot.BottomLegend);
+        if show_legend:
+            legend = Qwt.QwtLegend()
+            self.insertLegend(legend, Qwt.QwtPlot.BottomLegend);
+            # self.insertLegend(legend, Qwt.QwtPlot.ExternalLegend);
         xaxis_title = Qwt.QwtText("Time (seconds)")
         yaxis_title = Qwt.QwtText("Intensity")
         self.setAxisTitle(Qwt.QwtPlot.xBottom, xaxis_title)
@@ -369,11 +372,11 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             rect3.setWidth(diam)
             painter.drawEllipse(rect3.toRect())
 
-    def update_all_curves(self, data, labels, ranges, mscore, intensity):
+    def update_all_curves(self, data, labels, ranges, mscore, intensity, show_legend):
 
         assert len(data) == len(labels)
         # This takes about 70% of the time
-        self.create_curves(labels, ranges)
+        self.create_curves(labels, ranges, show_legend)
 
         self.labels = []
         self.has_mscore = False
@@ -385,7 +388,7 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             self.r_width = ranges[1]
 
             # create and add labels -> see drawCanvas
-            mscore_txt = QtGui.QStaticText ("mscore %0.4g" % mscore);
+            mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
             intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
             width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
             self.labels.extend([mscore_txt, intensity_txt, width_txt])
