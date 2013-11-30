@@ -44,6 +44,8 @@ http://www.lfd.uci.edu/~gohlke/pythonlibs/
 Get numpy (numpy-MKL-1.7.2rc1.win32-py2.7.exe)
 Get PyQt (PyQt-Py2.7-x32-gpl-4.9.6-1.exe)
 Get PyQwt (PyQwt-5.2.1-py2.7-x32-pyqt4.9.6-numpy1.7.1.exe)
+Get guiqwt (guiqwt-2.3.1.win32-py2.7.exe)
+Get guidata (guidata-1.6.1.win32-py2.7.exe)
 
 # Open command prompt, go to your home
 # This assumes you have a git and svn client. If you dont, one essay solution
