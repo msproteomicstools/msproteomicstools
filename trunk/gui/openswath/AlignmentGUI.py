@@ -39,15 +39,11 @@ $Authors: Hannes Roest$
 """
 OpenSwath Viewer
 
-Usage:
-    middle-mouse click : auto-zoom
-    middle-mouse move  : pan
-    right-mouse move   : zoom
-
 TODO: 
     use QDockWidget
 
 Structure
+
 - AlignmentGUI.py (main)
 ./models
     - ./models/TreeModels.py (contains the generic tree models)
@@ -66,6 +62,7 @@ Structure
 """
 
 import sys,time, re
+import argparse
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
@@ -494,7 +491,7 @@ class MainWindow(QtGui.QMainWindow):
         openFile = QtGui.QAction(icon, 'Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open new File')
-        openFile.triggered.connect(self.showDialog)
+        openFile.triggered.connect(self.showFileLoadDialog)
 
         openSettings = QtGui.QAction(icon, 'Open Settings', self)
         openSettings.setStatusTip('Open settings dialog')
@@ -535,15 +532,22 @@ class MainWindow(QtGui.QMainWindow):
     def plotsUpdated(self, time_taken):
         self.statusBar().showMessage(self.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time_taken))
 
-    def showDialog(self):
+    def showFileLoadDialog(self):
         """
-        Show the open file dialog to load a new file.
+        Show the open file dialog to load a new dataset.
         """
 
-        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open file')
-        pyFileList = [str(f) for f in fileList]
+        fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open dataset')
+        self.loadFiles( [str(f) for f in fileList] )
 
-        # Load the files
+    def loadFiles(self, pyFileList):
+        """ Load a set of files to display
+
+        1. Try to load single yaml file
+        2. Try to load a list of only mzML files
+        3. Try to load a mixed list of mzML and other files (.tsv)
+        """
+
         start = time.time() 
         if len(pyFileList) == 1 and pyFileList[0].endswith(".yaml"):
             self.data_model.load_from_yaml(pyFileList[0])
@@ -589,7 +593,22 @@ class MainWindow(QtGui.QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+def handle_args():
+    usage = ""
+    usage += "\nThis program will display chromatograms and associated peakgroups."
+
+    parser = argparse.ArgumentParser(description = usage )
+    parser.add_argument('--in', dest="infiles", required=False, nargs = '+', 
+                        help = 'A list of input files (.chrom.mzML and feature_alignment output files).')
+    args = parser.parse_args(sys.argv[1:])
+    return args
+
 if __name__ == '__main__':
+    options = handle_args()
     app = QtGui.QApplication(sys.argv)
     ex = MainWindow()
+    # Check whether any options were given on the commandline
+    if options.infiles is not None:
+        ex.loadFiles(options.infiles)
     sys.exit(app.exec_())
+
