@@ -402,13 +402,16 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     Create a new peakgroup from the old pg and then store the integrated intensity.
     """
 
-    current_rid  = current_run.get_id()
+    current_rid = current_run.get_id()
+    orig_filename = current_run.get_openswath_filename()
+    aligned_filename = current_run.get_aligned_filename()
+
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
     for element in ["transition_group_id", "run_id"]:
         newpg.set_value(element, template_pg.get_value(element))
-    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "align_origfilename", "filename", "m.z", "m/z", "nr_peaks"]:
+    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z", "nr_peaks"]:
         try:
             newpg.set_value(element, template_pg.get_value(element))
         except KeyError:
@@ -416,6 +419,8 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
             pass
 
     newpg.set_value("align_runid", current_rid)
+    newpg.set_value("filename", orig_filename)
+    newpg.set_value("align_origfilename", aligned_filename)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)

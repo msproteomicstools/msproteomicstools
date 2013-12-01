@@ -203,6 +203,8 @@ class GeneralPeakGroup(PeakGroupBase):
         return self.row[self.run.header_dict[value]]
 
     def set_value(self, key, value):
+        if value is None:
+            value = "NA"
         self.row[self.run.header_dict[key]] = value
 
     def get_dscore(self):
@@ -403,15 +405,23 @@ class Run():
         - a dictionary of precursors, accessible through a dictionary
     """
 
-    def __init__(self, header, header_dict, runid, orig_filename):
+    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None):
         self.header = header
         self.header_dict = header_dict
         self.runid = runid
-        self.orig_filename = orig_filename
+        self.orig_filename = orig_input_filename # the original input filename
+        self.openswath_filename = filename # the original OpenSWATH filename
+        self.aligned_filename = aligned_filename # the aligned filename
         self.all_peptides = {}
   
     def get_id(self):
         return self.runid
+
+    def get_openswath_filename(self):
+        return self.openswath_filename
+
+    def get_aligned_filename(self):
+        return self.aligned_filename
   
     def get_best_peaks(self):
         result = []
@@ -527,7 +537,13 @@ class SWATHScoringReader:
             current_run = [r for r in runs if r.get_id() == runid]
             # check if we have a new run
             if len(current_run) == 0:
-                current_run = Run(header, header_dict, runid, f)
+                orig_fname = None
+                aligned_fname = None
+                if header_dict.has_key("align_origfilename"):
+                    aligned_fname = this_row[header_dict[ "align_origfilename"] ]
+                if header_dict.has_key("filename"):
+                    orig_fname = this_row[header_dict[ "filename"] ]
+                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname)
                 runs.append(current_run)
             else: 
                 assert len(current_run) == 1
