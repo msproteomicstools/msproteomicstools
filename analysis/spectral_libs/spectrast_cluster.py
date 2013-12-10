@@ -45,7 +45,10 @@ from configobj     import ConfigObj
 #DEPRECATED: from cluster     import HierarchicalClustering
 import numpy as np
 from sklearn.cluster import DBSCAN
-
+from sklearn.cluster import Ward
+from sklearn.cluster import MeanShift, estimate_bandwidth
+from sklearn.neighbors import kneighbors_graph
+    
 import     msproteomicstoolslib.format.speclib_db_lib         as         speclib_db_lib
 
 def usage() :
@@ -60,19 +63,15 @@ def usage() :
     print "-d    distance        --distance        Cluster distance. Default : 1"
     print ""
 
-
-def clusterRT(values, rt_maximal_distance) :
-    #If not any sample is over the threshold --> return the list as it is
+def clusterRT_ward(values) :
     if len(values) == 0 : return []
 
-    ## DEPRECATED : we don't use anymore the cluster library
-    #cl = HierarchicalClustering(values, lambda x,y: abs(x-y))
-    #cl_output = cl.getlevel(rt_maximal_distance)     # get clusters of items closer than rt_maximal_distance
-
-    v = [[val] for val in values]
-    db = DBSCAN(eps=rt_maximal_distance,min_samples=1).fit(np.asarray(v))
-    labels = db.labels_
+    v = sorted([[val] for val in values])
     
+    #connectivity = kneighbors_graph(np.asarray(v), n_neighbors=3)
+    ward = Ward(n_clusters=2).fit(np.asarray(v))
+    labels = ward.labels_
+
     curr_l = -2
     cl_output = []
     curr_cluster = []
@@ -86,15 +85,73 @@ def clusterRT(values, rt_maximal_distance) :
     
     return cl_output
 
+def clusterRT_meanshift(values,bandwidth) :
+    if len(values) == 0 : return []
+
+    v = sorted([[val] for val in values])
+    
+    bandwidth = estimate_bandwidth(np.asarray(v), quantile=0.1, n_samples=int(len(v)))
+    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True, min_bin_freq = 2, cluster_all = False)
+    ms.fit(np.asarray(v))
+    labels = ms.labels_
+
+    curr_l = -2
+    cl_output = []
+    curr_cluster = []
+    for i,l in enumerate(labels) :
+        if l != curr_l :
+            if len(curr_cluster) > 0 : cl_output.append(curr_cluster)
+            curr_l = l
+            curr_cluster = []
+        curr_cluster.append(values[i])
+    cl_output.append(curr_cluster)
+    
+    return cl_output
+    
+
+def clusterRT(values, rt_maximal_distance, algorithm=False) :
+    if algorithm == "ward" : return clusterRT_ward(values)
+    if algorithm == "meanshift" : return clusterRT_meanshift(values, rt_maximal_distance)
+     
+    #If not any sample is over the threshold --> return the list as it is
+    if len(values) == 0 : return []
+    
+    ## DEPRECATED : we don't use anymore the cluster library
+    #cl = HierarchicalClustering(values, lambda x,y: abs(x-y))
+    #cl_output = cl.getlevel(rt_maximal_distance)     # get clusters of items closer than rt_maximal_distance
+
+    values = sorted(values)
+    v = [[val] for val in values]
+    print v
+    db = DBSCAN(eps=rt_maximal_distance,min_samples=2).fit(np.asarray(v))
+    labels = db.labels_
+    print labels
+    
+    curr_l = -2
+    cl_output = []
+    curr_cluster = []
+    for i,l in enumerate(labels) :
+        if l != curr_l :
+            if len(curr_cluster) > 0 : cl_output.append(curr_cluster)
+            curr_l = l
+            curr_cluster = []
+        curr_cluster.append(values[i])
+    cl_output.append(curr_cluster)
+    
+    print cl_output
+    return cl_output
+
 
 
 
 def main(argv) :
 
     distance        = 1.0
+    algorithm       = False
+    
     #Get options
     try:
-        opts, args = getopt.getopt(argv, "hd:i:t:",["help","distance"])
+        opts, args = getopt.getopt(argv, "hd:i:t:a:",["help","distance","algorithm"])
 
     except getopt.GetoptError:
         usage()
@@ -107,6 +164,9 @@ def main(argv) :
             sys.exit()
         if opt in ("-d","--distance") :
             distance = float(arg)
+            argsUsed += 2
+        if opt in ("-a","--algorithm") :
+            algorithm = arg
             argsUsed += 2
     
     
@@ -162,7 +222,7 @@ def main(argv) :
         print "cluster spectra by iRTs..."
         for sequence, spectra in peptide_spectra.iteritems() :
             print sequence, spectra
-            rt_clusters = clusterRT(spectra.values(), distance)
+            rt_clusters = clusterRT(spectra.values(), distance, algorithm = algorithm)
             
             if len(rt_clusters) > max_num_of_clusters : max_num_of_clusters = len(rt_clusters)
             
