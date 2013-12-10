@@ -122,10 +122,10 @@ def clusterRT(values, rt_maximal_distance, algorithm=False) :
 
     values = sorted(values)
     v = [[val] for val in values]
-    print v
+    #print v
     db = DBSCAN(eps=rt_maximal_distance,min_samples=2).fit(np.asarray(v))
     labels = db.labels_
-    print labels
+    #print labels
     
     curr_l = -2
     cl_output = []
@@ -138,7 +138,7 @@ def clusterRT(values, rt_maximal_distance, algorithm=False) :
         curr_cluster.append(values[i])
     cl_output.append(curr_cluster)
     
-    print cl_output
+    #print cl_output
     return cl_output
 
 
@@ -221,7 +221,7 @@ def main(argv) :
         
         print "cluster spectra by iRTs..."
         for sequence, spectra in peptide_spectra.iteritems() :
-            print sequence, spectra
+            print sequence  #, spectra
             rt_clusters = clusterRT(spectra.values(), distance, algorithm = algorithm)
             
             if len(rt_clusters) > max_num_of_clusters : max_num_of_clusters = len(rt_clusters)
