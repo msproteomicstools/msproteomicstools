@@ -136,7 +136,7 @@ class DataModel(object):
 
         Since no mapping is present here, we need to infer it from the data.
         Basically, we try to map the column align_runid to the filenames of the
-        input .chrom.mzML hopeing that the user did not change the filenames.
+        input .chrom.mzML hoping that the user did not change the filenames.
         """
 
         print "Input contained no mapping of run_id to the chromatograms."

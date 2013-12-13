@@ -67,17 +67,10 @@ class SingleChromatogramFile():
         # Map which holds the relationship between a sequence and its precursors
         self._sequences_mapping = {}
 
-        # may contain extra info for each precursor
-        # self._range_mapping = {}
-        # self._score_mapping = {}
-        # self._intensity_mapping = {}
-
         if load_in_memory:
-            # Load 10s, 580 MB for 3 files. takes ca 0.15 seconds to display
             self._group_by_precursor_in_memory()
             self._in_memory = True
         else:
-            # Load 0.7 s, 55.9 MB for 3 files. takes ca 0.15 seconds to display
             self._group_by_precursor()
             self._in_memory = False
 
@@ -271,15 +264,6 @@ class SingleChromatogramFile():
             return [ [ [0], [0] ] ]
 
         return transitions
-
-    # def get_range_data(self, precursor):
-    #     return self._range_mapping.get(precursor, [0,0])
-
-    # def get_score_data(self, precursor):
-    #     return self._score_mapping.get(precursor, None)
-
-    # def get_intensity_data(self, precursor):
-    #     return self._intensity_mapping.get(precursor, None)
 
     def get_id(self):
         return self._basename
