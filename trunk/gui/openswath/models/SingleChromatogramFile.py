@@ -300,8 +300,11 @@ class SingleChromatogramFile():
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             chromatogram = self._run[str(chrom_id)] 
-            mz = chromatogram['precursors'][0]['mz']
-            transitions.append(str(mz) + " m/z (" + chrom_id + ")")
+            try:
+                mz = chromatogram['product']['target_mz']
+            except KeyError:
+                mz = 0.0
+            transitions.append("%.2f" % mz + " m/z (" + chrom_id + ")")
         return transitions
 
     def get_precursors_for_sequence(self, sequence):
