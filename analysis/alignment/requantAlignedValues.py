@@ -409,9 +409,9 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
-    for element in ["transition_group_id", "run_id"]:
+    for element in ["transition_group_id"]:
         newpg.set_value(element, template_pg.get_value(element))
-    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z", "nr_peaks"]:
+    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z"]:
         try:
             newpg.set_value(element, template_pg.get_value(element))
         except KeyError:
@@ -419,6 +419,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
             pass
 
     newpg.set_value("align_runid", current_rid)
+    newpg.set_value("run_id", current_rid)
     newpg.set_value("filename", orig_filename)
     newpg.set_value("align_origfilename", aligned_filename)
     newpg.set_value("RT", (left_start + right_end) / 2.0 )

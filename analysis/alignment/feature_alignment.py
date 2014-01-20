@@ -229,7 +229,8 @@ class Experiment(MRExperiment):
                     if selected_pg is None: continue
                     row_to_write = selected_pg.row
                     row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
-                    # Replace runid
+                    # Replace run_id with the aligned id (align_runid) ->
+                    # otherwise the run_id is not guaranteed to be unique 
                     row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                     writer.writerow(row_to_write)
         elif len(outfile) > 0 and file_format == "openswath":
@@ -263,7 +264,8 @@ class Experiment(MRExperiment):
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
                           row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
-                          # Replace runid
+                          # Replace run_id with the aligned id (align_runid) ->
+                          # otherwise the run_id is not guaranteed to be unique 
                           row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                           writer.writerow(row_to_write)
 
