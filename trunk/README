@@ -13,7 +13,17 @@
 
 ==== Instructions ====
 {{{
-copy to a directory in your $PYTHONPATH
+To install you should run
+
+$ python setup.py install 
+
+if you would like to install it to a local folder, you can use 
+
+$ python setup.py install --prefix=/your/install/path 
+
+to install it to any path on your system (just make sure that this path is in
+your $PYTHONPATH and add the./bin folder to your $PATH).
+
 }}}
 
 }}}
@@ -30,5 +40,4 @@ $ nosetests test --with-coverage --cover-package=msproteomicstoolslib
 
 
 }}}
-
 

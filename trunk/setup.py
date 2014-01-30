@@ -31,5 +31,16 @@ setup(name='msproteomicstools',
       url='https://code.google.com/p/msproteomicstools',
       license='Modified BSD',
       platforms='any that supports python 2.7',
+      classifiers=[
+      'Environment :: Console',
+      'Intended Audience :: Science/Research',
+      'License :: OSI Approved :: BSD License',
+      'Operating System :: OS Independent',
+      'Topic :: Scientific/Engineering :: Bio-Informatics',
+      'Topic :: Scientific/Engineering :: Chemistry',
+      ],
+      # install_requires= TODO
+      test_suite="nose.collector",
+      tests_require="nose",
       )
 
