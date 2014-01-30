@@ -133,7 +133,7 @@ class Experiment(MRExperiment):
         print "="*75
         print "="*75
         print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
-                "peakgroups quantified in at least %s run(s) below FDR %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
+                "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
@@ -540,13 +540,13 @@ def main(options):
     # Create experiment
     this_exp = Experiment()
     this_exp.set_runs(runs)
-    if options.verbosity >= 5: print("Reading the input files took %ss" % (time.time() - start) )
+    print("Reading the input files took %ss" % (time.time() - start) )
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
     start = time.time()
     multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=False, verbosity=options.verbosity)
-    if options.verbosity >= 5: print("Mapping the precursors took %ss" % (time.time() - start) )
+    print("Mapping the precursors took %ss" % (time.time() - start) )
 
     if options.target_fdr > 0:
         ### Do parameter estimation
@@ -582,7 +582,7 @@ def main(options):
                 options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
 
         options.fdr_cutoff = fdr_cutoff_calculated
-        print "Using an FDR cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
+        print "Using an m_score (q-value) cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
         print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
         print("Parameter estimation took %ss" % (time.time() - start) )
         print "-"*35
@@ -597,7 +597,7 @@ def main(options):
         tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         this_exp.transformation_collection = tcoll
 
-        if options.verbosity >= 5: print("Aligning the runs took %ss" % (time.time() - start) )
+        print("Aligning the runs took %ss" % (time.time() - start) )
 
     try:
         options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
@@ -610,7 +610,7 @@ def main(options):
     start = time.time()
     alignment = AlignmentAlgorithm().align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
 
-    if options.verbosity >= 5: print("Re-aligning peak groups took %ss" % (time.time() - start) )
+    print("Re-aligning peak groups took %ss" % (time.time() - start) )
     if options.remove_outliers:
       outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
     else: outlier_detection = None
@@ -630,7 +630,7 @@ def main(options):
     start = time.time()
     this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
     this_exp.write_to_file(multipeptides, options)
-    if options.verbosity >= 5: print("Writing output took %ss" % (time.time() - start) )
+    print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
     options = handle_args()
