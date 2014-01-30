@@ -435,7 +435,7 @@ class ParamEst(object):
             return fdr/100.0
 
         # We have run through without stopping
-        if abs(prev_fdr - fdr) < 1e-6:
+        if prev_fdr == fdr:
             raise Exception("Parameter estimation did not reach a high enough value")
 
         # Linear interpolation
