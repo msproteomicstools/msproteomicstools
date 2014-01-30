@@ -1,0 +1,7 @@
+recursive-include msproteomicstoolslib *.py
+recursive-include analysis *.py
+recursive-include gui *.py
+recursive-include test *.py
+recursive-include test/data *
+setup.py
+
