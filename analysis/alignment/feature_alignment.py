@@ -386,10 +386,15 @@ class ParamEst(object):
         val_005 = self._calc_precursor_fr(multipeptides, (start+stepsize)/100.0 )*100
         val_1 = self._calc_precursor_fr(multipeptides, end/100.0 )*100
         if self.verbose: print "Decoy pcnt aim:", decoy_pcnt
-        if self.verbose: print decoy_pcnt, val_1, val_005
+        if self.verbose: print "Aim, high_value, low_value", decoy_pcnt, val_1, val_005
 
-        # Check if our computed value lies between 0.05% and 1% FDR cutoff
-        if decoy_pcnt < val_005:
+        # Check if 
+        # i)   we already found the correct value (no need for iteration)
+        # ii)  our computed value lies between 0.05% and 1% FDR cutoff
+        # iii) is higher than 1% 
+        if recursion == 0 and abs(decoy_pcnt - val_1) < 1e-6:
+            return decoy_frac
+        elif decoy_pcnt < val_005:
             return self.find_iterate_fdr(multipeptides, decoy_frac, recursion=recursion+1)
         elif decoy_pcnt > val_1:
             if self.verbose: print "choose larger step from 0.5 on"
@@ -411,8 +416,17 @@ class ParamEst(object):
         for fdr in fdrrange:
             calc_fdr = self._calc_precursor_fr(multipeptides, fdr/100.0 )*100
             if self.verbose: print fdr, calc_fdr
+
+            # Break if the calculated FDR is higher than our aim -> the true
+            # value lies between this and the previous value.
             if calc_fdr > decoy_pcnt:
                 break
+
+            # Break if the calculated FDR is (almost) exactly our aim -> the
+            # user wants to have exactly this FDR
+            if abs(calc_fdr - decoy_pcnt) < 1e-6:
+                break
+
             prev_fdr = fdr
             prev_calc_fdr = calc_fdr
 
