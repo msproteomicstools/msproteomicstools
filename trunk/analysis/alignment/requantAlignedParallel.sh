@@ -63,7 +63,15 @@ uniqtmpdir=$(mktemp -d)
 for i in $in
 do
 	tempout=$(mktemp --tmpdir=$uniqtmpdir)
-	echo requantAlignedValues.py $requantArgs --out $tempout --do_single_run $i
+	gz="$(find $(dirname $i) -name \*.gz)"
+	if [ "$gz" != "" ]; then
+	    echo -n "gunzip -c $gz > ${gz%%.gz} && "
+	fi
+	echo -n requantAlignedValues.py $requantArgs --out $tempout --do_single_run $i
+	if [ ! -z "$gz" ]; then
+	    echo -n " && rm ${gz%%.gz}"
+	fi
+	echo
 done | parallel --halt 2 -j $threads
 
 awk "NR==1 || FNR!=1" $uniqtmpdir/* $peakgroups_infile > $out
