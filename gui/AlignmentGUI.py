@@ -83,17 +83,18 @@ class Communicate(QtCore.QObject):
 # 
 ## Data Model and Tree Model
 #
-from models.MSData import DataModel
-from models.PeptideTree import PeptideTree
+from openswathgui import *
+from openswathgui.models.MSData import DataModel
+from openswathgui.models.PeptideTree import PeptideTree
 
 # 
 ## Views for the plots and the peptide tree (on the right)
 #
-from views.PeptideTree import PeptidesTreeView
+from openswathgui.views.PeptideTree import PeptidesTreeView
 if USE_GUIQWT:
-    from views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
+    from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
 else:
-    from views.Plot import QwtMultiLinePlot as MultiLinePlot
+    from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
 
 # 
 ## The widget for the graphing area on the right
