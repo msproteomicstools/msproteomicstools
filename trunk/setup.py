@@ -8,6 +8,7 @@ all_scripts = []
 for root, dirnames, filenames in os.walk('analysis'):
   for filename in fnmatch.filter(filenames, '*.py'):
       all_scripts.append(os.path.join(root, filename))
+all_scripts.extend(["./gui/AlignmentGUI.py"])
 
 setup(name='msproteomicstools',
       version='0.1.0',
@@ -23,7 +24,7 @@ setup(name='msproteomicstools',
                   "openswathgui.views",
                  ],
       package_dir = {
-          'openswathgui': 'gui/openswath',
+          'openswathgui': 'gui/openswathgui',
       },
       scripts=all_scripts,
       description='Tools for MS-based proteomics',
