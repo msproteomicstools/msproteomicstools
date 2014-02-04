@@ -44,7 +44,7 @@ from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file,write_out_excel_file
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 
 class Experiment(MRExperiment):
     """
@@ -265,14 +265,15 @@ def handle_args():
 
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
-    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row")
-    parser.add_argument("--out_excel", dest="matrix_excel", default="", help="Matrix containing colored peak groups in XLS format")
+    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per (supports .csv, .tsv or .xls)")
 
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument('--output_method', default='none', help="Which output method is used (RT, score or none)")
     parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     parser.add_argument('--remove_requant_values', action='store_true', default=False)
+    parser.add_argument('--aligner_mscore_threshold', type=float, default=1.0, help="cutoff used at alignment, for coloring realigned values in blue")
+
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -360,11 +361,7 @@ def main(options):
     if len(options.matrix_outfile) > 0:
         write_out_matrix_file(options.matrix_outfile, this_exp.runs, multipeptides,
                               options.min_frac_selected, style=options.output_method, 
-                              write_requant = not options.remove_requant_values)
-    if len(options.matrix_excel) > 0:
-        write_out_excel_file(options.matrix_excel,this_exp.runs, multipeptides, 
-                             options.min_frac_selected, style=options.output_method,
-                             write_requant = not options.remove_requant_values)
+                              write_requant = not options.remove_requant_values, aligner_mscore_treshold=options.aligner_mscore_threshold)
     print("Writing output took %ss" % (time.time() - start) )
 
 if __name__=="__main__":
