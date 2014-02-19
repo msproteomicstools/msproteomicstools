@@ -9,6 +9,7 @@
 - for spline alignment, one of the following two:
 -- scikit-datasmooth
 -- rpy2 and R installation
+-- python-xlwt
 }}}
 
 ==== Instructions ====
