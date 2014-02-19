@@ -210,7 +210,7 @@ class Experiment(MRExperiment):
             del id_writer
 
         if len(matrix_outfile) > 0:
-            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected)
+            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected, aligner_mscore_treshold=options.fdr_cutoff)
 
         if len(outfile) > 0 and options.readmethod == "full":
             # write out the complete original files 
@@ -274,7 +274,10 @@ class Experiment(MRExperiment):
         if len(yaml_outfile) > 0:
             import yaml
             myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
-                      "ReferenceRun" : self.transformation_collection.getReferenceRunID() }
+                      "ReferenceRun" : self.transformation_collection.getReferenceRunID(), 
+                      "Parameters" : {}
+                     }
+            myYaml["Parameters"]["m_score_cutoff"] = options.fdr_cutoff
             for current_run in self.runs:
                 current_id = current_run.get_id()
                 ref_id = self.transformation_collection.getReferenceRunID()
