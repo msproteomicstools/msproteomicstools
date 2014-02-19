@@ -165,7 +165,6 @@ class SmoothingRExtern:
         sm = smooth.spline(df$data1,df$data2,cv=T)
         prediction = predict(sm,predict_on[,1])$y 
         write.table(data.frame(predict_on, prediction), outfile, sep="\t", row.names=FALSE)
-
         """)
         fh.close()
 
@@ -175,9 +174,18 @@ class SmoothingRExtern:
         os.system(cmd)
 
         import csv
-        r = csv.reader(open(fname_out), delimiter="\t")
-        r.next()
-        arr = numpy.array([ (float(line[0]),float(line[1])) for line in r ])
+        try:
+            r = csv.reader(open(fname_out), delimiter="\t")
+            r.next()
+            arr = numpy.array([ (float(line[0]),float(line[1])) for line in r ])
+        except IOError:
+            print "Something went wrong, I cannot find the file at ", fname_out
+            print "Debug output:"
+            print "Input data length (d1, d2):", len(data1), len(data2)
+            print "Input data length:", len(predict_data)
+            print "Temporary directory :", TMPDIR
+            raise IOError
+
 
         # Cleanup
         os.system("rm %s" % fname)
