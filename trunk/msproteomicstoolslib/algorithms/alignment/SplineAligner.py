@@ -110,6 +110,10 @@ class SplineAligner():
                                              use_linear = self.use_linear_,
                                              use_external_r = self.use_external_r_,
                                              tmpdir = self.tmpdir_)
+        if len(data2) < 2:
+            print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
+                run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)
+            raise Exception("Not enough datapoints")
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 
