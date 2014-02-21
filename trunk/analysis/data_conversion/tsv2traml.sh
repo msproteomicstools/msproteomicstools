@@ -35,7 +35,7 @@
 set -e
 
 [ "$#" -lt 2 ] && echo "Usage: $0 input.tsv output.traML
-Checks and converts input.tsv into output.traML file" && exit 1 
+Converts input.tsv transition list into SWATH ready output.traML with decoys" && exit 1
 
 #check inputfile
 if [ $(grep -c "	" $1) -eq 0 ]

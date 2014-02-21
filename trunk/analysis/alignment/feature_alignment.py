@@ -277,7 +277,7 @@ class Experiment(MRExperiment):
                       "ReferenceRun" : self.transformation_collection.getReferenceRunID(), 
                       "Parameters" : {}
                      }
-            myYaml["Parameters"]["m_score_cutoff"] = options.fdr_cutoff
+            myYaml["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff)
             for current_run in self.runs:
                 current_id = current_run.get_id()
                 ref_id = self.transformation_collection.getReferenceRunID()
