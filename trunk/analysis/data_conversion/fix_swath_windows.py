@@ -90,8 +90,8 @@ ms_level = re.compile('msLevel="2"')
 
 def rewrite_single_scan(mybuffer, swathscan):
     # use middle point
-    start = int(paramfile[ scanwindow ][0])
-    end = int(paramfile[ scanwindow ][1])
+    start = float(paramfile[ scanwindow ][0])
+    end = float(paramfile[ scanwindow ][1])
     middle = (start + end)/2.0
     width = end - start
     mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %
