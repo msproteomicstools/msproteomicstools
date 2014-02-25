@@ -88,12 +88,41 @@ scan_nr = re.compile('<scan num="([\d]*)"')
 scan_type = re.compile('scanType="(.*)"')
 ms_level = re.compile('msLevel="2"')
 
+def estimateCorrectSwathScan(center):
+    # Try to estimate which was the correct Swath window from the center of the
+    # window alone.
+
+    result = []
+    for entry in paramfile:
+        if center >= float(entry[0]) and center <= float(entry[1]):
+            result.append( [float(entry[0]), float(entry[1]) ] )
+    
+    if len(result) > 2:
+        raise Exception("More than one entry in the param file match the center", center)
+    if len(result) == 0:
+        raise Exception("No entry in the param file matches the center", center)
+    
+    return result[0]
+
 def rewrite_single_scan(mybuffer, swathscan):
     # use middle point
     start = float(paramfile[ scanwindow ][0])
     end = float(paramfile[ scanwindow ][1])
     middle = (start + end)/2.0
     width = end - start
+    # TODO check if window wideness is already present ... 
+    precursor_match = precursor_re.search(mybuffer)
+    if precursor_match:
+        # Ensure that the center of the window is inside the SWATH 
+        old_center = float(precursor_match.group(2))
+        if not (old_center > start and old_center < end):
+            print "WARNING: previous precursorMz", old_center, \
+              "did not fall inside the expected SWATH window %s to %s." % (start, end)
+            start, end = estimateCorrectSwathScan(old_center)
+            print "  Will replace it with a window from %s to %s" % (start, end)
+            middle = (start + end)/2.0
+            width = end - start
+
     mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %
             {'width' : width, 'middle' : middle }, mybuffer)
     mybuffer = scan_type.sub( """scanType="SIM" """, mybuffer)
