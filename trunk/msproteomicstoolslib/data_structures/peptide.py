@@ -231,7 +231,7 @@ class Peptide:
                     if mod.aminoacid == aa : modSites.append(site)  
         
         for subset in itertools.combinations(modSites, num_of_switchMods) :
-            newmods = { key : mod for key, mod in fixed_modifications.iteritems() }  #Keep the fixed modifications!
+            newmods = dict([ (key, mod) for key, mod in fixed_modifications.iteritems() ])  #Keep the fixed modifications!
             for idx in subset : newmods[idx+1] = switchingModification
             isoform = Peptide(self.sequence, newmods, aminoacidLib = self.aaList)
             peptide_family.append(isoform)
