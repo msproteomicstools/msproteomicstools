@@ -63,12 +63,13 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
     matrix_writer.newline()
 
     for m in multipeptides:
+        selected_peakgroups = m.get_selected_peakgroups()
+        if (len(selected_peakgroups) * 1.0 / len(allruns) < fraction_needed_selected): continue
+
         for i in [m.get_id(), m.find_best_peptide_pg().peptide.protein_name]:
             matrix_writer.write(i)
 
         rts = []
-        selected_peakgroups = m.get_selected_peakgroups()
-        if (len(selected_peakgroups) * 1.0 / len(allruns) < fraction_needed_selected): continue
         for rid in run_ids:
             pg = None
             if m.has_peptide(rid):
