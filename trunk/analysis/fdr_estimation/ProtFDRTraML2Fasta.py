@@ -32,7 +32,7 @@ for line in infile:
     if not protein_dic.has_key(protein):
         p = Protein(protein)
         protein_dic[protein] = p
-    p.add_peptide(peptide)
+    protein_dic[protein].add_peptide(peptide)
 
 
 # output
