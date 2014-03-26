@@ -356,7 +356,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.RetTime_detected != -1 :
+                if spectrum.iRT_detected != -1 :
+                    RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                elif spectrum.RetTime_detected != -1 :
                     RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
                 if not useMinutes : RT_experimental = RT_experimental * 60
                 try :
@@ -534,7 +536,9 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.RetTime_detected != -1 :
+                if spectrum.iRT_detected != -1 :
+                    RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                elif spectrum.RetTime_detected != -1 :
                     RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
                 if not useMinutes : RT_experimental = RT_experimental * 60
                 try :
@@ -857,7 +861,9 @@ def main(argv) :
             
             irt_sequence = -100
             RT_experimental = 0.0
-            if spectrum.RetTime_detected != -1 :
+            if spectrum.iRT_detected != -1 :
+                RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+            elif spectrum.RetTime_detected != -1 :
                 RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
 
             if not useMinutes : RT_experimental = RT_experimental * 60
