@@ -168,5 +168,18 @@ class TestUnitSmoothing(unittest.TestCase):
         # the input and output need to be identical!
         self.assertEqual(re_dupl, arr)
 
+    def test_gettingOperator(self):
+        op = smoothing.get_smooting_operator()
+        self.assertTrue(isinstance(op, smoothing.SmoothingR))
+
+        op = smoothing.get_smooting_operator(use_linear=True)
+        self.assertTrue(isinstance(op, smoothing.SmoothingLinear))
+
+        op = smoothing.get_smooting_operator(use_scikit=True)
+        self.assertTrue(isinstance(op, smoothing.SmoothingPy))
+
+        op = smoothing.get_smooting_operator(use_external_r=True, tmpdir="tmp")
+        self.assertTrue(isinstance(op, smoothing.SmoothingRExtern))
+
 if __name__ == '__main__':
     unittest.main()
