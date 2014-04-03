@@ -128,6 +128,8 @@ class XlsxWriter(IWriter):
         self.row = 0
 
     def write(self, entry, color='d'):
+        if 'nan' in str(entry):
+            entry = str(entry)
         if color == 'd':
             self.worksheet.write(self.row, self.col, entry)
         else:
