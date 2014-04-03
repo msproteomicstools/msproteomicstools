@@ -40,7 +40,18 @@ setup(name='msproteomicstools',
       'Topic :: Scientific/Engineering :: Bio-Informatics',
       'Topic :: Scientific/Engineering :: Chemistry',
       ],
-      # install_requires= TODO
+      install_requires=[
+          "cluster >= 1.1.2",
+          "pyteomics >= 2.4.0",
+          "xlsxwriter >= 0.5.3 ",
+          "numpy",
+          "scipy",
+          'xlwt',
+          'scikits.datasmooth',
+          'rpy2',
+          'pymzml',
+          'lxml'
+      ],
       test_suite="nose.collector",
       tests_require="nose",
       )

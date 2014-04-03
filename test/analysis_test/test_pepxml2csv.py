@@ -61,7 +61,7 @@ class TestPepXMLReader(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "data_conversion"), "pepxml2csv.py")
         filename = os.path.join(self.datadir, "test.pep.xml")
         expected_outcome = os.path.join(self.datadir, "pepxml2csv.expected_out.csv")
-        tmpfilename = "pepxml2csv.out.tmp"
+        tmpfilename = "./data/test.pep.csv"
 
         args = "%s %s" % (filename, tmpfilename)
         cmd = "python %s %s" % (script, args)

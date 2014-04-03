@@ -269,7 +269,7 @@ def handle_args():
 
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
-    parser.add_argument('--output_method', default='none', help="Which output method is used (RT, score or none)")
+    parser.add_argument('--output_method', default='none', help="Which columns are written besides Intensity (none, RT, score or full)")
     parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     parser.add_argument('--remove_requant_values', action='store_true', default=False)
     parser.add_argument('--aligner_mscore_threshold', type=float, default=1.0, help="cutoff used at alignment, for coloring realigned values in blue")

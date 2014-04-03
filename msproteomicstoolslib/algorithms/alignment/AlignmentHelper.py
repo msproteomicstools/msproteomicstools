@@ -43,19 +43,19 @@ from msproteomicstoolslib.format.MatrixWriters import getwriter
 
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
-                          style="RT", write_requant=True, aligner_mscore_treshold=1.0):
+                          style="none", write_requant=True, aligner_mscore_treshold=1.0):
     matrix_writer = getwriter(matrix_outfile)
 
     run_ids = [r.get_id() for r in allruns]
     header = ["Peptide", "Protein"]
     for r in allruns:
         fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
-        if style == "RT":
-            header.extend(["Intensity_%s" % fname, "RT_%s" % fname])
-        elif style == "score":
-            header.extend(["Intensity_%s" % fname, "score_%s" % fname])
-        else:
-            header.extend(["Intensity_%s" % fname])
+        header.extend(["Intensity_%s" % fname])
+        if style == "RT" or style == 'full':
+            header.extend(["RT_%s" % fname])
+        if style == "score" or style == 'full':
+            header.extend(["score_%s" % fname])
+
     header.extend(["RT_mean", "RT_std", "pg_pvalue"])
 
     for i in header:
@@ -81,7 +81,9 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
 
             if pg is None:
                 matrix_writer.write("NA")
-                if style == "RT" or style == "score":
+                if style == "RT" or style == "full":
+                    matrix_writer.write("NA")
+                if style == "score" or style == "full":
                     matrix_writer.write("NA")
             else:
                 if pg.get_fdr_score() > 1.0:
@@ -93,9 +95,9 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
 
                 matrix_writer.write(pg.get_intensity(), color=color)
 
-                if style == "RT":
+                if style == "RT" or style == "full":
                     matrix_writer.write(pg.get_normalized_retentiontime(), color=color)
-                elif style == "score":
+                if style == "score" or style == "full":
                     matrix_writer.write(pg.get_fdr_score(), color=color)
 
             if not pg is None:

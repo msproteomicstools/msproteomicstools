@@ -66,9 +66,9 @@ class TestFeatureAlignment(unittest.TestCase):
         expected_matrix_outcome = os.path.join(self.datadir, "feature_alignment_1_openswath_output_matrix.csv")
         tmpfilename = "featureAlignment_1.out.tmp"
         tmpfilename_ids = "featureAlignment_1.out.tmp_idsonly.csv"
-        tmpfilename_matrix = "featureAlignment_1.out.tmp_matrix.csv"
+        tmpfilename_matrix = "featureAlignment_1.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_ids %s --out_matrix %s --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -86,9 +86,9 @@ class TestFeatureAlignment(unittest.TestCase):
         expected_matrix_outcome = os.path.join(self.datadir, "feature_alignment_2_output_2_matrix.csv")
         tmpfilename = "featureAlignment_2.out.tmp"
         tmpfilename_ids = "featureAlignment_2.out.tmp_idsonly.csv"
-        tmpfilename_matrix = "featureAlignment_2.out.tmp_matrix.csv"
+        tmpfilename_matrix = "featureAlignment_2.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_ids %s --out_matrix %s --method best_overall --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --method best_overall --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -106,7 +106,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "featureAlignment_3.out.tmp"
         tmpfilename_ids = "featureAlignment_3.out.tmp_idsonly.csv"
 
-        args = "--in %s --out %s --out_ids %s --realign_runs --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
+        args = "--in %s --out %s --out_ids %s --realign_runs --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -122,7 +122,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "featureAlignment_4.out.tmp"
         tmpfilename_ids = "featureAlignment_4.out.tmp_idsonly.csv"
 
-        args = "--in %s --out %s --out_ids %s --realign_runs --use_scikit --method best_cluster_score --max_fdr_quality 0.4" % (filename, tmpfilename, tmpfilename_ids)
+        args = "--in %s --out %s --out_ids %s --realign_runs --use_scikit --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -136,9 +136,9 @@ class TestFeatureAlignment(unittest.TestCase):
         filename = os.path.join(self.datadir, "feature_alignment_peakview_input_2.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_5_peakview_output_matrix.csv")
         tmpfilename = "featureAlignment_5.out.tmp"
-        tmpfilename_matrix = "featureAlignment_5.out.tmp_matrix.csv"
+        tmpfilename_matrix = "featureAlignment_5.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_matrix %s --file_format peakview  --outlier_thresh 5 --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score" % (filename, tmpfilename, tmpfilename_matrix)
+        args = "--in %s --out %s --out_matrix %s --file_format peakview  --outlier_thresh 5 --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
