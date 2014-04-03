@@ -35,7 +35,6 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-
 from sys import stdout
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 import numpy
@@ -201,7 +200,9 @@ class AlignmentAlgorithm():
         best = m.find_best_peptide_pg()
         best_rt_diff = best.get_normalized_retentiontime()
         if verb: print "=====\nFDR best", best.print_out()
+
         for p in m.get_peptides(): # loop over runs
+
             pg = p.get_best_peakgroup()
             if pg.get_fdr_score() < fdr_cutoff and method == "best_overall":
                 # The pg is below the fdr cutoff, we just take it and go with it in "best overall"
@@ -210,34 +211,30 @@ class AlignmentAlgorithm():
                 if verb: print "FDR below", p.get_id(), pg.get_fdr_score(), pg.get_normalized_retentiontime() #, pg.get_value("RT"), pg.get_value("rt_score") # rt_score = delta iRT
                 continue
 
-            # In this run, the peptide is above the FDR cutoff.
-            # i)  determine for this peptide p the "best" peakgroup based on the
-            #     alignment (find_closest_in_iRT)
-            # ii) use some minimal criteria for the feature to be
-            #     aligned, e.g. maximal rt_difference and maximal fdr / score of
-            #     the feature to be aligned.
-            newpg = p.find_closest_in_iRT(best_rt_diff)
-            if(
-                # use if the distance in RT is below the rt_diff_cutoff AND the fdr is below the aligned_fdr_cutoff
-                abs(float(newpg.get_normalized_retentiontime()) - float(best_rt_diff)) < rt_diff_cutoff and 
-                 newpg.get_fdr_score() < aligned_fdr_cutoff):
+            # #################################################################
+            # In this run, the peptide is above the FDR cutoff. We will now:
+            #   - find all peakgroups that are within the retention time cutoff
+            #   - of those select the peakgroup with the best score
+            #   - if the best-scoring peakgroup is acceptable (<aligned_fdr_cutoff), mark it as selected
+
+            matching_peakgroups = [pg for pg in p.get_all_peakgroups() 
+                if (abs(float(pg.get_normalized_retentiontime()) - float(best_rt_diff)) < rt_diff_cutoff)]
+
+            bestScoringPG = min(matching_peakgroups, key=lambda x: float(x.get_fdr_score()))
+
+            if bestScoringPG.get_fdr_score() < aligned_fdr_cutoff: 
+                bestScoringPG.select_this_peakgroup()
+
                 a.nr_aligned += 1
                 a.nr_quantified += 1
-                newpg.select_this_peakgroup()
-                if pg.get_normalized_retentiontime() != newpg.get_normalized_retentiontime():
+                if pg.get_normalized_retentiontime() != bestScoringPG.get_normalized_retentiontime():
                   a.nr_changed += 1
-                  if verb: print "FDR new align", pg.print_out(), "\tnew ====> ", newpg.print_out()
+                  if verb: print "FDR new align", pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
                 else:
-                  if verb: print "FDR boost", pg.print_out(), " old ====> ", newpg.print_out()
+                  if verb: print "FDR boost", pg.print_out(), " old ====> ", bestScoringPG.print_out()
             else:
-                # The new peakgroup does not fulfill the criteria, but maybe we could use the old one if its above fdr_cutoff?
-                if pg.get_fdr_score() < fdr_cutoff:
-                    pg.select_this_peakgroup()
-                    a.nr_quantified += 1
-                    continue
-
                 if verb: print "could not align", pg.peptide.run.get_id(), pg.peptide.run.orig_filename, "best rt_diff was ", \
-                      abs(float(newpg.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
-                      newpg.get_fdr_score() 
+                      abs(float(bestScoringPG.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
+                      bestScoringPG.get_fdr_score() 
                 a.could_not_align += 1
 
