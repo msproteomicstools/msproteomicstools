@@ -50,7 +50,8 @@ class multiprocessStuff():
 class TestMultiProcessingLog(unittest.TestCase):
 
     def setUp(self):
-        self.fastafile = './data/smallDB.fasta'
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.fastafile = os.path.join(self.dirname, "..", "data", 'smallDB.fasta')
         self.db = ProteinDB()
         self.db.readFasta(self.fastafile)
         self.P31946 = self.db.proteinDictionary['P31946']
@@ -88,7 +89,8 @@ class TestUnitProtein(unittest.TestCase):
         #LKMKGDYFRYLSEVASGDNKQTTVSNSQQAYQEAFEISKKEMQPTHPIRLGLALNFSVFY
         #YEILNSPEKACSLAKTAFDEAIAELDTLNEESYKDSTLIMQLLRDNLTLWTSENQGDEGD
         #AGEGEN
-        self.fastafile = './data/smallDB.fasta'
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.fastafile = os.path.join(self.dirname, "..", "data", 'smallDB.fasta')
         self.db = ProteinDB()
         self.db.readFasta(self.fastafile)
         self.P31946 = self.db.proteinDictionary['P31946']
