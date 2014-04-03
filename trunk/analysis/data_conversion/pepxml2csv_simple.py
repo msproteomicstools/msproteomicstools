@@ -30,46 +30,33 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
-$Maintainer: Hannes Roest$
-$Authors: Hannes Roest$
+$Maintainer: Pedro Navarro$
+$Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-import unittest
-import subprocess as sub
-import os
+import sys
 
-class TestPepXMLReader(unittest.TestCase):
+from msproteomicstoolslib.format import pepXMLReader
 
-    def setUp(self):
-        self.dirname = os.path.dirname(os.path.abspath(__file__))
-        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
-        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
-        self.scriptdir = os.path.join(self.topdir, "analysis")
+infile = sys.argv[1]
+outfile = sys.argv[2]
+r = pepXMLReader.pepXMLReader(infile)
+import csv
+writer = csv.writer(open(outfile, 'w'))
+writer.writerow(
+    ["Spectrum", "Scan number", "Peptide_Sequence", "PrecursorMass", "Massdiff", "Expect value", "Pvalue", "MatchedIons", "TotalIons",  "Protein"])
+for hit in r.parse_all():
+  #exp = float(hit.expect)
+  #pval = float(hit.pvalue)
+  #exp = str(hit.expect).replace('e', 'E')
+  pval = "NA"
+  if hasattr(hit, "pvalue"): pval = "%.20f"  % hit.pvalue
+  exp = "NA"
+  if hasattr(hit, "expect"): exp = "%.20f"  % hit.expect
+  writer.writerow(
+    [hit.spectrum_query.spectrum, hit.scan_number, hit.peptide,
+     hit.spectrum_query.precursorMass, hit.massdiff, exp, pval,
+     hit.matched_ions, hit.total_ions, hit.protein_descr]
+  )
 
-    def exact_diff(self, name1, name2):
-        f1 = open(name1, "r")
-        f2 = open(name2, "r")
-        for l1,l2 in zip(f1,f2):
-            self.assertEqual(l1,l2)
-
-    def fuzzy_diff(self):
-        #http://stackoverflow.com/questions/3108274/generate-fuzzy-difference-of-two-files-in-python?lq=1
-        pass
-
-    def test_pepxml2csv(self):
-        script = os.path.join(os.path.join(self.scriptdir, "data_conversion"), "pepxml2csv_simple.py")
-        filename = os.path.join(self.datadir, "test.pep.xml")
-        expected_outcome = os.path.join(self.datadir, "pepxml2csv.expected_out.csv")
-        tmpfilename = "test.pep.csv"
-
-        args = "%s %s" % (filename, tmpfilename)
-        cmd = "python %s %s" % (script, args)
-        sub.check_call(cmd,shell=True)
-        
-        self.exact_diff(tmpfilename, expected_outcome)
-
-        os.remove(tmpfilename)
-
-if __name__ == '__main__':
-    unittest.main()
