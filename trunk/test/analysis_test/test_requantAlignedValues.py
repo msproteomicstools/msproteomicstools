@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import unittest
 import subprocess as sub
 import os
+from nose.plugins.attrib import attr
 
 class TestFeatureAlignment(unittest.TestCase):
 
@@ -58,6 +59,7 @@ class TestFeatureAlignment(unittest.TestCase):
                 except ValueError:
                     self.assertEqual(field1,field2)
 
+    @attr('slow')
     def test_1_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
         filename = os.path.join(self.datadir, "imputeValues/imputeValues_1_input.csv")
@@ -78,6 +80,7 @@ class TestFeatureAlignment(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
+    @attr('slow')
     def test_1_cache_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
         filename = os.path.join(self.datadir, "imputeValues/imputeValues_1_input.csv")

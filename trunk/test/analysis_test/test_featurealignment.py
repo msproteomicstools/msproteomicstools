@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import unittest
 import subprocess as sub
 import os
+from nose.plugins.attrib import attr
 
 class TestFeatureAlignment(unittest.TestCase):
 
@@ -115,6 +116,7 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename)
         os.remove(tmpfilename_ids)
 
+    @attr('slow')
     def test_4_featureAlignment_openswath_alignment_scikit(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")

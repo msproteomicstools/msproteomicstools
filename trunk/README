@@ -37,8 +37,12 @@ run all tests
 $ nosetests test
 
 with coverage analysis
+
 $ nosetests test --with-coverage --cover-package=msproteomicstoolslib
 
+no slow tests
+
+$ nosetests -a '!slow' test
 
 }}}
 
