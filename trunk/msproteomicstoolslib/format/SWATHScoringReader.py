@@ -289,9 +289,12 @@ class GeneralPrecursor(PrecursorBase):
           return selected[0]
         else: 
             return None
+
+    def get_all_peakgroups(self):
+        return self.peakgroups
   
     def find_closest_in_iRT(self, delta_assay_rt):
-      return min(self.peakgroups , key=lambda x: abs(float(x.get_normalized_retentiontime()) - float(delta_assay_rt)))
+      return min(self.peakgroups, key=lambda x: abs(float(x.get_normalized_retentiontime()) - float(delta_assay_rt)))
 
 class Precursor(PrecursorBase):
     """
