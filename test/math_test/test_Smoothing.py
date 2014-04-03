@@ -37,6 +37,7 @@ $Authors: Hannes Roest$
 
 import unittest
 import os
+from nose.plugins.attrib import attr
 
 import msproteomicstoolslib.math.Smoothing as smoothing
 
@@ -46,6 +47,7 @@ class TestUnitSmoothing(unittest.TestCase):
         self.data1 = [5,7,8,9,10,15,7.1,6]
         self.data2 = [4,7,9,11,11,14,7.1,6.5]
 
+    @attr('slow')
     def test_smooth_spline_scikit(self):
         """Test the smoothing spline using scikit"""
         sm = smoothing.SmoothingPy()
@@ -84,6 +86,7 @@ class TestUnitSmoothing(unittest.TestCase):
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
+    @attr('slow')
     def test_smooth_spline_scikit_wrap(self):
         """Test the smoothing spline using scikit"""
         sm = smoothing.SmoothingPy()
