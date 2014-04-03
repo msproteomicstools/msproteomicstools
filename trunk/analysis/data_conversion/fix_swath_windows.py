@@ -106,10 +106,16 @@ def estimateCorrectSwathScan(center):
 
 def rewrite_single_scan(mybuffer, swathscan):
     # use middle point
-    start = float(paramfile[ scanwindow ][0])
-    end = float(paramfile[ scanwindow ][1])
-    middle = (start + end)/2.0
-    width = end - start
+    try:
+        start = float(paramfile[ scanwindow ][0])
+        end = float(paramfile[ scanwindow ][1])
+        middle = (start + end)/2.0
+        width = end - start
+    except IndexError:
+        # Catch error condition
+        start = -1
+        end = -1
+
     # TODO check if window wideness is already present ... 
     precursor_match = precursor_re.search(mybuffer)
     if precursor_match:
