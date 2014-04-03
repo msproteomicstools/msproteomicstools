@@ -66,9 +66,9 @@ class TestFeatureAlignment(unittest.TestCase):
         expected_outcome = os.path.join(self.datadir, "imputeValues_1_.csv")
         expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_1_output_matrix.csv")
         tmpfilename = "imputeValues_1.out.tmp"
-        tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.csv"
+        tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.tsv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -85,11 +85,11 @@ class TestFeatureAlignment(unittest.TestCase):
         tr_f2 = os.path.join(self.datadir, "imputeValues/r004_small/transformation-0_1-0_0.tr")
         expected_outcome = os.path.join(self.datadir, "imputeValues_1_.csv")
         expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_1_output_matrix.csv")
-        tmpfilename = "imputeValues_1.out.tmp"
-        tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.csv"
+        tmpfilename = "imputeValues_2.out.tmp"
+        tmpfilename_matrix = "imputeValues_2.out.tmp_matrix.tsv"
 
         # We should get the same results if we cache the chromatograms in memory
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory --border_option median" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory --border_option median --matrix_output_method RT" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
