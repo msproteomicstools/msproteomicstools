@@ -210,7 +210,7 @@ class Experiment(MRExperiment):
             del id_writer
 
         if len(matrix_outfile) > 0:
-            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected, aligner_mscore_treshold=options.fdr_cutoff)
+            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected, style=options.matrix_output_method, aligner_mscore_treshold=options.fdr_cutoff)
 
         if len(outfile) > 0 and options.readmethod == "full":
             # write out the complete original files 
@@ -491,7 +491,7 @@ def handle_args():
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
     parser.add_argument("--out", dest="outfile", required=True, default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
-    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xls)")
+    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xlsx)")
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="FDR cutoff to use, default 0.01", metavar='0.01')
@@ -501,6 +501,7 @@ def handle_args():
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall). The global option will also move peaks which are below the selected FDR threshold.")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
+    parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
