@@ -496,7 +496,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
                 writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
-        write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0)
+        write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0, style=options.matrix_output_method)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
@@ -508,6 +508,7 @@ def handle_args():
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xls)")
+    parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
     parser.add_argument('--border_option', default='median', metavar="median", help="How to determine integration border (possible values: max_width, mean, median). Max width will use the maximal possible width (most conservative since it will overestimate the background signal).")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
