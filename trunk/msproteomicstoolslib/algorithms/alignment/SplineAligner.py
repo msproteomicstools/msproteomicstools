@@ -40,6 +40,15 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 
+class TransformationError():
+    def __init__(self):
+        self.transformations = {}
+
+    def getStdev(self):
+        for tr1 in self.transformations.values():
+            for tr2 in tr1.values():
+                yield tr2[0]
+
 class SplineAligner():
     """
     Use the datasmoothing part of msproteomicstoolslib to align 2 runs in
@@ -128,9 +137,15 @@ class SplineAligner():
         # numpy.median(aligned_result - aligned_result_2)
         # -0.020456989235640322
 
+        stdev = numpy.std(numpy.array(data1) - numpy.array(data2_aligned))
+        median = numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
         print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
-        print "  Computed stdev", numpy.std(numpy.array(data1) - numpy.array(data2_aligned)), \
-                  "and median", numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
+        print "  Computed stdev", stdev, "and median", median
+
+        # Store error for later
+        d = self.transformation_error.transformations.get(run.get_id(), {})
+        d[bestrun.get_id()] = [stdev, median]
+        self.transformation_error.transformations[ run.get_id() ] = d
 
         # now re-populate the peptide data!
         i = 0
@@ -156,6 +171,7 @@ class SplineAligner():
 
         ## spl_aligner.transformation_collection = experiment.transformation_collection
         self.transformation_collection.setReferenceRunID( bestrun.get_id() )
+        self.transformation_error = TransformationError()
 
         # go through all runs and align two runs at a time
         for run in experiment.runs:
@@ -163,4 +179,7 @@ class SplineAligner():
             self._spline_align_runs(bestrun, run, multipeptides)
 
         return self.transformation_collection
+
+    def getTransformationError(self):
+        return self.transformation_error
 
