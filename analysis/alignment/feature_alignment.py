@@ -495,7 +495,7 @@ def handle_args():
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
     parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="FDR cutoff to use, default 0.01", metavar='0.01')
-    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, type=float, help="Maximal difference in RT for two aligned features", metavar='30')
+    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30')
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1.0, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01 (-1 will set it to fdr_cutoff)", metavar='-1')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall). The global option will also move peaks which are below the selected FDR threshold.")
@@ -614,7 +614,7 @@ def main(options):
                                    options.use_external_r, options.tmpdir)
         tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         this_exp.transformation_collection = tcoll
-
+        trafoError = spl_aligner.getTransformationError()
         print("Aligning the runs took %ss" % (time.time() - start) )
 
     try:
@@ -624,7 +624,19 @@ def main(options):
         exec("fdr_range = numpy.arange(%s)" % options.aligned_fdr_cutoff)
         options.aligned_fdr_cutoff = estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range)
 
-    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff
+    try:
+        options.rt_diff_cutoff = float(options.rt_diff_cutoff)
+    except ValueError:
+        if options.rt_diff_cutoff == "auto_2medianstdev":
+            options.rt_diff_cutoff = 2*numpy.median(list(trafoError.getStdev()))
+        elif options.rt_diff_cutoff == "auto_2medianstdev":
+            options.rt_diff_cutoff = 3*numpy.median(list(trafoError.getStdev()))
+        elif options.rt_diff_cutoff == "auto_maxstdev":
+            options.rt_diff_cutoff = max(list(trafoError.getStdev()))
+        else:
+            raise Exception("max_rt_diff either needs to be a value in seconds or one of ('auto_2medianstdev', 'auto_3medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
+
+    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
     start = time.time()
     alignment = AlignmentAlgorithm().align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
 
