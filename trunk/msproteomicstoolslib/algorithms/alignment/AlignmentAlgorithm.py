@@ -213,12 +213,15 @@ class AlignmentAlgorithm():
 
             # #################################################################
             # In this run, the peptide is above the FDR cutoff. We will now:
-            #   - find all peakgroups that are within the retention time cutoff
+            #   - find all peakgroups that are within the retention time cutoff (continue if none are found)
             #   - of those select the peakgroup with the best score
             #   - if the best-scoring peakgroup is acceptable (<aligned_fdr_cutoff), mark it as selected
 
             matching_peakgroups = [pg for pg in p.get_all_peakgroups() 
                 if (abs(float(pg.get_normalized_retentiontime()) - float(best_rt_diff)) < rt_diff_cutoff)]
+
+            if len(matching_peakgroups) == 0: 
+                continue
 
             bestScoringPG = min(matching_peakgroups, key=lambda x: float(x.get_fdr_score()))
 
