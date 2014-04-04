@@ -395,6 +395,7 @@ class Settings(object):
         self.show_legend = True
         self.autoscale_y_axis = True
         self.nr_rows = 3
+        self.window_title = 'OpenSWATH Alignment GUI'
 
 #
 ## Configuration Dialog
@@ -408,6 +409,7 @@ class ConfigDialog(QtGui.QDialog):
         self.initUI()
 
     def closeAndSave(self):
+        self.settings.window_title = str(self.window_title.text())
         self.settings.nr_rows = int(self.nr_rows.text())
         self.settings.show_legend = self.show_legend.isChecked()
         self.settings.autoscale_y_axis = self.autoscale_y_axis.isChecked()
@@ -430,16 +432,20 @@ class ConfigDialog(QtGui.QDialog):
         self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
         label_rows = QtGui.QLabel("Number of window rows");
         self.nr_rows = QtGui.QLineEdit();
+        label_rows = QtGui.QLabel("Window Title");
+        self.window_title = QtGui.QLineEdit();
 
         self.show_legend.setChecked( self.settings.show_legend )
         self.autoscale_y_axis.setChecked( self.settings.autoscale_y_axis )
         self.nr_rows.setText( str(self.settings.nr_rows) )
+        self.window_title.setText( str(self.settings.window_title) )
 
         updateLayout = QtGui.QVBoxLayout()
         updateLayout.addWidget(self.show_legend);
         updateLayout.addWidget(self.autoscale_y_axis);
         updateLayout.addWidget(label_rows);
         updateLayout.addWidget(self.nr_rows);
+        updateLayout.addWidget(self.window_title);
         updateGroup.setLayout(updateLayout);
 
         ###################################
@@ -525,7 +531,7 @@ class MainWindow(QtGui.QMainWindow):
         # self.setGeometry(300, 300, 250, 150)
         self.resize(850, 550)
         self.center()
-        self.setWindowTitle('OpenSWATH Alignment GUI')
+        self.setWindowTitle(self.settings.window_title)
         self.show()
         self.statusBar().showMessage('Ready')
 
@@ -567,6 +573,8 @@ class MainWindow(QtGui.QMainWindow):
         """
         self.application.graph_layout.nr_rows = settings.nr_rows
         self.application.graph_layout.autoscale_y_axis = settings.autoscale_y_axis
+        print "set window title to ", self.settings.window_title
+        self.setWindowTitle(self.settings.window_title)
         self._refresh_view()
 
     def showSettings(self):
