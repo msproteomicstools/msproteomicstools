@@ -350,16 +350,19 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             #if there is a spectrum for the isoform, use it. Otherwise, use dummy data
             z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
             sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
-            irt_sequence = -100
+            iRT_experimental = -100000.0
             RT_experimental = -100000.0
             searchenginefiltered = False
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.iRT_detected != -1 :
-                    RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-                elif spectrum.RetTime_detected != -1 :
+                if spectrum.RetTime_detected != -1 :
                     RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.iRT_detected != -1 :
+                    iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                else:
+                    iRT_experimental = RT_experimental
+                if not useMinutes : iRT_experimental = iRT_experimental * 60
                 if not useMinutes : RT_experimental = RT_experimental * 60
                 try :
                     for searchengine in searchEngineconfig :
@@ -403,11 +406,11 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                 transition = []
                 transition_cnt += 1
                 if key == 'peakview' :
-                    transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
+                    transition = [ precursorMZ , fragment_mz , iRT_experimental , protein_desc , 'light' ,
                                     rel_intensity , isoform.sequence , isoform.getSequenceWithMods(code) , int(z_parent) ,
-                                    frg_serie , frg_z , frg_nr , irt_sequence , protein_code1 , 'FALSE']
+                                    frg_serie , frg_z , frg_nr , iRT_experimental , protein_code1 , 'FALSE']
                 if key == 'openswath' :
-                    transition = [precursorMZ, fragment_mz, RT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
+                    transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
                             rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
                             "%s_%s_%s" %(frg_serie, frg_z, frg_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, frg_serie, frg_z, frg_nr ]
                 filteredtransitions.append(transition)
@@ -530,16 +533,19 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             #if there is a spectrum for the isoform, use it. Otherwise, use dummy data
             z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
             sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
-            irt_sequence = -100
+            iRT_experimental = -100000.0
             RT_experimental = -100000.0
             searchenginefiltered = False
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.iRT_detected != -1 :
-                    RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-                elif spectrum.RetTime_detected != -1 :
+                if spectrum.RetTime_detected != -1 :
                     RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.iRT_detected != -1 :
+                    iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                else:
+                    iRT_experimental = RT_experimental
+                if not useMinutes : iRT_experimental = iRT_experimental * 60
                 if not useMinutes : RT_experimental = RT_experimental * 60
                 try :
                     for searchengine in searchEngineconfig :
@@ -585,11 +591,11 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     if key == 'peakview' :
                         if abs(uis_lossgain) > 0.05 : 
                             uis_serie = uis_serie + str(int(round(uis_lossgain)))
-                        transition = [ precursorMZ , uis_mass , RT_experimental , protein_desc , 'light' ,
+                        transition = [ precursorMZ , uis_mass , iRT_experimental , protein_desc , 'light' ,
                                         rel_intensity , isoform.sequence , isoform.getSequenceWithMods(code) , int(z_parent) ,
-                                        uis_serie , uis_frg_z , uis_nr , irt_sequence , protein_code1 , 'FALSE', uis_order, uis_masses]
+                                        uis_serie , uis_frg_z , uis_nr , iRT_experimental , protein_code1 , 'FALSE', uis_order, uis_masses]
                     if key == 'openswath' :
-                        transition = [precursorMZ, uis_mass, RT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
+                        transition = [precursorMZ, uis_mass, iRT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
                                 rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
                                 "%s_%s_%s" %(uis_serie, uis_frg_z, uis_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, uis_serie, uis_frg_z, uis_nr, uis_order, uis_masses ]
                     filteredtransitions.append(transition)
@@ -632,7 +638,7 @@ def main(argv) :
     
     csv_headers_peakview =     [    'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
                      'relative_intensity', 'stripped_sequence', 'modification_sequence', 'prec_z',
-                     'frg_type', 'frg_z', 'frg_nr', 'iRT', 'uniprot_id', 'decoy'
+                     'frg_type', 'frg_z', 'frg_nr', 'iRT', 'uniprot_id', 'decoy' , 'N', 'confidence', 'shared'
                      ]
     csv_headers_openswath = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name', 'CE',
                             'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName', 
@@ -788,6 +794,8 @@ def main(argv) :
         print "Reading fasta file :" , fastafile
         proteins.readFasta(fastafile)
 
+    protein_cnt = 1
+    protein_index = {}
 
     #Read swaths file (if provided)
     if swathsfile != '' :
@@ -859,13 +867,16 @@ def main(argv) :
             #Declare the peptide
             pep = modificationsLib.translateModificationsFromSequence(sequence, modification_code, aaLib = aaLib)
             
-            irt_sequence = -100
+            iRT_experimental = 0.0
             RT_experimental = 0.0
-            if spectrum.iRT_detected != -1 :
-                RT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-            elif spectrum.RetTime_detected != -1 :
+            if spectrum.RetTime_detected != -1 :
                 RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+            if spectrum.iRT_detected != -1 :
+                iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+            else:
+                iRT_experimental = RT_experimental
 
+            if not useMinutes : iRT_experimental = iRT_experimental * 60
             if not useMinutes : RT_experimental = RT_experimental * 60
 
 
@@ -960,14 +971,23 @@ def main(argv) :
                 if key == 'openswath'     : code = 'unimod'
                 if key == 'peakview'    : code = 'ProteinPilot'
 
+                if protein_desc not in protein_index:
+                	protein_index[protein_desc] = protein_cnt
+                	protein_cnt+=1
+
+                if protein_desc[:2] == "1/":
+                	protein_shared = "FALSE"
+                else:
+                	protein_shared = "TRUE"
+
                 transition = []
                 transition_cnt += 1
                 if key == 'peakview' :
-                    transition = [ precursorMZ , fragment_mz , RT_experimental , protein_desc , 'light' ,
+                    transition = [ precursorMZ , fragment_mz , iRT_experimental , protein_desc , 'light' ,
                                     peak.intensity , spectrum.sequence , pep.getSequenceWithMods(code) , int(z_parent) ,
-                                    peak.frg_serie , peak.frg_z , peak.frg_nr , irt_sequence , protein_code1 , 'FALSE']
+                                    peak.frg_serie , peak.frg_z , peak.frg_nr , iRT_experimental , protein_code1 , 'FALSE', protein_index[protein_desc] , 1 , protein_shared ]
                 if key == 'openswath' :
-                    transition = [precursorMZ, fragment_mz, RT_experimental, "%s_%s_%s" % (transition_cnt, pep.getSequenceWithMods(code), int(z_parent)), '-1',
+                    transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s_%s" % (transition_cnt, pep.getSequenceWithMods(code), int(z_parent)), '-1',
                             peak.intensity, "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent)), 0, spectrum.sequence, protein_desc, 
                             peak.peak_annotation, pep.getSequenceWithMods(code),
                             int(z_parent), 'light', protein_code1, peak.frg_serie, peak.frg_z,
