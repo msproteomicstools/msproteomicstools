@@ -629,7 +629,7 @@ def main(options):
     except ValueError:
         if options.rt_diff_cutoff == "auto_2medianstdev":
             options.rt_diff_cutoff = 2*numpy.median(list(trafoError.getStdev()))
-        elif options.rt_diff_cutoff == "auto_2medianstdev":
+        elif options.rt_diff_cutoff == "auto_3medianstdev":
             options.rt_diff_cutoff = 3*numpy.median(list(trafoError.getStdev()))
         elif options.rt_diff_cutoff == "auto_maxstdev":
             options.rt_diff_cutoff = max(list(trafoError.getStdev()))
