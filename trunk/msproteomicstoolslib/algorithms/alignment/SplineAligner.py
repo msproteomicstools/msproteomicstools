@@ -122,8 +122,7 @@ class SplineAligner():
         if len(data2) < 2:
             print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
                 run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)
-            print "If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)."
-                run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)
+            print "If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)." 
             raise Exception("Not enough datapoints (less than 2 datapoints).")
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
