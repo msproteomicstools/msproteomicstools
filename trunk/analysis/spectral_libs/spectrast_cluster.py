@@ -208,7 +208,13 @@ def main(argv) :
 
             sequence     = spectrum.name.split('/')[0]
             z_parent     = float(spectrum.name.split('/')[1])
-            rt             = spectrum.RetTime_detected
+            if spectrum.RetTime_detected != -1 :
+              rt             = spectrum.RetTime_detected
+            if spectrum.iRT_detected != -1 :
+              rt             = spectrum.iRT_detected
+            else:
+              print "No RT/iRT was detected for %s" % spectrum.name
+              sys.exit(2)
             
             if sequence in peptide_spectra.keys() :
                 peptide_spectra[sequence][last_offset] = rt
