@@ -151,17 +151,20 @@ class QtrapFileFormat:
 # Constants {{{
 ###########################################################################
 
-ENDOFDATASEQUENCE = "".join( [ c + '\x00' for c in 'ParameterData']) + \
+BEGINOFDATASEQUENCE = "".join( [ c + '\x00' for c in 'ParameterData']) + \
         '\x00' * 38 + '\x1c\x00\x02\x01' + '\xff' * 12
-AFTERSEQUENCE_CONSTANT1 = '\x04\x00D\x00P\x00\x00\x00pB\x00\x00pB' + \
-        '\x00\x00\x00\x00\x04\x00E\x00P\x00\x00\x00 A\x00\x00 A' + \
-        '\x00\x00\x00\x00\x04\x00C\x00E\x00'
-AFTERSEQUENCE_CONSTANT2 = '\x00\x00\x00\x00\x06\x00C\x00X\x00P' + \
-        '\x00\x00\x00@A\x00\x00@A\x00\x00\x00\x00'
+        
+ENDOFDATASEQUENCE = BEGINOFDATASEQUENCE   
+    
+Step2 = "".join( [ c + '\x00' for c in 'New experiment']) + '\xFF\xFF\x04\x00\x00\x00'
+Step3 = '\x02\x00\x00\x00'+'\x04\x00\x00\x00'
+
 EOT = '\x04' #end of transmission EOT = 04
 
-STARTOFDATA = 40 # this is a magic number, where the first data structure starts
-SEQUENCE_START_AT = 22 # counted from q1 until the sequence starts
+EOTx1 = '\x04'+'\x00'
+EOTx3 = '\x04'+'\x00' * 3
+
+SEQUENCE_START_AT = 16 # counted from q1 until the sequence starts
 
 # }}}
 
@@ -174,22 +177,40 @@ r = f.read()
 f.close()
 
 # Find the two header files and advance to the transition list
-part1 = r.find( '\xff' * 256, 0)
-part2 = r.find( '\xff' * 256, part1 + 256)
-part3 = r.find( '\xff' * 256, part2 + 256)
-if do_assert: assert r.find( '\xff' * 256, part3 + 256) == -1
+beginData = r.find(BEGINOFDATASEQUENCE,0)
 
-# Find the end of the \xff sequence (and the start of the transition list)
-for start,p in enumerate(r[part3:]): 
-    if p != '\xff': break
+if do_assert: assert beginData > 0
 
-# we start in part 3 of the file after the block of ff's 
-data = r[part3 + start:]
+posStep3 = r.find(Step3, beginData+len(BEGINOFDATASEQUENCE)+1)
+
+#print posStep3, beginData
+
+if do_assert: assert posStep3>beginData
+
+
+# we start in posStep3 of the file
+data = r[posStep3 + 8:]
 endofdata = data.find( ENDOFDATASEQUENCE )
+
+#print endofdata
+
+def HexStringToString(hexString):
+  # convert hex string to windows 1252 string
+  bytes = []
+  hexStr = ''.join( hexString.split("%") )
+  for i in range(0, len(hexStr), 2):
+    bytes.append( chr( struct.unpack("h", hexStr[i:i+2])[0] ) )
+    
+  # decode as Win 1252
+  string = ''.join( bytes ).decode("Windows-1252")
+
+  return string
+
 
 class Entry():
 
     def __init__(self): pass
+
 
 class QtrapParser():
 
@@ -202,71 +223,106 @@ class QtrapParser():
     def parse(self, data):
         entry = Entry()
         pos = self.current_position 
-        sequence_start = self.current_position + SEQUENCE_START_AT 
-
+        
+		 
+		
         # 
         # Parse the data:
-        #   Q1, null, Q3, RT, null, null
-        #   text
-        #   CE (collision energy)
-        # 
         entry.q1    = data[pos:pos+4]
-        null1       = data[pos+4:pos+8]
-        entry.q3    = data[pos+8:pos+12]
-        entry.rt    = data[pos+12:pos+16]
-        null2       = data[pos+16:pos+20]
-        entry.unknown_variable_word = data[pos+20:pos+22]
-
-        # Find text (sequence) and determine break condition
-        for sequence_length,c in enumerate(data[sequence_start:]): 
-            if c == EOT: break #end of transmission (end of sequence)
-        entry.sequence = data[sequence_start:sequence_start+sequence_length]
-
-        # Calculate the position of the collision energy, store the unknown 42
-        # bytes in afters1 and the unknown 24 bytes in afters3. Store the
-        # collision energy (CE) and advance the current position.
-        ceposition = sequence_start + sequence_length + 42 
-        entry.afters1 = data[sequence_start+sequence_length:ceposition]
-        entry.ce = data[ceposition:ceposition+4]
-        entry.ce_repeat = data[ceposition+4:ceposition+4+4]
-        entry.afters3 = data[ceposition+4+4:ceposition+32]
-        self.current_position = ceposition + 32  
-
-        # check whether we are done parsing all entries
-        if ceposition > self.endofdata: 
+        if data[pos:pos+4] == '\x00'*4: #if we have hit a null string here then we are done
             self.done = True; 
             return
+        
+        pos += 4
+        null1       = data[pos:pos+4]
+        pos += 4
+        entry.q3    = data[pos:pos+4]
+        pos += 4
+        entry.rt    = data[pos:pos+4]
+        pos += 4
+        null2       = data[pos:pos+4]
+        pos += 4+2
+        # Find text (sequence) and determine break condition
+        for sequence_length,c in enumerate(data[pos:]): 
+            if c == EOT: break #end of transmission (end of sequence)
+        
+        #print sequence_length
+        
+        entry.sequence = data[pos:pos+sequence_length]
+		
+        pos += sequence_length+2 # to account for the xOO byte after it
 
-        # Assert that some of our assumptions about the file are true
-        if do_assert: assert null1 == '\x00' * 4
-        if do_assert: assert null2 == '\x00' * 4
-        if do_assert: assert entry.afters1 == AFTERSEQUENCE_CONSTANT1
-        if do_assert: assert entry.ce == entry.ce_repeat
-        if do_assert: assert entry.afters3 ==  AFTERSEQUENCE_CONSTANT2
+        pos += 4  # \x44\x00\x50\x00 = DP
+        entry.dp = data[pos:pos+4]
+        pos += 12  # skip repeat and empyt bytes
+		
+        #print ":".join("{:02x}".format(ord(c)) for c in data[pos:pos+1])
+        
+        #make sure we are in a correct position
+        if do_assert: assert data[pos:pos+2] == EOTx1
+        
+        pos += 2
+        pos += 4  # \x45\x00\x50\x00 = EP
+        entry.ep = data[pos:pos+4]
+        pos += 12  # skip repeat and empyt bytes
+		
+        #make sure we are in a correct position
+        if do_assert: assert data[pos:pos+2] == EOTx1
+		
+        pos += 2
+        pos += 4  # \x43\x00\x45\x00 = CE
+        entry.ce = data[pos:pos+4]
+        pos += 12  # skip repeat and empyt bytes
+		
+		#make sure we are in a correct position
+        if do_assert: assert data[pos:pos+2] == '\x06\x00'  #no idea why this one is different from EOT
+		
+        pos += 2
+        pos += 6  # \x43\x00\x58\x00x50\x00 = CXP
+        entry.cxp = data[pos:pos+4]
+        pos += 12  # skip repeat and empty byte
+        
 
-        # The sequence is spaced with zero bytes, so we just remove them.
+        # sanity check whether we are at the end of the data
+        if pos > self.endofdata: 
+            self.done = True; 
+            return
+        
+        self.current_position = pos  # update the current position
+
+
+        # The sequence is windows 1252 encoded so we need to deal with that and convert to UTF-8
+        entry.sequence = HexStringToString(entry.sequence)
+        entry.sequence=entry.sequence.encode("utf-8")
+
         # The numbers are little-endian floats of size 4, so we use '<f' to unpack.
-        entry.sequence = "".join( [s for s in entry.sequence if s != '\x00'] )
         entry.q1_unpacked = struct.unpack('<f', entry.q1)[0]
         entry.q3_unpacked = struct.unpack('<f', entry.q3)[0]
         entry.rt_unpacked = struct.unpack('<f', entry.rt)[0]
         entry.ce_unpacked = struct.unpack('<f', entry.ce)[0]
+        entry.ep_unpacked = struct.unpack('<f', entry.ep)[0]
+        entry.dp_unpacked = struct.unpack('<f', entry.dp)[0]
+        entry.cxp_unpacked = struct.unpack('<f', entry.cxp)[0]
         self.entries.append(entry)
+
 
 # We loop through the data part and create a new "Entry" object for each entry.
 # We end the loop when we hit endofdata.
 # endposition always holds the position where the new entry starts/the old one
 # ends.
-parser = QtrapParser(STARTOFDATA, endofdata)
+parser = QtrapParser(0,endofdata)
 while(not parser.done):
     parser.parse(data)
 
 # Write out a csv file
 f = open(outputfile, 'wb')
 csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+#write a header for the values
+csvWriter.writerow( ['Q1','Q3','RT','ID','CE','EP','DP','CXP'] )
 for e in parser.entries:
     csvWriter.writerow( [e.q1_unpacked, e.q3_unpacked, e.rt_unpacked, 
-                        e.sequence, e.ce_unpacked] )
+                        e.sequence, e.ce_unpacked,e.ep_unpacked, 
+                        e.dp_unpacked, e.cxp_unpacked ] )
 
 f.close()
 
