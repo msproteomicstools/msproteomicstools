@@ -64,7 +64,7 @@ class TestDAMReader(unittest.TestCase):
         expected_outcome = os.path.join(self.datadir, "methodDamReader_1_output.csv")
         tmpfilename = "methodfile.out.tmp"
 
-        args = "%s %s" % (filename, tmpfilename)
+        args = "--doAssert --in %s --out %s" % (filename, tmpfilename)
         cmd = "python %s %s" % (script, args)
         sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
         
