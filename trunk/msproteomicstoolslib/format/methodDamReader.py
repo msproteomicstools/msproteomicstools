@@ -49,20 +49,6 @@ import sys, struct, csv
           any actual data, only metadata (which transitions were used).
 """
 
-import argparse
-usage  = "This program can parse AB Sciex Qtrap .dam files"
-usage += "It will output a csv file that corresponds to the input transition list."
-
-parser = argparse.ArgumentParser(description = usage )
-parser.add_argument('--in', dest="inputfile", required=True, help = 'An input file (.dam format)')
-parser.add_argument('--out', dest="outputfile", required=True, help = 'An input file (.csv format)')
-parser.add_argument('--doAssert', action='store_true', default=False, help="Fail upon encountering an error")
-args = parser.parse_args(sys.argv[1:])
-
-inputfile = args.inputfile
-outputfile = args.outputfile
-do_assert = args.doAssert
-
 class QtrapFileFormat:
     """
     Dummy class that explains the file format
@@ -170,32 +156,6 @@ SEQUENCE_START_AT = 16 # counted from q1 until the sequence starts
 
 # }}}
 
-###########################################################################
-# Start
-###########################################################################
-
-f = open(inputfile)
-r = f.read()
-f.close()
-
-# Find the two header files and advance to the transition list
-beginData = r.find(BEGINOFDATASEQUENCE,0)
-
-if do_assert: assert beginData > 0
-
-posStep3 = r.find(Step3, beginData+len(BEGINOFDATASEQUENCE)+1)
-
-#print posStep3, beginData
-
-if do_assert: assert posStep3>beginData
-
-
-# we start in posStep3 of the file
-data = r[posStep3 + 8:]
-endofdata = data.find( ENDOFDATASEQUENCE )
-
-#print endofdata
-
 def HexStringToString(hexString):
   # convert hex string to windows 1252 string
   bytes = []
@@ -213,14 +173,14 @@ class Entry():
 
     def __init__(self): pass
 
-
 class QtrapParser():
 
-    def __init__(self, current = 0, eof = -1): 
+    def __init__(self, current = 0, eof = -1, doAssert = False): 
         self.current_position = current
         self.endofdata = eof
         self.entries = []
         self.done = False
+        self.do_assert = doAssert
 
     def parse(self, data):
         entry = Entry()
@@ -261,7 +221,7 @@ class QtrapParser():
         #print ":".join("{:02x}".format(ord(c)) for c in data[pos:pos+1])
         
         #make sure we are in a correct position
-        if do_assert: assert data[pos:pos+2] == EOTx1
+        if self.do_assert: assert data[pos:pos+2] == EOTx1
         
         pos += 2
         pos += 4  # \x45\x00\x50\x00 = EP
@@ -269,7 +229,7 @@ class QtrapParser():
         pos += 12  # skip repeat and empty bytes
         
         #make sure we are in a correct position
-        if do_assert: assert data[pos:pos+2] == EOTx1
+        if self.do_assert: assert data[pos:pos+2] == EOTx1
         
         pos += 2
         pos += 4  # \x43\x00\x45\x00 = CE
@@ -277,7 +237,7 @@ class QtrapParser():
         pos += 12  # skip repeat and empty bytes
         
         #make sure we are in a correct position
-        if do_assert: assert data[pos:pos+2] == '\x06\x00'  #no idea why this one is different from EOT
+        if self.do_assert: assert data[pos:pos+2] == '\x06\x00'  #no idea why this one is different from EOT
         
         pos += 2
         pos += 6  # \x43\x00\x58\x00x50\x00 = CXP
@@ -307,26 +267,72 @@ class QtrapParser():
         entry.cxp_unpacked = struct.unpack('<f', entry.cxp)[0]
         self.entries.append(entry)
 
+def main(args):
 
-# We loop through the data part and create a new "Entry" object for each entry.
-# We end the loop when we hit endofdata.
-# endposition always holds the position where the new entry starts/the old one
-# ends.
-parser = QtrapParser(0,endofdata)
-while(not parser.done):
-    parser.parse(data)
+    inputfile = args.inputfile
+    outputfile = args.outputfile
+    do_assert = args.doAssert
 
-# Write out a csv file
-f = open(outputfile, 'wb')
-csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-#write a header for the values
-csvWriter.writerow( ['Q1','Q3','RT','ID','CE','EP','DP','CXP'] )
-for e in parser.entries:
-    csvWriter.writerow( [e.q1_unpacked, e.q3_unpacked, e.rt_unpacked, 
-                        e.sequence, e.ce_unpacked,e.ep_unpacked, 
-                        e.dp_unpacked, e.cxp_unpacked ] )
+    ###########################################################################
+    # Start
+    ###########################################################################
 
-f.close()
+    f = open(inputfile)
+    r = f.read()
+    f.close()
+
+    # Find the two header files and advance to the transition list
+    beginData = r.find(BEGINOFDATASEQUENCE,0)
+
+    if do_assert: assert beginData > 0
+
+    posStep3 = r.find(Step3, beginData+len(BEGINOFDATASEQUENCE)+1)
+
+    #print posStep3, beginData
+
+    if do_assert: assert posStep3>beginData
 
 
-# struct.unpack('<f', '\xbe\x52\xa2\x3f')
+    # we start in posStep3 of the file
+    data = r[posStep3 + 8:]
+    endofdata = data.find( ENDOFDATASEQUENCE )
+
+    #print endofdata
+
+    # We loop through the data part and create a new "Entry" object for each entry.
+    # We end the loop when we hit endofdata.
+    # endposition always holds the position where the new entry starts/the old one
+    # ends.
+    parser = QtrapParser(0,endofdata, doAssert = do_assert)
+    while (not parser.done):
+        parser.parse(data)
+
+    # Write out a csv file
+    f = open(outputfile, 'wb')
+    csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    #write a header for the values
+    csvWriter.writerow( ['Q1','Q3','RT','ID','CE','EP','DP','CXP'] )
+    for e in parser.entries:
+        csvWriter.writerow( [e.q1_unpacked, e.q3_unpacked, e.rt_unpacked, 
+                            e.sequence, e.ce_unpacked,e.ep_unpacked, 
+                            e.dp_unpacked, e.cxp_unpacked ] )
+
+    f.close()
+
+    # struct.unpack('<f', '\xbe\x52\xa2\x3f')
+
+def handle_args():
+    import argparse
+    usage  = "This program can parse AB Sciex Qtrap .dam files"
+    usage += "It will output a csv file that corresponds to the input transition list."
+
+    parser = argparse.ArgumentParser(description = usage )
+    parser.add_argument('--in', dest="inputfile", required=True, help = 'An input file (.dam format)')
+    parser.add_argument('--out', dest="outputfile", required=True, help = 'An input file (.csv format)')
+    parser.add_argument('--doAssert', action='store_true', default=False, help="Fail upon encountering an error")
+    args = parser.parse_args(sys.argv[1:])
+    return args
+
+if __name__=="__main__":
+    options = handle_args()
+    main(options)
