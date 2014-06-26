@@ -31,7 +31,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
 $Maintainer: Hannes Roest$
-$Authors: Hannes Roest$
+$Authors: Hannes Roest, Sigurdur Smarason$
 --------------------------------------------------------------------------
 """
 
@@ -40,7 +40,7 @@ import sys, struct, csv
 """
  *
  * Program       : Parse ABSciex Qtrap .dam files
- * Author        : Hannes Roest <roest@imsb.biol.ethz.ch>
+ * Author        : Hannes Roest <roest@imsb.biol.ethz.ch>, Sigurdur Smarason
  * Date          : 13.03.2012
  *
  * Note : very experimental code
@@ -49,17 +49,19 @@ import sys, struct, csv
           any actual data, only metadata (which transitions were used).
 """
 
-from optparse import OptionParser, OptionGroup
-usage = "usage: %prog inputfile outputfile [options]"
-parser = OptionParser(usage=usage)
-group = OptionGroup(parser, "This program can parse AB Sciex Qtrap .dam files",
-    "It will output a csv file that corresponds to the input transition list.")
-parser.add_option_group(group)
-options, args = parser.parse_args(sys.argv[1:])
+import argparse
+usage  = "This program can parse AB Sciex Qtrap .dam files"
+usage += "It will output a csv file that corresponds to the input transition list."
 
-inputfile = args[0]
-outputfile = args[1]
-do_assert = True
+parser = argparse.ArgumentParser(description = usage )
+parser.add_argument('--in', dest="inputfile", required=True, help = 'An input file (.dam format)')
+parser.add_argument('--out', dest="outputfile", required=True, help = 'An input file (.csv format)')
+parser.add_argument('--doAssert', action='store_true', default=False, help="Fail upon encountering an error")
+args = parser.parse_args(sys.argv[1:])
+
+inputfile = args.inputfile
+outputfile = args.outputfile
+do_assert = args.doAssert
 
 class QtrapFileFormat:
     """
