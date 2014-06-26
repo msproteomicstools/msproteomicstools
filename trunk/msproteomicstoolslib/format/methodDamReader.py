@@ -226,8 +226,8 @@ class QtrapParser():
         entry = Entry()
         pos = self.current_position 
         
-		 
-		
+         
+        
         # 
         # Parse the data:
         entry.q1    = data[pos:pos+4]
@@ -251,13 +251,13 @@ class QtrapParser():
         #print sequence_length
         
         entry.sequence = data[pos:pos+sequence_length]
-		
+        
         pos += sequence_length+2 # to account for the xOO byte after it
 
         pos += 4  # \x44\x00\x50\x00 = DP
         entry.dp = data[pos:pos+4]
-        pos += 12  # skip repeat and empyt bytes
-		
+        pos += 12  # skip repeat and empty bytes
+        
         #print ":".join("{:02x}".format(ord(c)) for c in data[pos:pos+1])
         
         #make sure we are in a correct position
@@ -266,19 +266,19 @@ class QtrapParser():
         pos += 2
         pos += 4  # \x45\x00\x50\x00 = EP
         entry.ep = data[pos:pos+4]
-        pos += 12  # skip repeat and empyt bytes
-		
+        pos += 12  # skip repeat and empty bytes
+        
         #make sure we are in a correct position
         if do_assert: assert data[pos:pos+2] == EOTx1
-		
+        
         pos += 2
         pos += 4  # \x43\x00\x45\x00 = CE
         entry.ce = data[pos:pos+4]
-        pos += 12  # skip repeat and empyt bytes
-		
-		#make sure we are in a correct position
+        pos += 12  # skip repeat and empty bytes
+        
+        #make sure we are in a correct position
         if do_assert: assert data[pos:pos+2] == '\x06\x00'  #no idea why this one is different from EOT
-		
+        
         pos += 2
         pos += 6  # \x43\x00\x58\x00x50\x00 = CXP
         entry.cxp = data[pos:pos+4]
