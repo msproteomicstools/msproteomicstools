@@ -56,82 +56,117 @@ class QtrapFileFormat:
     There is no guarantee that this will work for newer formats of .dam files
     or, in that regard, for any .dam file.
 
-    The Qtrap files is binary. The files have the following structure
-        * Short Header, a few bytes (around 168) [part1 ]
-        * At least 256 ff bytes
-        * Long Header (a couple of kilobytes) [part2]
-          - this header contains some information like this {{{
-             Root Entry
-             FileRec_StrrAcqMethodFileInfoStmxAcqMethodConfigStm&
-             ()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
-             AcqMethodOriginalConfigStm6
-             DeviceMethod0
-             DeviceMethod1
-             DeviceMethod2
-             DeviceMethod3
-             VendorAppMethod
-             VendorAppMethod
-             VendorAppMethod 
-             MassSpecMethodExEx&MassSpecMethodExExEx*Period0PeriodStream
-             -./012345678
-             Tempo LC device CH1Tempo LC device CH2Tempo nano LC Autosampler7
-             D:\[...]m2.dam
-             Friday March 25, 2011 03: 30: 14 
-             Friday March 25, 2011 03: 30: 14 
-             GenericAnalyst 1.5&File Version:  1.0
-             imsbIBT-RASM11 
-             D:\[...]m2.dam
-             New methodTempo nano LC Autosampler
-             C:\P[...]w.ini
-             methodTempo LC device  CH2
-             C:\P[...]w.ini
-             :1New methodTempo LC device  CH1
-             C:\P[...]w.ini
-             :8New mass spectrometer method
-             PeriodStreamEx
-             Experiment0
-             CycleDepParam
-             ParamCollHeader
-             TripleQuadMALDI
-             ExperimentHeader
-             ExperimentHeaderEx
-             IonSourceParamsTable
-             MassRangeEx
-             ExperimentHeaderQTrapEX
-             ExperimentHeaderQTrapEXEX4
-             ExperimentHeaderDFTParamsEX8
-             HpsMRM
-             Parameter1
-             Parameter2
-             Parameter3
-             Parameter4
-             Parameter5
-             ParameterData
-             ParameterData
-             ParameterData
-             experiment
-           }}}
-        * At least 256 ff bytes
-        ***********************************
-        * Data / Transition list [part3]
-        ***********************************
-        * Padding of zero bytes
-        * End of data (12x ff) with ENDOFDATASEQUENCE
-        * a few hundred bytes trailing
-
-    The data looks like this:
+    The Qtrap files is binary. Entries are in a multiple of 128 bytes and
+    all start with a name, i.e. a sequence of ascii characters separated by a null
+    byte except the header at the beginning which has no name but is 1024 bytes
+    long. Entries vary with the equipment profile (e.g. type of LC) as well as
+    the experimental profile. If entries surpass 128 bytes or the whole file is
+    not a multiple of 128 bytes it is padded with a series of xFF bytes in various
+    places. Some of these paddings can occur within entries. The begin and end of
+    these paddings are not always clear although many times the end is signaled with 
+    x04x00. xFF seems also to be used as a delimiter and/or as mini padding in
+    entries.
+    
+    The following are named entries that have been found, some entries are 
+    found multiple times and there seems to be some sequence to the entries
+    but right now this sequence is not fully known.
+    
+    	Root Entry {two per file}
+		FileRec_Str
+		AcqMethodFileInfoStm
+		AcqMethodConfigStm
+		AcqMethodOriginalConfigStm
+		DeviceMethod0
+		DeviceMethod1  {possibly more if there are more devices in the instrument profile?}
+		LCPumpMethod { specific to one vendor? }
+		ShimadzuMethod { specific to one vendor }
+		ShimadzuVendorMethod { specific to one vendor }
+		ShimadzuPretreatment { specific to one vendor }
+		MSConfigInfo
+		MSConfigInfoExp
+		MSConfigInfoDMS
+		MSConfigInfoDualMass
+		MassSpecMethod
+		MassSpecMethodEx
+		MassSpecMethodExEx
+		MassSpecMethodDMS
+		MassSpecMethodExExEx
+		Period0
+		Period1 {possibly more if there are more periods in the method?}
+		{
+		Controller
+		Pumps 
+		TimeProgram
+		Detectors
+		Autosampler
+		PDA
+		OVEN
+		SUBCONTROLLER
+		Pretreatment
+		Text
+		} These might be vendor and/or equipment specific
+		PeriodStream
+		PeriodStreamEx
+		Experiment0
+		Experiment1 {possibly more if there are more experiments in the method?}
+		CycleDepParam
+		ParamCollHeader
+		{
+		TripleQuadMALDI
+		ExperimentHeader
+		ExperimentHeaderEx
+		IonSourceParamsTable
+		MassRangeEx
+		MassRangeExEx
+		ExperimentHeaderQTrapEX
+		ExperimentHeaderQTrapEXEX
+		ExperimentHeaderDFTParamsEX
+		ExperimentHeaderFJ
+		sMRM
+		sMRMEX
+		} possibly more sets of these entries depending on the method?
+		{
+		MassRangeExEx
+		MassRangeEx
+		ParamCollHeader
+		Parameter0
+		Parameter1
+		Parameter2
+		Parameter3
+		Parameter4
+		Parameter5
+		}  possibly more sets of these entries depending on the method?
+		{
+		ParameterData
+		ParameterData
+		ParameterData
+		ParameterData
+		ParameterData
+		ParameterData
+		}  possibly more sets of these entries depending on the method?
+		
+		MRM data can be found in one or more of the Parameter entries
+		and is indicated with the x02x00x00x00x04x00x00x00 sequence. 
+		Immediately after that the MRM data starts. In general the data
+		looks like this
         * 4  bytes Q1
         * 4  bytes null
         * 4  bytes Q3
-        * 4  bytes RT
+        * 4  bytes RT (in min) or dwell time (in ms) depending on the method
         * 4  bytes null
-        * 2  bytes unknown variable word (seems to be the same for each peptide)
-        * xx bytes sequence in ASCII (variable, terminated by EOT)
-        * 42 bytes constant bytestring (unknown )
-        * 4  bytes CE (collision energy)
-        * 4  bytes CE (for some reason twice, maybe for ramping?)
-        * 24 bytes constant bytestring (unknown)
-        == In total 96 bytes plus the length of the comment / sequence string
+        * 2  bytes unknown
+        * xx bytes ID probably in Windows 1252 encoded text (variable, terminated by x04x00) with x00 between
+        * the characters
+        * DP,EP,CE,CXP will each be spelled out in ascii (with the usual x00 between) followed by the
+        begin and end values (four bytes for each parameter). Possibly these can be use to ramp the settings although in the method
+        setup on the Qtrap it is not immediately obvious how to do so. Note that padding of xFF can occur between these parameters.
+        The next Q1 value if present will be found 6 (length of CXP) + 12 bytes after the position of the CXP string.
+        If there isn't one then the value of the Q1 bytes in that position will be x00x00x00x00
+        
+        Other source parameters such as curtain gas (CUR), source temperature (TEM), GS1, GS2, CAD and IS
+        can also be found spelled out in the paramter entries. Sometimes in the same entry that contains the MRM 
+        data and sometimes not.  They also seem to have start and stop values (4 bytes each) and are sometimes 
+        repated more than once in the same paramter entry and/or between parameter entries.
 
     """
 
@@ -139,133 +174,147 @@ class QtrapFileFormat:
 # Constants {{{
 ###########################################################################
 
-BEGINOFDATASEQUENCE = "".join( [ c + '\x00' for c in 'ParameterData']) + \
+ParameterDatafield = "".join( [ c + '\x00' for c in 'ParameterData']) + \
         '\x00' * 38 + '\x1c\x00\x02\x01' + '\xff' * 12
-        
-ENDOFDATASEQUENCE = BEGINOFDATASEQUENCE   
-    
-Step2 = "".join( [ c + '\x00' for c in 'New experiment']) + '\xFF\xFF\x04\x00\x00\x00'
-Step3 = '\x02\x00\x00\x00'+'\x04\x00\x00\x00'
+           
+Q1start = '\x02\x00\x00\x00'+'\x04\x00\x00\x00'
 
 EOT = '\x04' #end of transmission EOT = 04
 
-EOTx1 = '\x04'+'\x00'
-EOTx3 = '\x04'+'\x00' * 3
-
-SEQUENCE_START_AT = 16 # counted from q1 until the sequence starts
-
 # }}}
 
-def HexStringToString(hexString):
-  # convert hex string to windows 1252 string
-  bytes = []
-  hexStr = ''.join( hexString.split("%") )
-  for i in range(0, len(hexStr), 2):
-    bytes.append( chr( struct.unpack("h", hexStr[i:i+2])[0] ) )
-    
-  # decode as Win 1252
-  string = ''.join( bytes ).decode("Windows-1252")
+###########################################################################
+# Start
+###########################################################################
 
-  return string
+
+def HexStringToString(hexString):
+	# convert hex string to windows 1252 string
+	bytes = []
+	hexStr = ''.join( hexString.split("%") )
+	
+	#these can not be converted to characters
+	badCodes = [127, 129, 141, 143, 144, 157]
+	
+	for i in range(0, len(hexStr), 2):
+		if len(hexStr[i:i+2])==2:
+			dum=struct.unpack("<H", hexStr[i:i+2])[0]
+		else:
+			dum=-1
+
+		test = True
+		if dum<32:
+			test = False
+			
+		if dum>255:
+			test = False
+		
+		if dum in badCodes:
+		 	test = False
+		 	
+		
+		if test == True:
+			bytes.append( chr( dum ) )
+		else:
+			#special check for the xFF value in order to better understand the
+			#layout of the data
+			if dum == 65535:
+				bytes.append( chr ( 70) )
+			else:
+				bytes.append( chr (46) )
+		
+    
+	# decode as Win 1252
+	string = ''.join( bytes ).decode("Windows-1252")
+
+	return string
+
 
 
 class Entry():
 
     def __init__(self): pass
 
-class QtrapParser():
 
-    def __init__(self, current = 0, eof = -1, doAssert = False): 
-        self.current_position = current
-        self.endofdata = eof
-        self.entries = []
-        self.done = False
-        self.do_assert = doAssert
+class MRMParser():
 
-    def parse(self, data):
-        entry = Entry()
-        pos = self.current_position 
+	def __init__(self, data): 
+		self.current_position = 0
+		self.data = data
+		self.endofdata = len(data)
+		self.entries = []
+		self.done = False
+		self.ionArr = ['DP','EP','CE','CXP']	
+		self.ionParams = {'DP':'\x00'*4,'EP':'\x00'*4,'CE':'\x00'*4,'CXP':'\x00'*4}
+	
+	def parse(self):
+		self.current_position = self.data.find(Q1start)+len(Q1start)
+		if self.current_position>-1:
+			while(not self.done):
+				self.parseOne()
+				
+	
+	def parseOne(self):
+		entry = Entry()
+		pos = self.current_position 
+	
+		# 
+		# Parse the data:
+		entry.q1    = self.data[pos:pos+4]
+		if entry.q1 == '\x00'*4: #if we have hit a null string here then we are done
+			self.done = True; 
+			return
         
-         
+		pos += 4 #move 4 positions ahead
+		pos += 4 # 4x null byte
+		entry.q3    = self.data[pos:pos+4]
+		pos += 4 #move 4 positions ahead
+		entry.rt    = self.data[pos:pos+4]
+		pos += 4 #move 4 positions ahead
+		pos += 4 # 4x null byte
+		pos += 2 # 2x unknown byte
+		# Find text (sequence) and determine break condition
+		for sequence_length,c in enumerate(self.data[pos:]): 
+			if c == EOT: break #end of transmission (end of sequence)
         
-        # 
-        # Parse the data:
-        entry.q1    = data[pos:pos+4]
-        if data[pos:pos+4] == '\x00'*4: #if we have hit a null string here then we are done
-            self.done = True; 
-            return
+		#print sequence_length
         
-        pos += 4
-        null1       = data[pos:pos+4]
-        pos += 4
-        entry.q3    = data[pos:pos+4]
-        pos += 4
-        entry.rt    = data[pos:pos+4]
-        pos += 4
-        null2       = data[pos:pos+4]
-        pos += 4+2
-        # Find text (sequence) and determine break condition
-        for sequence_length,c in enumerate(data[pos:]): 
-            if c == EOT: break #end of transmission (end of sequence)
+		entry.sequence = self.data[pos:pos+sequence_length]
+		
+		pos += sequence_length+2 # to account for the xOO byte after it
         
-        #print sequence_length
-        
-        entry.sequence = data[pos:pos+sequence_length]
-        
-        pos += sequence_length+2 # to account for the xOO byte after it
-
-        pos += 4  # \x44\x00\x50\x00 = DP
-        entry.dp = data[pos:pos+4]
-        pos += 12  # skip repeat and empty bytes
-        
-        #print ":".join("{:02x}".format(ord(c)) for c in data[pos:pos+1])
-        
-        #make sure we are in a correct position
-        if self.do_assert: assert data[pos:pos+2] == EOTx1
-        
-        pos += 2
-        pos += 4  # \x45\x00\x50\x00 = EP
-        entry.ep = data[pos:pos+4]
-        pos += 12  # skip repeat and empty bytes
-        
-        #make sure we are in a correct position
-        if self.do_assert: assert data[pos:pos+2] == EOTx1
-        
-        pos += 2
-        pos += 4  # \x43\x00\x45\x00 = CE
-        entry.ce = data[pos:pos+4]
-        pos += 12  # skip repeat and empty bytes
-        
-        #make sure we are in a correct position
-        if self.do_assert: assert data[pos:pos+2] == '\x06\x00'  #no idea why this one is different from EOT
-        
-        pos += 2
-        pos += 6  # \x43\x00\x58\x00x50\x00 = CXP
-        entry.cxp = data[pos:pos+4]
-        pos += 12  # skip repeat and empty byte
-        
+		#look for the DP, EP, CE and CXP, data structure splits on CXP+12 bytes before next Q1
+		ionParam=self.ionParams
+		for e in self.ionArr:
+			myStr = "".join( [ c + '\x00' for c in e])
+			foundOne = self.data[pos:].find(myStr)
+			if foundOne>-1:
+				pos += foundOne + len(myStr)
+				ionParam[e] = self.data[pos:pos+4]
+		if foundOne>-1:  #CXP was found...
+			pos += 12
 
         # sanity check whether we are at the end of the data
-        if pos > self.endofdata: 
-            self.done = True; 
-            return
+		if pos > self.endofdata: 
+			self.done = True; 
+			return
         
-        self.current_position = pos  # update the current position
+		self.current_position = pos  # update the current position
 
 
-        # The sequence is windows 1252 encoded so we need to deal with that and convert to UTF-8
-        entry.sequence = HexStringToString(entry.sequence)
-        entry.sequence=entry.sequence.encode("utf-8")
+		# The sequence is windows 1252 encoded so we need to deal with that and convert to UTF-8
+		entry.sequence = HexStringToString(entry.sequence)
+		entry.sequence=entry.sequence.encode("utf-8")
 
-        # The numbers are little-endian floats of size 4, so we use '<f' to unpack.
-        entry.q1_unpacked = struct.unpack('<f', entry.q1)[0]
-        entry.q3_unpacked = struct.unpack('<f', entry.q3)[0]
-        entry.rt_unpacked = struct.unpack('<f', entry.rt)[0]
-        entry.ce_unpacked = struct.unpack('<f', entry.ce)[0]
-        entry.ep_unpacked = struct.unpack('<f', entry.ep)[0]
-        entry.dp_unpacked = struct.unpack('<f', entry.dp)[0]
-        entry.cxp_unpacked = struct.unpack('<f', entry.cxp)[0]
-        self.entries.append(entry)
+		# The numbers are little-endian floats of size 4, so we use '<f' to unpack.
+		entry.q1_unpacked = struct.unpack('<f', entry.q1)[0]
+		entry.q3_unpacked = struct.unpack('<f', entry.q3)[0]
+		entry.rt_unpacked = struct.unpack('<f', entry.rt)[0]
+		entry.ce_unpacked = struct.unpack('<f', ionParam['CE'])[0]
+		entry.ep_unpacked = struct.unpack('<f', ionParam['EP'])[0]
+		entry.dp_unpacked = struct.unpack('<f', ionParam['DP'])[0]
+		entry.cxp_unpacked = struct.unpack('<f', ionParam['CXP'])[0]
+		self.entries.append(entry)
 
 def main(args):
 
@@ -273,53 +322,49 @@ def main(args):
     outputfile = args.outputfile
     do_assert = args.doAssert
 
-    ###########################################################################
-    # Start
-    ###########################################################################
-
     f = open(inputfile)
     r = f.read()
     f.close()
 
-    # Find the two header files and advance to the transition list
-    beginData = r.find(BEGINOFDATASEQUENCE,0)
-
+    # Find all instances of ParameterDatafield and collect the resulting data
+    beginData = r.find(ParameterDatafield,0)
+    endData = beginData
     if do_assert: assert beginData > 0
 
-    posStep3 = r.find(Step3, beginData+len(BEGINOFDATASEQUENCE)+1)
+    #loop to put all ParameterData entries into an array
+    paramData = []
+    end=False
+    while(endData>-1):
+        endData = r.find(ParameterDatafield,beginData+len(ParameterDatafield)+1)
+        if endData>beginData:
+            paramData.append(r[beginData:endData])
+        elif endData==-1:
+            paramData.append(r[beginData:])
+        beginData=endData
+        
 
-    #print posStep3, beginData
+    #look for the begin tag of the Q1/Q3/time packet in each Parameterdata entry and parse it for MRM transitions if found
+    MRMs = []
+    for e in paramData:
+        beginData=e.find(Q1start)
+        if beginData>-1:
+            parser = MRMParser(e)
+            parser.parse()
+            MRMs.append(parser.entries)
 
-    if do_assert: assert posStep3>beginData
-
-
-    # we start in posStep3 of the file
-    data = r[posStep3 + 8:]
-    endofdata = data.find( ENDOFDATASEQUENCE )
-
-    #print endofdata
-
-    # We loop through the data part and create a new "Entry" object for each entry.
-    # We end the loop when we hit endofdata.
-    # endposition always holds the position where the new entry starts/the old one
-    # ends.
-    parser = QtrapParser(0,endofdata, doAssert = do_assert)
-    while (not parser.done):
-        parser.parse(data)
-
+        
     # Write out a csv file
     f = open(outputfile, 'wb')
     csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     #write a header for the values
-    csvWriter.writerow( ['Q1','Q3','RT','ID','CE','EP','DP','CXP'] )
-    for e in parser.entries:
-        csvWriter.writerow( [e.q1_unpacked, e.q3_unpacked, e.rt_unpacked, 
-                            e.sequence, e.ce_unpacked,e.ep_unpacked, 
-                            e.dp_unpacked, e.cxp_unpacked ] )
+    csvWriter.writerow( ['Q1','Q3','Time','ID','CE','EP','DP','CXP'] )
+    for oneMRMpacket in MRMs:
+        for e in oneMRMpacket:
+            csvWriter.writerow( [e.q1_unpacked, e.q3_unpacked, e.rt_unpacked, 
+                    e.sequence, e.ce_unpacked,e.ep_unpacked, 
+                    e.dp_unpacked, e.cxp_unpacked ] )
 
     f.close()
-
-    # struct.unpack('<f', '\xbe\x52\xa2\x3f')
 
 def handle_args():
     import argparse
