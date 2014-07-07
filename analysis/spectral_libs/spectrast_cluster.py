@@ -208,11 +208,11 @@ def main(argv) :
 
             sequence     = spectrum.name.split('/')[0]
             z_parent     = float(spectrum.name.split('/')[1])
-            if spectrum.RetTime_detected != -1 :
-              rt             = spectrum.RetTime_detected
-            if spectrum.iRT_detected != -1 :
-              rt             = spectrum.iRT_detected
-            if spectrum.RetTime_detected == -1 and spectrum.iRT_detected == -1 :
+            if spectrum.RetTime_detected:
+              rt             = spectrum.RetTime
+            if spectrum.iRT_detected:
+              rt             = spectrum.iRT
+            if !spectrum.RetTime_detected and !spectrum.iRT_detected:
               print "No RT/iRT was detected for %s" % spectrum.name
               sys.exit(2)
             

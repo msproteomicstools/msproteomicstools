@@ -715,8 +715,10 @@ class Spectra:
         self.protein_ac = ''
         self.OrigMaxIntensity = -1
         self.ConsFracAssignedPeaks = -1
-        self.RetTime_detected = -1
-        self.iRT_detected = -1
+        self.RetTime = -1
+        self.RetTime_detected = False
+        self.iRT = -1
+        self.iRT_detected = False
         self.spectra_cols = {
             'id'                :   0,
             'status'            :   1,
@@ -910,15 +912,15 @@ class Spectra:
             if ',' in mm.group(1)[:] :
                 mm_split = mm.group(1).split(',')
                 mm_split_float = [float(f) for f in mm_split]
-                self.RetTime_detected = mm_split_float[0]
-            else : self.RetTime_detected = float( mm.group(1) )
+                self.RetTime = mm_split_float[0]
+                self.RetTime_detected = True
         mm = re.search( 'iRT=(.*?)$', self.comment )
         if mm:
             if ',' in mm.group(1)[:] :
                 mm_split = mm.group(1).split(',')
                 mm_split_float = [float(f) for f in mm_split]
-                self.iRT_detected = mm_split_float[0]
-            else : self.iRT_detected = float( mm.group(1) )
+                self.iRT = mm_split_float[0]
+                self.iRT_detected = True
 
         try :
             self.comment_parsed = self.parse_comments(self.comment)

@@ -356,10 +356,10 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.RetTime_detected != -1 :
-                    RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-                if spectrum.iRT_detected != -1 :
-                    iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.RetTime_detected:
+                    RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.iRT_detected:
+                    iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
                 else:
                     iRT_experimental = RT_experimental
                 if not useMinutes : iRT_experimental = iRT_experimental * 60
@@ -539,10 +539,10 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             peaks = []
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
-                if spectrum.RetTime_detected != -1 :
-                    RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-                if spectrum.iRT_detected != -1 :
-                    iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.RetTime_detected:
+                    RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                if spectrum.iRT_detected:
+                    iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
                 else:
                     iRT_experimental = RT_experimental
                 if not useMinutes : iRT_experimental = iRT_experimental * 60
@@ -871,10 +871,10 @@ def main(argv) :
             
             iRT_experimental = 0.0
             RT_experimental = 0.0
-            if spectrum.RetTime_detected != -1 :
-                RT_experimental = spectrum.RetTime_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
-            if spectrum.iRT_detected != -1 :
-                iRT_experimental = spectrum.iRT_detected / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+            if spectrum.RetTime_detected:
+                RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+            if spectrum.iRT_detected:
+                iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
             else:
                 iRT_experimental = RT_experimental
 
