@@ -212,7 +212,7 @@ def main(argv) :
               rt             = spectrum.RetTime
             if spectrum.iRT_detected:
               rt             = spectrum.iRT
-            if !spectrum.RetTime_detected and !spectrum.iRT_detected:
+            if not spectrum.RetTime_detected and not spectrum.iRT_detected:
               print "No RT/iRT was detected for %s" % spectrum.name
               sys.exit(2)
             
