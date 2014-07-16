@@ -1000,8 +1000,12 @@ def main(argv) :
 
             #Sort transitions by frg_serie, frg_nr, frg_z and MINUS intensity, then remove duplicates
             #this means of every frag_serie/no/chg only the highest(!) intensity peak is stored
-            filteredtransitions = sorted(filteredtransitions, key= lambda x: (x[9], x[10], x[11], -x[5]))
-            filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
+            if key == 'peakview':
+                filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[9], x[10], x[11], -x[5]))
+                filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
+            elif key == 'openswath':
+                filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[15], x[16], x[17], -x[5]))
+                filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[15], x[16], x[17]))
 
             #REVERSE sort the transitions by intensity
             #this means the highest(!) intensity peaks of this transition are on top
@@ -1046,10 +1050,10 @@ def main(argv) :
                         precursorMZ_heavy      = heavy_transition[0]
                         fragment_mz_heavy      = heavy_transition[1]
                         sequence_heavy         = heavy_transition[8]
-                        z_parent               = heavy_transition[15]
-                        frg_serie              = heavy_transition[18]
-                        frg_z                   = heavy_transition[19]
-                        frg_number               = heavy_transition[20]
+                        z_parent               = heavy_transition[12]
+                        frg_serie              = heavy_transition[15]
+                        frg_z                   = heavy_transition[16]
+                        frg_number               = heavy_transition[17]
                                         
                     #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
                     if frg_serie[0] not in ['y','b'] : continue
@@ -1105,8 +1109,12 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     #Sort transitions by frg_serie, frg_nr, frg_z and MINUS intensity, then remove duplicates
     #this means of every frag_serie/no/chg only the highest(!) intensity peak is stored
     if verbose : print "initial number transitions " , len(filteredtransitions)
-    filteredtransitions = sorted(filteredtransitions, key= lambda x: (x[9], x[10], x[11], -x[5]))
-    filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
+    if key == 'peakview':
+        filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[9], x[10], x[11], -x[5]))
+        filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
+    elif key == 'openswath':
+        filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[15], x[16], x[17], -x[5]))
+        filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[15], x[16], x[17]))
     if verbose : print "after removing duplicates " , len(filteredtransitions)
 
     #REVERSE sort the transitions by intensity
@@ -1157,10 +1165,10 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
                 precursorMZ_heavy      = heavy_transition[0]
                 fragment_mz_heavy      = heavy_transition[1]
                 sequence_heavy         = heavy_transition[8]
-                z_parent               = heavy_transition[15]
-                frg_serie              = heavy_transition[18]
-                frg_z                   = heavy_transition[19]
-                frg_number               = heavy_transition[20]
+                z_parent               = heavy_transition[12]
+                frg_serie              = heavy_transition[15]
+                frg_z                   = heavy_transition[16]
+                frg_number               = heavy_transition[17]
                                 
             #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
             if frg_serie[0] not in ['y','b'] : continue
