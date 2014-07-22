@@ -355,7 +355,7 @@ def main(args):
         
     # Write out a csv file
     f = open(outputfile, 'wb')
-    csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
     #write a header for the values
     csvWriter.writerow( ['Q1','Q3','Time','ID','CE','EP','DP','CXP'] )
     for oneMRMpacket in MRMs:

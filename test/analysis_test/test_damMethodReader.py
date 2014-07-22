@@ -72,5 +72,33 @@ class TestDAMReader(unittest.TestCase):
 
         os.remove(tmpfilename)
 
+    def test_damReader2(self):
+        script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
+        filename = os.path.join(self.datadir, "ABSciex_testInput2.dam")
+        expected_outcome = os.path.join(self.datadir, "methodDamReader_2_output.csv")
+        tmpfilename = "methodfile.out.tmp"
+
+        args = "--doAssert --in %s --out %s" % (filename, tmpfilename)
+        cmd = "python %s %s" % (script, args)
+        sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
+
+        os.remove(tmpfilename)
+
+    def test_damReader3(self):
+        script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
+        filename = os.path.join(self.datadir, "ABSciex_testInput3.dam")
+        expected_outcome = os.path.join(self.datadir, "methodDamReader_3_output.csv")
+        tmpfilename = "methodfile.out.tmp"
+
+        args = "--doAssert --in %s --out %s" % (filename, tmpfilename)
+        cmd = "python %s %s" % (script, args)
+        sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
+
+        os.remove(tmpfilename)
+
 if __name__ == '__main__':
     unittest.main()
