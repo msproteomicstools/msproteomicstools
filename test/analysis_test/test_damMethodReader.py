@@ -73,6 +73,7 @@ class TestDAMReader(unittest.TestCase):
         os.remove(tmpfilename)
 
     def test_damReader2(self):
+        #tests for the correct reading after a large "FFFFF" insertion into the method parameters
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
         filename = os.path.join(self.datadir, "ABSciex_testInput2.dam")
         expected_outcome = os.path.join(self.datadir, "methodDamReader_2_output.csv")
@@ -87,6 +88,7 @@ class TestDAMReader(unittest.TestCase):
         os.remove(tmpfilename)
 
     def test_damReader3(self):
+        #tests for the correct translation of a non-ASCII character ('ð') in the name/ID of the method paramters
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
         filename = os.path.join(self.datadir, "ABSciex_testInput3.dam")
         expected_outcome = os.path.join(self.datadir, "methodDamReader_3_output.csv")
