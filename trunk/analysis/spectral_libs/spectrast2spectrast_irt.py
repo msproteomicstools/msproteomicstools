@@ -356,8 +356,8 @@ def main(argv):
       splib_in = arg
     elif opt in ("-o","--out"):
       splib_out = arg
-      pepidx_out = arg.split(".")[0] + '.pepidx'
-      report_out = arg.split(".")[0] + '.csv'
+      pepidx_out = os.path.splitext(arg)[0] + '.pepidx'
+      report_out = os.path.splitext(arg)[0] + '.csv'
     elif opt in ("-a","--applychauvenet"):
       rmout = True
     elif opt in ("-k","--kit"):
