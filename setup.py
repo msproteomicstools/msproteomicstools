@@ -11,7 +11,7 @@ for root, dirnames, filenames in os.walk('analysis'):
 all_scripts.extend(["./gui/AlignmentGUI.py"])
 
 setup(name='msproteomicstools',
-      version='0.2.1',
+      version='0.2.2',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
@@ -41,17 +41,19 @@ setup(name='msproteomicstools',
       'Topic :: Scientific/Engineering :: Chemistry',
       ],
       install_requires=[
-          "cluster >= 1.1.2",
-          "pyteomics >= 2.4.0",
-          "xlsxwriter >= 0.5.3 ",
           "numpy",
           "scipy",
-          'xlwt',
+          "cluster >= 1.1.2",
+          "pyteomics >= 2.4.0",
+          "xlsxwriter >= 0.5.3 ", # for xlsx
+          'xlwt', # for xls
           'scikits.datasmooth',
-          'rpy2',
           'pymzml',
           'lxml'
       ],
+      extras_require = {
+          'RSmoothing' : ["rpy2"]
+      },
       test_suite="nose.collector",
       tests_require="nose",
       )
