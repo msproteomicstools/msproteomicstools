@@ -141,6 +141,9 @@ class DataModel(object):
 
         print "Input contained no mapping of run_id to the chromatograms."
         print "Try to infer mapping - if this fails, please provide a yaml input."
+
+        precursors_mapping = {}
+        sequences_mapping = {}
         mapping = {}
         import csv, os
         for file_nr, f in enumerate(aligned_pg_files):
@@ -159,6 +162,19 @@ class DataModel(object):
                 raise Exception("need column header align_origfilename and align_runid")
 
             for this_row in reader:
+
+                # Get the mapping ... 
+                if header_dict.has_key("FullPeptideName") and \
+                  header_dict.has_key("Charge") and \
+                  header_dict.has_key("aggr_Fragment_Annotation"):
+                    transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
+                    peptide_name = this_row[header_dict["FullPeptideName"]]
+                    charge_state = this_row[header_dict["Charge"]]
+                    key = peptide_name + "/" + charge_state
+                    precursors_mapping [ key ] = transitions
+                    mapped_precursors = sequences_mapping.get( peptide_name, [] )
+                    mapped_precursors.append(key)
+                    sequences_mapping[peptide_name] = [ key ]
 
                 # 1. Get the original filename (find a non-NA entry) and the corresponding run id
                 if len(this_row) == 0: continue
@@ -186,7 +202,7 @@ class DataModel(object):
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_chromatograms(mapping)
+        swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
         self._read_peakgroup_files(aligned_pg_files, swathfiles)
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
@@ -232,6 +248,8 @@ class DataModel(object):
             if ONLY_SHOW_QUANTIFIED:
                 intersection = set(swathrun.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
                 todelete = set(swathrun.get_all_precursor_ids()).difference(intersection)
+                if len(intersection):
+                    print "Could not find any intersection between identifiers in your transition file and the provided chromatograms"
                 swathrun.remove_precursors(todelete)
 
             # for each precursor in this run, identify the best peakgroup and store the value
