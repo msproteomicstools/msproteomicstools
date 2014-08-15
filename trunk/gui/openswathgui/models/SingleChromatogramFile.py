@@ -54,7 +54,7 @@ class SingleChromatogramFile():
 
     """
 
-    def __init__(self, run, filename, load_in_memory=False):
+    def __init__(self, run, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None):
         import os
         self._run = run
         self._filename = filename
@@ -66,14 +66,19 @@ class SingleChromatogramFile():
         # Map which holds the relationship between a sequence and its precursors
         self._sequences_mapping = {}
 
-        if load_in_memory:
+        self._in_memory = False
+
+        if not precursor_mapping is None and not len(precursor_mapping) == 0 \
+          and not sequences_mapping is None and not len(sequences_mapping) == 0:
+            self._precursor_mapping = precursor_mapping
+            self._sequences_mapping = sequences_mapping
+        elif load_in_memory:
             self._group_by_precursor_in_memory()
             self._in_memory = True
+            self._group_precursors_by_sequence()
         else:
             self._group_by_precursor()
-            self._in_memory = False
-
-        self._group_precursors_by_sequence()
+            self._group_precursors_by_sequence()
 
     #
     ## Initialization
