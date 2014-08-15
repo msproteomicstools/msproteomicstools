@@ -56,7 +56,6 @@ class SingleChromatogramFile():
 
     def __init__(self, run, filename, load_in_memory=False):
         import os
-        print type(run)
         self._run = run
         self._filename = filename
         self._basename = os.path.basename(filename)
@@ -89,6 +88,9 @@ class SingleChromatogramFile():
         """
         
         openswath_format = self._has_openswath_format(self._run)
+        if openswath_format:
+            print "Determined chromatogram identifers to be in openswath formta (11111_PEPTIDE_2), will parse them accordingly."
+            
         if openswath_format:
             if len( self._run.info['offsets'] ) > 0:
                 for key in self._run.info['offsets'].keys():
@@ -177,6 +179,7 @@ class SingleChromatogramFile():
         # Format ii) (second component doesnt contain a slash)
         if trgr_nr.find("/") == -1:
             trgr_nr += "/" + str(components[-1])
+
         return trgr_nr
 
     def _compute_transitiongroup_from_precursor(self, precursor):
@@ -205,8 +208,14 @@ class SingleChromatogramFile():
 
         Namely, the format is expected to be [DECOY_]\d*_.*_.* from which one
         can infer that it is openswath format.
+
+        possible inputs: 
+            DECOY_44736_NVEVIEDDKQGIIR/2_y12
+            1002781_TGLC(UniMod:4)QFEDAFTQLSGATPIGAGIDAR_3
         """
 
+        
+        import re
         openswath_format = False
         if len( run.info['offsets'] ) > 0:
             keys = run.info['offsets'].keys()
@@ -215,19 +224,56 @@ class SingleChromatogramFile():
                 if len(key) == 0: continue
                 break
 
+            # It is probably not the openswath format with 3 or more entries
+            if len(key.split("_")) > 4:
+                return False
+
             if len(key.split("_")) >= 3:
                 components = key.split("_")
-                trgr_nr = components[0]
+                # print "split into components", components
                 if components[0].startswith("DECOY"):
-                    trgr_nr = components[1]
-                try:
-                    trgr_nr = int(trgr_nr)
-                    return True
-                except ValueError:
-                    print "Format determination: Could not convert", trgr_nr, "to int."
+                    components = components[1:]
+
+                # Exactly 3 components are needed: id, sequence, charge/ion qualifier
+                if len(components) != 3:
                     return False
 
+                trgr_nr = components[0]
+                sequence = components[1]
+                sequence = sequence.split("/")[0]
+                qualifier = components[2]
+
+                if not self._is_number(trgr_nr):
+                    print "Format determination: Could not convert", trgr_nr, "to int."
+                    return False
+                if self._is_number(sequence):
+                    print "Format determination: Does not look like sequence ", sequence
+                    return False
+                elif sequence.find("UniMod") != -1:
+                    # Looks like sequence, has UniMod tag in it, should be ok
+                    pass
+                else:
+                    valid = re.match('^[A-Z]+$', sequence) is not None
+                    if not valid:
+                        print "Format determination: Does not look like sequence ", sequence
+                        return False
+
+                if self._is_number(qualifier):
+                    print "Format determination: Does look like number ", qualifier
+                    return False
+                
+                return True
+
+        # default is false
         return False
+
+    def _is_number(self, n):
+        # Sequence should not be a number
+        try:
+            x = float(n)
+            return True
+        except ValueError:
+            return False
 
     def _group_precursors_by_sequence(self):
         """Group together precursors with the same charge state"""
