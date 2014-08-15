@@ -251,9 +251,7 @@ class sptxtio:
       print "Did you search for the true sequences?"
       print "Did you use a non-consensus and without best replicates summarization spectral library?"
       print "Did you add the Biognosys RT-kit to all of your samples?"
-      print "The following runs don't contain peptides from the Biognosys RT-kit:"
-      for rawspectrum in missingirt:
-        print rawspectrum
+      print "The following runs don't contain peptides from the Biognosys RT-kit:",missingirt
       raise Exception("Error: At least one of your runs doesn't contain any peptides from the Biognosys RT-kit!")
 
     for rawspectrum in self.spectra:
