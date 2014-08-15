@@ -155,11 +155,13 @@ class DataModel(object):
             for i,n in enumerate(header):
                 header_dict[n] = i
             if not header_dict.has_key("align_origfilename") or not header_dict.has_key("align_runid"):
+                print header_dict
                 raise Exception("need column header align_origfilename and align_runid")
 
             for this_row in reader:
 
                 # 1. Get the original filename (find a non-NA entry) and the corresponding run id
+                if len(this_row) == 0: continue
                 if this_row[ header_dict["align_origfilename"] ] == "NA": continue
                 aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
                 if aligned_id in mapping: continue 
