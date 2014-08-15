@@ -87,7 +87,10 @@ class PeptideTree(TreeModel):
             return 'Full Name'
         return None
 
-    def set_precursor_tree_structure(self, data):
+    def set_precursor_tree_structure(self, data, sortData = True):
+
+        if sortData:
+            data.sort(lambda x,y: cmp(x.getName(), y.getName() ))
 
         # first delete all rows
         parent = QModelIndex()
