@@ -65,7 +65,7 @@ class SwathRun(object):
 
     """
 
-    def __init__(self, files, runid=None):
+    def __init__(self, files, runid=None, precursor_mapping = None, sequences_mapping = None):
         self.runid = runid
         self._all_swathes = {}
         self._in_memory = False
@@ -76,10 +76,10 @@ class SwathRun(object):
         self._score_mapping = {}
         self._intensity_mapping = {}
 
-        self._loadFiles(files)
+        self._loadFiles(files, precursor_mapping, sequences_mapping)
         self._initialize()
 
-    def _loadFiles(self, files):
+    def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None):
         """ Load the files associated with this run using pymzml
 
         Each run is stored in the _all_swathes dictionary where the runs are
@@ -94,7 +94,8 @@ class SwathRun(object):
             run_.original_file = f
             first = run_.next()
             mz = first['precursors'][0]['mz']
-            self._all_swathes[ int(mz) ] = SingleChromatogramFile(run_, f)
+            self._all_swathes[ int(mz) ] = SingleChromatogramFile(run_, f, 
+                precursor_mapping=precursor_mapping, sequences_mapping=sequences_mapping)
 
     def _initialize(self):
         """ A precursor can be mapped uniquely to a certain SWATH window.
