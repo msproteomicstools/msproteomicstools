@@ -4,9 +4,18 @@ QRACDEFGHIKL
 PROTEIN
 >test nocleavagesite
 ACDEFGHI
+>test nonblocked residue
+AAARBBBRCCC
+>test blocked residue
+AAARPBBBRCCC
+
 >DECOY_example from paper
 QRIHGFEDCAKL
 >DECOY_test 1
 PRNIETO
 >DECOY_test nocleavagesite
 IHGFEDCA
+>DECOY_test nonblocked residue
+AAARBBBRCCC
+>DECOY_test blocked residue
+BBBPRAAARCCC

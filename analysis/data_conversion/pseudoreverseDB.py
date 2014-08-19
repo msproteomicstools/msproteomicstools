@@ -40,8 +40,8 @@ import getopt
 import re
 
 
-def pseudoreverse(seq, cleavage_aa):
-    split = re.split("(%s)" % "|".join(cleavage_aa), seq)
+def pseudoreverse(seq, cleavage_rule):
+    split = re.split("(%s)" % cleavage_rule, seq)
     return "".join([s[::-1] for s in split])
 
 
@@ -51,7 +51,7 @@ Options:
 -i   input.fasta input fasta file
 -o   output.fasta output file with decoys
 [-t] tag for decoys (optional, default 'DECOY_')
-[-c] list of cleavage aminoacids (optional, default 'KR' (trypsin))
+[-c] cleavage rule (optional, default '[KR](?!P)' =trypsin)
 Creates pseudo-reversed decoys (peptide level reversion). If no cleavage site is found protein is simply reversed.
 See http://dx.doi.org/10.1038/nmeth1019 Figure 6"""
     sys.exit(1)
@@ -65,7 +65,7 @@ def main(argv):
         usage()
 
     decoytag = "DECOY_"
-    cleavage_aa = "KR"
+    cleavage_rule = '[KR](?!P)'
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             usage()
@@ -75,23 +75,23 @@ def main(argv):
             o = arg
         if opt in ("-t", "--tag"):
             decoytag = arg
-        if opt in ("-c", "--cleavage_aa"):
-            cleavage_aa = arg
+        if opt in ("-c", "--cleavage_rule"):
+            cleavage_rule = arg
 
     # copy orig
     shutil.copy(i, o)
-    #append decoys
+    # append decoys
     out = open(o, 'a')
     seq = ""
     for line in open(i):
         if line.startswith('>'):
-            out.write(pseudoreverse(seq, cleavage_aa) + '\n')
+            out.write(pseudoreverse(seq, cleavage_rule) + '\n')
             seq = ""
             out.write('>%s%s' % (decoytag, line[1:]))
         else:
             seq += line.strip()
     #flush last one
-    out.write(pseudoreverse(seq, cleavage_aa) + '\n')
+    out.write(pseudoreverse(seq, cleavage_rule) + '\n')
 
 
 if __name__ == '__main__':
