@@ -1,0 +1,12 @@
+>example from paper
+QRACDEFGHIKL
+>test 1
+PROTEIN
+>test nocleavagesite
+ACDEFGHI
+>DECOY_example from paper
+QRIHGFEDCAKL
+>DECOY_test 1
+PRNIETO
+>DECOY_test nocleavagesite
+IHGFEDCA
