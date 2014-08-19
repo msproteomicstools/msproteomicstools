@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8  -*-
 """
 =========================================================================
@@ -30,72 +30,42 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
-$Maintainer: Lorenz Blum$
-$Authors: Pedro Navarro, Lorenz Blum$
+$Maintainer: Hannes Roest$
+$Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
-import shutil
-import sys
-import getopt
-import re
 
+import unittest
+import subprocess as sub
+import os
 
-def pseudoreverse(seq, cleavage_aa):
-    split = re.split("(%s)" % "|".join(cleavage_aa), seq)
-    return "".join([s[::-1] for s in split])
+class TestPseudoreverseDB(unittest.TestCase):
 
+    def setUp(self):
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
+        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.scriptdir = os.path.join(self.topdir, "analysis")
 
-def usage():
-    print """Usage: python pseudoreverseDB [options]
-Options:
--i   input.fasta input fasta file
--o   output.fasta output file with decoys
-[-t] tag for decoys (optional, default 'DECOY_')
-[-c] list of cleavage aminoacids (optional, default 'KR' (trypsin))
-Creates pseudo-reversed decoys (peptide level reversion). If no cleavage site is found protein is simply reversed.
-See http://dx.doi.org/10.1038/nmeth1019 Figure 6"""
-    sys.exit(1)
+    def exact_diff(self, name1, name2):
+        f1 = open(name1, "r")
+        f2 = open(name2, "r")
+        for l1,l2 in zip(f1,f2):
+            self.assertEqual(l1,l2)
 
+    def test_pseudoreverse(self):
+        script = os.path.join(os.path.join(self.scriptdir, "data_conversion"), "pseudoreverseDB.py")
+        filename = os.path.join(self.datadir, "test_pseudoreverse.fasta")
+        expected_outcome = os.path.join(self.datadir, "test_pseudoreverse.expected_out.fasta")
+        tmpfilename = "tmp.fasta"
 
-def main(argv):
-    # Get options
-    try:
-        opts, args = getopt.getopt(argv, "i:o:t:c:")
-    except getopt.GetoptError:
-        usage()
+        args = "-i %s -o %s" % (filename, tmpfilename)
+        cmd = "python %s %s" % (script, args)
+        sub.check_call(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
 
-    decoytag = "DECOY_"
-    cleavage_aa = "KR"
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage()
-        if opt in ("-i", "--input"):
-            i = arg
-        if opt in ("-o", "-output"):
-            o = arg
-        if opt in ("-t", "--tag"):
-            decoytag = arg
-        if opt in ("-c", "--cleavage_aa"):
-            cleavage_aa = arg
-
-    # copy orig
-    shutil.copy(i, o)
-    #append decoys
-    out = open(o, 'a')
-    seq = ""
-    for line in open(i):
-        if line.startswith('>'):
-            out.write(pseudoreverse(seq, cleavage_aa) + '\n')
-            seq = ""
-            out.write('>%s%s' % (decoytag, line[1:]))
-        else:
-            seq += line.strip()
-    #flush last one
-    out.write(pseudoreverse(seq, cleavage_aa) + '\n')
-
+        os.remove(tmpfilename)
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
-
-
-
+    unittest.main()
