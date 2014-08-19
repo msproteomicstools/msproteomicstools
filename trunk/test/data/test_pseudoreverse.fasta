@@ -4,3 +4,7 @@ QRACDEFGHIKL
 PROTEIN
 >test nocleavagesite
 ACDEFGHI
+>test nonblocked residue
+AAARBBBRCCC
+>test blocked residue
+AAARPBBBRCCC
