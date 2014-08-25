@@ -57,6 +57,8 @@ class MRExperiment(object):
 
     def __init__(self):
         self.runs = []
+        self.nr_ambiguous = -1
+        self.nr_multiple_align = -1
 
     def set_runs(self, runs):
         """Initialize with a set of runs.

@@ -183,6 +183,11 @@ class TreeConsensusAlignment():
         self._use_local_stdev = use_local_stdev
         self.verbose = verbose
 
+        # Number of multiple possible alignments calls (more than one possibility)
+        self.nr_multiple_align = 0
+        # Number of likely FP (multiple possibilities below fdr_cutoff)
+        self.nr_ambiguous = 0
+
     def alignBestCluster(self, multipeptides, tree, tr_data):
         """Use the MST to report the first cluster containing the best peptide (overall).
 
@@ -404,6 +409,11 @@ class TreeConsensusAlignment():
             print "  closest:", closestPG.print_out(), "diff", abs(closestPG.get_normalized_retentiontime() - expected_rt)
             print "  bestScoring:", bestScoringPG.print_out(), "diff", abs(bestScoringPG.get_normalized_retentiontime() - expected_rt)
             print
+
+        if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._aligned_fdr_cutoff]) > 1:
+            self.nr_multiple_align += 1
+        if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._fdr_cutoff]) > 1:
+            self.nr_ambiguous += 1
 
         # Decide which retention time to return:
         #  - the threading one based on the alignment
