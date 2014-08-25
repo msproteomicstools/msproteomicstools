@@ -194,7 +194,7 @@ class AlignmentAlgorithm():
 
     def align_features_best_(self, m, a, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
         verb=self.verbose
-        if verb: print "00000000000000000000000000000000000 new peptide ", m.get_peptides()[0].sequence
+        if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.get_peptides()[0].sequence
 
         # If we just choose the cluster with the "best" peptide, we find find the best peptide over all runs
         best = m.find_best_peptide_pg()
@@ -202,13 +202,15 @@ class AlignmentAlgorithm():
         if verb: print "=====\nFDR best", best.print_out()
 
         for p in m.get_peptides(): # loop over runs
+            current_best_pg = p.get_best_peakgroup()
 
-            pg = p.get_best_peakgroup()
-            if pg.get_fdr_score() < fdr_cutoff and method == "best_overall":
+            if current_best_pg.get_fdr_score() < fdr_cutoff and method == "best_overall":
                 # The pg is below the fdr cutoff, we just take it and go with it in "best overall"
-                pg.select_this_peakgroup()
+                current_best_pg.select_this_peakgroup()
                 a.nr_quantified += 1
-                if verb: print "FDR below", p.get_id(), pg.get_fdr_score(), pg.get_normalized_retentiontime() #, pg.get_value("RT"), pg.get_value("rt_score") # rt_score = delta iRT
+                if verb: 
+                    print " == Selected peakgroup ", current_best_pg.print_out()
+
                 continue
 
             # #################################################################
@@ -217,8 +219,8 @@ class AlignmentAlgorithm():
             #   - of those select the peakgroup with the best score
             #   - if the best-scoring peakgroup is acceptable (<aligned_fdr_cutoff), mark it as selected
 
-            matching_peakgroups = [pg for pg in p.get_all_peakgroups() 
-                if (abs(float(pg.get_normalized_retentiontime()) - float(best_rt_diff)) < rt_diff_cutoff)]
+            matching_peakgroups = [pg_ for pg_ in p.get_all_peakgroups() 
+                if (abs(float(pg_.get_normalized_retentiontime()) - float(best_rt_diff)) < rt_diff_cutoff)]
 
             if len(matching_peakgroups) == 0: 
                 continue
@@ -230,13 +232,13 @@ class AlignmentAlgorithm():
 
                 a.nr_aligned += 1
                 a.nr_quantified += 1
-                if pg.get_normalized_retentiontime() != bestScoringPG.get_normalized_retentiontime():
+                if current_best_pg.get_normalized_retentiontime() != bestScoringPG.get_normalized_retentiontime():
                   a.nr_changed += 1
-                  if verb: print "FDR new align", pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
+                  if verb: print "FDR new align", current_best_pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
                 else:
-                  if verb: print "FDR boost", pg.print_out(), " old ====> ", bestScoringPG.print_out()
+                  if verb: print "FDR boost", current_best_pg.print_out(), " old ====> ", bestScoringPG.print_out()
             else:
-                if verb: print "could not align", pg.peptide.run.get_id(), pg.peptide.run.orig_filename, "best rt_diff was ", \
+                if verb: print "could not align", current_best_pg.peptide.run.get_id(), current_best_pg.peptide.run.orig_filename, "best rt_diff was ", \
                       abs(float(bestScoringPG.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
                       bestScoringPG.get_fdr_score() 
                 a.could_not_align += 1
