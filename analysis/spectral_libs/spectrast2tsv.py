@@ -652,8 +652,8 @@ def main(argv) :
     csv_headers_openswath = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name', 'CE',
                             'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName', 
                             'Annotation', 'FullUniModPeptideName', 
-                            'PrecursorCharge', 'GroupLabel', 'UniprotID', 'FragmentType', 'FragmentCharge',
-                            'FragmentSeriesNumber']
+                            'PrecursorCharge', 'PeptideGroupLabel',   'UniprotID', 'FragmentType', 'FragmentCharge',
+                            'FragmentSeriesNumber', 'LabelType']
     
     csv_headers = csv_headers_peakview
 
@@ -998,11 +998,12 @@ def main(argv) :
                                     peak.intensity , spectrum.sequence , pep.getSequenceWithMods(code) , int(z_parent) ,
                                     peak.frg_serie , peak.frg_z , peak.frg_nr , iRT_experimental , protein_code1 , 'FALSE', protein_index[protein_desc] , 1 , protein_shared ]
                 if key == 'openswath' :
+                    transition_group_id = "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent))
                     transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s_%s" % (transition_cnt, pep.getSequenceWithMods(code), int(z_parent)), '-1',
-                            peak.intensity, "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent)), 0, spectrum.sequence, protein_desc, 
+                            peak.intensity, transition_group_id, 0, spectrum.sequence, protein_desc, 
                             peak.peak_annotation, pep.getSequenceWithMods(code),
-                            int(z_parent), 'light', protein_code1, peak.frg_serie, peak.frg_z,
-                            peak.frg_nr ]
+                            int(z_parent), transition_group_id, protein_code1, peak.frg_serie, peak.frg_z,
+                            peak.frg_nr , 'light']
                 
                 filteredtransitions.append(transition)
             
@@ -1055,7 +1056,9 @@ def main(argv) :
                         frg_z                   = heavy_transition[10]
                         frg_number               = heavy_transition[11]
                     if key == 'openswath' :
-                        heavy_transition[13] = 'heavy'
+                        # heavy_transition[13] = 'heavy'
+                        heavy_transition[18] = 'heavy'
+                        heavy_transition[13] = heavy_transition[6]
                         precursorMZ_heavy      = heavy_transition[0]
                         fragment_mz_heavy      = heavy_transition[1]
                         sequence_heavy         = heavy_transition[8]
@@ -1075,6 +1078,14 @@ def main(argv) :
                         # Store modified sequence and make transition id unique again
                         heavy_transition[11] = fullseq_n
                         heavy_transition[3] += 'heavy'
+                        heavy_transition[6] += 'heavy'
+
+
+
+
+                                        
+                    # TODO also change full unimod peptide name     
+
 
                     #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
                     if frg_serie[0] not in ['y','b'] : continue
@@ -1160,6 +1171,8 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     if len(filteredtransitions) < mintransitions :
         filteredtransitions = [] #I don't think this is really necessary, just in case.
     if verbose : print "after removing num of transitions below the required minimum " , len(filteredtransitions)
+
+    adssfsfadsf
     
     #Write in the peakview input file (until the max number of transitions per peptide/z (the most intense N transitions)
     for index in range(0,min(len(filteredtransitions),maxtransitions)) :
@@ -1182,7 +1195,9 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
                 frg_z                   = heavy_transition[10]
                 frg_number               = heavy_transition[11]
             if key == 'openswath' :
+                print heavy_transition
                 heavy_transition[4] = 'heavy'
+                print heavy_transition
                 precursorMZ_heavy      = heavy_transition[0]
                 fragment_mz_heavy      = heavy_transition[1]
                 sequence_heavy         = heavy_transition[8]
