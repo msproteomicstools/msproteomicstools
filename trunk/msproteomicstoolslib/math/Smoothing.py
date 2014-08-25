@@ -36,6 +36,7 @@ $Authors: Hannes Roest$
 """
 
 import numpy
+from msproteomicstoolslib.algorithms.shared.bounds import lower_bound, upper_bound
 
 def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
   if use_linear: 
@@ -528,4 +529,57 @@ class SmoothingInterpolation:
             # outside bound, use linear
             return self.linear_sm.predict(xhat)
         return list(predicted_result)
+
+class SmoothingLocalWeightedInterpolation:
+    """Class for local weighted interpolation
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2, topN, max_diff):
+        # data1 is the predictor (e.g. the input) -> x
+        # data2 is the response (e.g. what we want to predict) -> y
+        data1, data2 = zip(*sorted(zip(data1, data2)))
+        self.data1 = numpy.array(data1)
+        self.data2 = numpy.array(data2)
+        self.topN = topN
+        self.max_diff = max_diff
+
+    def predict(self, xhat):
+
+        res = []
+        for xhat_ in xhat:
+            # This lower bound will actually get the element that is just larger
+            # than the search parameter
+            lb = abs(lower_bound( self.data1, xhat_))-1
+            if lb - self.topN < 0:
+                lb = self.topN
+
+            # Select a decent slice of target and source data (hope that 10x should suffice)
+            source_d_slice = self.data1[lb-self.topN*10:lb+self.topN*10]
+            target_d_slice = self.data2[lb-self.topN*10:lb+self.topN*10]
+
+            zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
+                       if abs(s-xhat_) < self.max_diff]
+
+            if len(zipped) < self.topN:
+                source_d,target_d = self.data1[lb-self.topN:lb+self.topN], self.data2[lb-self.topN:lb+self.topN]
+            else:
+                source_d,target_d = zip(*zipped)
+
+            # Transform target data:
+            #   Compute a difference array from the source and apply it to the target
+            #   (local linear differences)
+            source_d_diff = [s - xhat_ for s in source_d]
+            target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
+
+            # Use transformed target data to compute expected RT in target domain (weighted average)
+            expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s != 0.0 else 0.1 for s in source_d_diff])
+
+            res.append( expected_targ )
+
+        return res
+
+
 
