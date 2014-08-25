@@ -64,9 +64,17 @@ class AlignmentStatistics():
         self.good_peptides = set([])
         self.good_proteins = set([])
 
-    def count(astats, multipeptides, fdr_cutoff):
+        self.nr_quant_precursors = 0
+        self.quant_peptides = set([])
+        self.quant_proteins = set([])
+
+    def count(astats, multipeptides, fdr_cutoff, skipDecoy=True):
 
         for m in multipeptides:
+
+            if m.get_decoy() and skipDecoy:
+                continue
+
             astats.nr_quantified += len(m.get_selected_peakgroups())
 
             # Count how many precursors / peptides / proteins fall below the threshold
@@ -74,6 +82,12 @@ class AlignmentStatistics():
                 astats.nr_good_precursors += 1
                 astats.good_peptides.update([m.get_peptides()[0].sequence])
                 astats.good_proteins.update([m.get_peptides()[0].protein_name])
+
+            # Count how many precursors / peptides / proteins were quantified
+            if len(m.get_selected_peakgroups()) > 0:
+                astats.nr_quant_precursors += 1
+                astats.quant_peptides.update([m.get_peptides()[0].sequence])
+                astats.quant_proteins.update([m.get_peptides()[0].protein_name])
 
             for p in m.get_peptides():
 
@@ -105,9 +119,6 @@ class Experiment(MRExperiment):
         super(Experiment, self).__init__()
         self.transformation_collection = TransformationCollection()
 
-    def get_max_pg(self):
-      return len(self.runs)*len(self.union_transition_groups_set)
-
     def estimate_real_fdr(self, multipeptides, fraction_needed_selected):
         class DecoyStats():
             def __init__(self):
@@ -138,71 +149,60 @@ class Experiment(MRExperiment):
 
     def print_stats(self, multipeptides, fdr_cutoff, fraction_present, min_nrruns):
 
-        astats = AlignmentStatistics()
-        astats.count(multipeptides, fdr_cutoff)
-        alignment = astats
+        alignment = AlignmentStatistics()
+        alignment.count(multipeptides, fdr_cutoff)
 
-        nr_precursors_total = len(self.union_transition_groups_set)
+        # Count presence in all runs (before alignment)
+        precursors_in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
+        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides 
+                                                        if m.all_above_cutoff(fdr_cutoff) and 
+                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
+        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides 
+                                                        if m.all_above_cutoff(fdr_cutoff) and 
+                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
 
-        # Do statistics and print out
-        in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
-        proteins_in_all_runs_wo_align = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff)]))
-        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_all_proteins = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides if not m.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_all_peptides = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if not m.find_best_peptide_pg().peptide.get_decoy()]))
-        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
-
-        print "Present targets in all runs", in_all_runs_wo_align
+        # Count presence in all runs (before alignment)
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
-        precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
+        nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs 
+                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs 
+                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
 
-        # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
-        # precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
-        nr_decoys = len([1 for prec in precursors_in_all_runs if prec.find_best_peptide_pg().peptide.get_decoy()])
+        nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
+        max_pg = alignment.nr_good_precursors * len(self.runs)
+        dstats = self.estimate_real_fdr(multipeptides, fraction_present)
+        dstats_all = self.estimate_real_fdr(multipeptides, 1.0)
 
-        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
-
-        nr_peptides = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs]))
-        nr_proteins = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs]))
-        nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-
-        # More than one selected peakgroup and not a decoy
-        nr_precursors_to_quant = len(set([ prec for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_peptides_to_quant = len(set([ prec.find_best_peptide_pg().peptide.sequence for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified if not prec.find_best_peptide_pg().peptide.get_decoy()]
-        nr_proteins_to_quant = len(set(target_quant_protein_list))
-
-        # TODO
+        # Get single/multiple hits stats
         from itertools import groupby
+        precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
+        target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified 
+                                     if not prec.find_best_peptide_pg().peptide.get_decoy()]
         target_quant_protein_list.sort()
         nr_sh_target_proteins = sum( [len(list(group)) == 1 for key, group in groupby(target_quant_protein_list)] )
         nr_mh_target_proteins = sum( [len(list(group)) > 1 for key, group in groupby(target_quant_protein_list)] )
 
-        nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
-        max_pg = self.get_max_pg()
-        dstats = self.estimate_real_fdr(multipeptides, fraction_present)
-        dstats_all = self.estimate_real_fdr(multipeptides, 1.0)
+        #
+        ###########################################################################
+        #
         print "="*75
         print "="*75
-        print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
+        print "Total we have", len(self.runs), "runs with", alignment.nr_good_precursors, \
                 "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
                 alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", max_pg - alignment.nr_quantified, \
                 "(removed %s peakgroups)" % alignment.nr_removed
-
         print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align)
+          alignment.nr_quant_precursors, alignment.nr_good_precursors, min_nrruns, nr_precursors_in_all, precursors_in_all_runs_wo_align)
         print "We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_peptides_to_quant, nr_all_peptides, min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
+          len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
         print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_proteins_to_quant, nr_all_proteins, min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
-        print "  Of these %s proteins, %s were multiple hits and %s were single hits" % (nr_proteins_to_quant, nr_mh_target_proteins, nr_sh_target_proteins)
-
-        # print "quant proteins", nr_proteins_to_quant
+          len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
+        print "  Of these %s proteins, %s were multiple hits and %s were single hits" % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins)
 
         # Get decoy estimates
+        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
         if len(precursors_in_all_runs) > 0:
             print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100)
@@ -210,7 +210,9 @@ class Experiment(MRExperiment):
             print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
 
-            print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors))
+            print "There were", decoy_precursors, "decoy precursors identified out of", \
+                    alignment.nr_quant_precursors + decoy_precursors, "precursors which is %0.4f %%" % (
+                        decoy_precursors *100.0 / (alignment.nr_quant_precursors + decoy_precursors))
 
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
