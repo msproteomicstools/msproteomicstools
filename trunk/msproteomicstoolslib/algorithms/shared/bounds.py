@@ -11,7 +11,7 @@ __all__ = (
     'upper_bound'
 )
 
-def lower_bound(haystack, needle, lo = 0, hi = None, cmp = None, key = None):
+def lower_bound(haystack, needle, lo = 0, hi = None, cmp = None, key = None): # pragma: no cover
     """lower_bound(haystack, needle[, lo = 0[, hi = None[, cmp = None[, key = None]]]]) => n
 
 Find \var{needle} via a binary search on \var{haystack}.  Returns the
@@ -44,7 +44,7 @@ belongs with the formula "-\var{N}-1".
     elif cmp(key(haystack[lo]), needle) == 0: return lo
     else: return -1 - lo
 
-def upper_bound(haystack, needle, lo = 0, hi = None, cmp = None, key = None):
+def upper_bound(haystack, needle, lo = 0, hi = None, cmp = None, key = None): # pragma: no cover
     """upper_bound(haystack, needle[, lo = 0[, hi = None[, cmp = None[, key = None]]]]) => n
 
 Find \var{needle} via a binary search on \var{haystack}.  Returns the
