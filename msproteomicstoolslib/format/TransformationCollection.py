@@ -43,12 +43,17 @@ class LightTransformationData:
     def __init__(self, ref=None):
         self.data = {} 
         self.trafo = {} 
+        self.stdevs = {} 
         self.reference = ref
 
-    def addTrafo(self, run1, run2, trafo):
+    def addTrafo(self, run1, run2, trafo, stdev=None):
       d = self.trafo.get(run1, {})
       d[run2] = trafo
       self.trafo[run1] = d
+
+      d = self.stdevs.get(run1, {})
+      d[run2] = stdev
+      self.stdevs[run1] = d
 
     def addData(self, run1, data1, run2, data2, doSort=True):
       # Add data from run1 -> run2 and also run2 -> run1
@@ -65,11 +70,17 @@ class LightTransformationData:
       d[run2] = (data1,data2)
       self.data[run1] = d
 
+    #
+    ## Getters
+    #
     def getData(self, run1, run2):
         return self.data[run1][run2]
 
     def getTrafo(self, run1, run2):
         return self.trafo[run1][run2]
+
+    def getStdev(self, run1, run2):
+        return self.stdevs[run1][run2]
 
     def getTransformation(self, run1, run2):
         return self.trafo[run1][run2]
