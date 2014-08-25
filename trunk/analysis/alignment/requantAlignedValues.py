@@ -299,22 +299,6 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
     need to be in the same folder. It will then try to impute missing values
     for those peakgroups where no values is currently present, reading the raw
     chromatograms.
-
-    It produces a dict swath_chromatograms which can be described as following:
-
-        a dict whose key is the run_id (0_1, 0_2 etc) pointing to an all_swathes dict
-            the all_swathes has a key which is the floor m/z of the *first* precursor found in that run and a value of type pymzml.run.Reader:
-        { "0_0" : 
-            {501 : pymzml.run.Reader,
-             530 : pymzml.run.Reader,
-                [...]
-            }
-          "0_1" : 
-            {501 : pymzml.run.Reader,
-             530 : pymzml.run.Reader,
-                [...]
-            }
-            }
     """
 
     # We do not want to exclude any peakgroups for noiseIntegration (we assume

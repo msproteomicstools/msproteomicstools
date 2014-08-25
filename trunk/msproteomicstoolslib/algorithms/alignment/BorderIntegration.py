@@ -41,6 +41,12 @@ import msproteomicstoolslib.algorithms.graphs.graphs as graphs
 def integrationBorderShortestPath(selected_pg, target_run, transformation_collection_, tree):
     """Determine the optimal integration border by using the shortest path in the MST
 
+    Args:
+        selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
+        target_run(String): run id of the target run (where value is missing)
+        transformation_collection_(format.TransformationCollection.LightTransformationData): structure to hold binary transformations between two different retention time spaces
+        tree(list(tuple)): a minimum spanning tree (MST) represented as list of edges (for example [('0', '1'), ('1', '2')] ). Node names need to correspond to run ids.
+
     Returns:
         A tuple of (left_integration_border, right_integration_border)
     """
@@ -70,6 +76,13 @@ def integrationBorderShortestPath(selected_pg, target_run, transformation_collec
 
 def integrationBorderShortestDistance(selected_pg, target_run, transformation_collection_, mat, rmap):
     """Determine the optimal integration border by using the shortest distance (direct transformation)
+
+    Args:
+        selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
+        target_run(String): run id of the target run (where value is missing)
+        transformation_collection_(format.TransformationCollection.LightTransformationData): structure to hold binary transformations between two different retention time spaces
+        mat(numpy matrix): distance matrix for all runs (as returned by algorithms.alignment.AlignmentMST.getDistanceMatrix)
+        rmap(dict): mapping run ids to matrix columns (e.g. {"run_0" : 0, "run_1" : 1})
 
     Returns:
         A tuple of (left_integration_border, right_integration_border)
