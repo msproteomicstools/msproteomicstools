@@ -187,14 +187,13 @@ class AlignmentAlgorithm():
                     self.alignment_out_f.write("%s\t%s\t%s\t%s\n" % (
                       pg.peptide.run.get_id(), pg.peptide.get_id(), pg.get_feature_id(),i) )
           
-        if len(clusters_rt_obj) == 1 :
-            # great, only one cluster
-            bestcluster = clusters_rt_obj[0]
-        else:
-            # select the best cluster
-            bestcluster = clusters_rt_obj[0] # self.getBestCluster(clusters_rt, rt_maximal_distance, method = clusterMode)
-            for cluster in clusters_rt_obj:
-                if cluster.get_total_score() < bestcluster.get_total_score(): bestcluster = cluster
+        # Get best cluster by length-normalized best score.
+        #   Length normalization divides the score by the expected probability
+        #   values if all peakgroups were chosen randomly (assuming equal
+        #   probability between 0 and aligned_fdr_cutoff, the expected value
+        #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
+        #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
+        bestcluster = min(clusters_rt_obj, key=(lambda x: x.getTotalScore()/(((aligned_fdr_cutoff/2)**len(c.peakgroups)))) )
 
         for pg in bestcluster.peakgroups:
           a.nr_quantified += 1
