@@ -429,6 +429,10 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
+    # Store number of ambigous cases (e.g. where more than one possibility was
+    # found in the RT window).
+    exp.nr_ambiguous = al.nr_ambiguous
+
 def doParameterEstimation(options, this_exp, multipeptides):
     """
     Perform (q-value) parameter estimation
