@@ -62,7 +62,13 @@ class ParamEst(object):
         self.max_recursion = max_recursion
 
     def find_iterate_fdr(self, multipeptides, decoy_frac, recursion=0):
-        """Iteratively find an fdr cutoff to reach the specified decoy fraction
+        """Iteratively find an q-value cutoff to reach the specified decoy fraction
+
+        This function will step through multiple q-value thresholds and
+        evaluate how many peptides have at least one peakgroup whose q-value
+        (using get_fdr_score) is below that threshold. The q-value is then
+        adapted until the fraction of decoys in the result is equal to the
+        specified fraction given as input.
 
         Args:
             multipeptides(list(Multipeptide)): a list of
@@ -82,13 +88,16 @@ class ParamEst(object):
         end = 1.0 / (10**recursion)
         stepsize = start
 
-        if self.verbose: print "Recurse", recursion
+        if self.verbose: 
+            print "Recurse", recursion
+
         if recursion > self.max_recursion:
             raise Exception("Recursed too much in FDR iteration.")
 
         decoy_pcnt = decoy_frac*100
         val_005 = self._calc_precursor_fr(multipeptides, (start+stepsize)/100.0 )*100
         val_1 = self._calc_precursor_fr(multipeptides, end/100.0 )*100
+
         if self.verbose: print "Decoy pcnt aim:", decoy_pcnt
         if self.verbose: print "Aim, high_value, low_value", decoy_pcnt, val_1, val_005
 
@@ -98,15 +107,19 @@ class ParamEst(object):
         # iii) is higher than 1% 
         if recursion == 0 and abs(decoy_pcnt - val_1) < 1e-6:
             return decoy_frac
+
         elif decoy_pcnt < val_005:
             return self.find_iterate_fdr(multipeptides, decoy_frac, recursion=recursion+1)
+
         elif decoy_pcnt > val_1:
-            if self.verbose: print "choose larger step from 0.5 on"
+            if self.verbose: 
+                print "choose larger step from 0.5 on"
+
             start = 0.5
             end = 100.0
             stepsize = 0.5
-            if recursion > 1:
-                raise Exception("Decreased start / end but the values was too large? Should never happen.")
+            if recursion > 1: # pragma: no cover
+                raise Exception ("Decreased start / end but the values was too large? Should never happen.")
         else:
             # All is fine, we are within the limits
             pass
@@ -115,11 +128,21 @@ class ParamEst(object):
         return self._find_iterate_fdr(multipeptides, decoy_frac, fdrrange)
 
     def _find_iterate_fdr(self, multipeptides, decoy_frac, fdrrange):
+        """
+        Iterate through the given range of q-value cutoffs.
+        
+        Stop if the calculated decoy fraction is larger than the decoy_fraction
+        parameter.
+        """
         decoy_pcnt = decoy_frac*100
-        if self.verbose: print "mScore_cutoff", "Calc-precursor-FDR"
+
+        if self.verbose: 
+            print "mScore_cutoff", "Calc-precursor-FDR"
+
         for fdr in fdrrange:
             calc_fdr = self._calc_precursor_fr(multipeptides, fdr/100.0 )*100
-            if self.verbose: print fdr, calc_fdr
+            if self.verbose: 
+                print fdr, calc_fdr
 
             # Break if the calculated FDR is higher than our aim -> the true
             # value lies between this and the previous value.
@@ -150,7 +173,6 @@ class ParamEst(object):
         """ Calculate how many of the *precursors* are decoy for a given cutoff.
         """
         min_runs = self.min_runs
-        ## min_runs = 1
         allpg_cnt = 0
         alldecoypg_cnt = 0
         for mpep in multipeptides:
@@ -165,6 +187,11 @@ class ParamEst(object):
                 allpg_cnt += 1
             if decoy and count >= min_runs:
                 alldecoypg_cnt += 1
+
+        # Check for degenerate case
+        if allpg_cnt == 0:
+            return 0.0
+
         return alldecoypg_cnt *1.0 / allpg_cnt
 
     def compute_decoy_frac(self, multipeptides, target_fdr):
@@ -178,7 +205,6 @@ class ParamEst(object):
                     allpg_cnt += 1
                     if pep.get_decoy():
                         alldecoypg_cnt += 1
-
 
         decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
         return decoy_frac

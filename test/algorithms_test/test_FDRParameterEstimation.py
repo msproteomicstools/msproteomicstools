@@ -52,7 +52,10 @@ class MockRun():
         return self.id_
 
 
-def prepareData(nr_peps=15):
+def prepareData(nr_peps=15, nr_targ=None):
+
+    if nr_targ is None:
+        nr_targ = nr_peps
 
     import msproteomicstoolslib.data_structures.Precursor as precursor
     import msproteomicstoolslib.format.TransformationCollection as transformations
@@ -66,15 +69,16 @@ def prepareData(nr_peps=15):
     # 3. intensity
 
     multipeptides = []
+    nr_runs = 2
 
-    runs = [MockRun("0_%s" % (i+1)) for i in range(5)]
+    runs = [MockRun("0_%s" % (i+1)) for i in range(nr_runs)]
     ids = 0
     for j in range(1,nr_peps):
 
         mpeps = [Multipeptide() for i in range(2)]
-        [m.set_nr_runs(5) for m in mpeps]
+        [m.set_nr_runs(nr_runs) for m in mpeps]
         # Iterate over all runs
-        for i in range(5):
+        for i in range(nr_runs):
             # A target peptide
             p = precursor.Precursor("target_pep_%s" % j, runs[i] )
             p.set_decoy("FALSE")
@@ -94,12 +98,12 @@ def prepareData(nr_peps=15):
 
 
     # Add some more target peptides at good FDRs 
-    for j in range(1,nr_peps):
+    for j in range(1,nr_targ):
 
         mpeps = [Multipeptide() for i in range(1)]
-        [m.set_nr_runs(5) for m in mpeps]
+        [m.set_nr_runs(nr_runs) for m in mpeps]
         # Iterate over all runs
-        for i in range(5):
+        for i in range(nr_runs):
             p = precursor.Precursor("target_pep_good_%s" % j, runs[i] )
             p.set_decoy("FALSE")
             pg_tuple = ("id_%s" % ids, 0.01/j, 100, 10000)
@@ -115,12 +119,28 @@ class TestUnitAlignmentParamEstimator(unittest.TestCase):
         pass
 
     def test_creatObject(self):
+        """
+        Test whether we can create the object
+        """
         e = estimator.ParamEst()
         self.assertTrue(True)
 
     def test_findFDR(self):
+        """
+        Test default workflow of FDR estimation
+        """
         multipeptides = prepareData(15)
-        e = estimator.ParamEst(verbose=False)
+        e = estimator.ParamEst(verbose=True)
+        decoy_frac = e.compute_decoy_frac(multipeptides, 0.10)
+        res = e.find_iterate_fdr(multipeptides, decoy_frac)
+        self.assertAlmostEqual(res, 0.095)
+
+    def test_findFDR_multipleThreshold(self):
+        """
+        Test FDR estimation with different cutoffs
+        """
+        multipeptides = prepareData(15)
+        e = estimator.ParamEst(verbose=True)
         res = e.find_iterate_fdr(multipeptides, 0.10)
         self.assertAlmostEqual(res, 0.0788571428571)
 
@@ -131,10 +151,39 @@ class TestUnitAlignmentParamEstimator(unittest.TestCase):
         self.assertAlmostEqual(res, 0.252571428571)
 
     def test_tooLargeFDR(self):
-
+        """
+        Test FDR estimation with too large decoy fraction (should raise an exception)
+        """
         multipeptides = prepareData(15)
         e = estimator.ParamEst(verbose=False)
         self.assertRaises(Exception, e.find_iterate_fdr,multipeptides, 0.80)
+
+    def test_findFDR_recurse(self):
+        """
+        Test FDR estimation with recursion 
+        """
+        multipeptides = prepareData(1200, 10)
+        e = estimator.ParamEst(verbose=False)
+        res = e.find_iterate_fdr(multipeptides, 0.01)
+        self.assertAlmostEqual(res, 0.000801)
+
+    def test_tooFewPeptides(self):
+        """
+        Test FDR estimation with too few peptides 
+        """
+        multipeptides = prepareData(5)
+        e = estimator.ParamEst(verbose=True)
+        res = e.find_iterate_fdr(multipeptides, 0.10)
+
+        self.assertAlmostEqual(res, 0.253)
+
+    def test_maxRecursion(self):
+        """
+        Test FDR estimation when reaching the maximimum number of recursions
+        """
+        multipeptides = prepareData(15)
+        e = estimator.ParamEst(verbose=False, max_recursion=1)
+        self.assertRaises(Exception, e.find_iterate_fdr,multipeptides, 0.0, 10)
 
 if __name__ == '__main__':
     unittest.main()
