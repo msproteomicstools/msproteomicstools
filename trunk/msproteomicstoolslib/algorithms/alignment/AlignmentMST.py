@@ -274,9 +274,9 @@ class TreeConsensusAlignment():
             #   probability between 0 and aligned_fdr_cutoff, the expected value
             #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
             #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
-            cluster_order = clusters.sort(lambda x,y: 
-                                          cmp(x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups))),
-                                              y.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(y.peakgroups)))) )
+            clusters.sort(lambda x,y: 
+                          cmp(x.getTotalScore()/((self._aligned_fdr_cutoff/2)**len(x.peakgroups)),
+                          y.getTotalScore()/((self._aligned_fdr_cutoff/2)**len(y.peakgroups))) )
             # bestcluster = cluster[0]
             for i,c in enumerate(clusters): 
                 if self.verbose:
