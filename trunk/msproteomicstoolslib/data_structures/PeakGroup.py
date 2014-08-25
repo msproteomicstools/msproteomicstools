@@ -37,6 +37,8 @@ $Authors: Hannes Roest$
 
 class PeakGroupBase(object):
 
+    __slots__ = ["fdr_score", "normalized_retentiontime", "id_", "intensity_", "cluster_id_"]
+
     def __init__(self):
         self.fdr_score = None
         self.normalized_retentiontime = None
@@ -175,6 +177,8 @@ class GuiPeakGroup(PeakGroupBase):
             raise Exception("Do not have value " + value)
 
 class GeneralPeakGroup(PeakGroupBase):
+
+    __slots__ = ["row", "run", "peptide"]
 
     def __init__(self, row, run, peptide):
       super(GeneralPeakGroup, self).__init__()

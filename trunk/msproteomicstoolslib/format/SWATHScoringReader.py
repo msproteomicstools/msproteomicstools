@@ -257,7 +257,6 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           leftWidth = this_row[run.header_dict[left_width_name]]
           rightWidth = this_row[run.header_dict[right_width_name]]
           charge = this_row[run.header_dict[charge_name]]
-          run.all_peptides[trgr_id].charge = charge
           peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.all_peptides[trgr_id])
           run.all_peptides[trgr_id].add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
@@ -325,7 +324,6 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
-          p.run_id = run_id
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
         if self.readmethod == "minimal":
@@ -404,7 +402,6 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
-          p.run_id = run_id
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
           if verb: print "add peptide", trgr_id
