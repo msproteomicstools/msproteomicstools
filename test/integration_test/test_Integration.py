@@ -186,18 +186,36 @@ class TestAlignment(unittest.TestCase):
         border_l, border_r = integrationBorderShortestPath(selected_pg, 
             rid, self.tr_data, tree_mapped)
 
-        # Shortest path means that we transformed from 0_2 to 0_0 and then to 0_1
+        # Shortest path means that we transformed from 0_2 to 0_1
+        self.assertAlmostEqual(border_l, self.tr_data.getTrafo("0_2", "0_1").predict( [ 240.0 ] ))
+        self.assertAlmostEqual(border_r, self.tr_data.getTrafo("0_2", "0_1").predict( [ 260.0 ] ))
+
+        self.assertAlmostEqual(border_l, 168.03088803088787)
+        self.assertAlmostEqual(border_r, 183.32046332046318)
+
+    def test_shortestPath_3(self):
+
+        rid = "0_1"
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
+
+        # Select peakgroups, compute left/right border
+        selected_pg = [pg for p in self.current_mpep2.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        border_l, border_r = integrationBorderShortestPath(selected_pg, 
+            rid, self.tr_data, tree_mapped)
+
+        # Shortest path means that we transformed from 0_0 to 0_2 and then to 0_1
         self.assertAlmostEqual(border_l, 
-                               self.tr_data.getTrafo("0_0", "0_1").predict(
-                                 self.tr_data.getTrafo("0_2", "0_0").predict([ 240.0 ]) 
+                               self.tr_data.getTrafo("0_2", "0_1").predict(
+                                 self.tr_data.getTrafo("0_0", "0_2").predict([ 600 ]) 
                                ))
         self.assertAlmostEqual(border_r, 
-                               self.tr_data.getTrafo("0_0", "0_1").predict(
-                                 self.tr_data.getTrafo("0_2", "0_0").predict([ 260.0 ]) 
+                               self.tr_data.getTrafo("0_2", "0_1").predict(
+                                 self.tr_data.getTrafo("0_0", "0_2").predict([ 700 ]) 
                                ))
 
-        self.assertAlmostEqual(border_l, 187.18146718146681)
-        self.assertAlmostEqual(border_r, 202.00772200772167)
+        self.assertAlmostEqual(border_l, 1452.355212355212)
+        self.assertAlmostEqual(border_r, 1696.9884169884167)
 
     def test_reference_2(self):
 
@@ -212,7 +230,7 @@ class TestAlignment(unittest.TestCase):
         border_l, border_r = integrationBorderReference(self.new_exp, selected_pg, 
             rid, self.tr_data, "median")
 
-        # Shortest path means that we transformed from 0_2 to 0_0 and then to 0_1
+        # Reference 0_0 means that we transformed from 0_2 to 0_0 and then to 0_1
         self.assertAlmostEqual(border_l, 
                                self.tr_data.getTrafo("0_0", "0_1").predict(
                                  self.tr_data.getTrafo("0_2", "0_0").predict([ 240.0 ]) 
