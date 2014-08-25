@@ -1055,7 +1055,7 @@ def main(argv) :
                         frg_z                   = heavy_transition[10]
                         frg_number               = heavy_transition[11]
                     if key == 'openswath' :
-                        heavy_transition[4] = 'heavy'
+                        heavy_transition[13] = 'heavy'
                         precursorMZ_heavy      = heavy_transition[0]
                         fragment_mz_heavy      = heavy_transition[1]
                         sequence_heavy         = heavy_transition[8]
