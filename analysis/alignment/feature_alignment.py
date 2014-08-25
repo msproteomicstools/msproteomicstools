@@ -352,7 +352,8 @@ class Experiment(MRExperiment):
         # 6. Write out the YAML file
         if len(yaml_outfile) > 0:
             import yaml
-            myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
+            myYaml = {"Commandline" : sys.argv, 
+                      "RawData" : [], "PeakGroupData" : [ outfile ],
                       "ReferenceRun" : self.transformation_collection.getReferenceRunID(), 
                       "FeatureAlignment" : 
                       {
