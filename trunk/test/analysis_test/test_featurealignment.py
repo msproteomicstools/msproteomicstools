@@ -99,6 +99,7 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename_ids)
         os.remove(tmpfilename_matrix)
 
+    @attr('slow')
     def test_3_featureAlignment_openswath_alignment(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")
@@ -139,7 +140,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "featureAlignment_5.out.tmp"
         tmpfilename_matrix = "featureAlignment_5.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_matrix %s --file_format peakview  --outlier_thresh 5 --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_matrix)
+        args = "--in %s --out %s --out_matrix %s --file_format peakview  --max_fdr_quality 0.0001 --fdr_cutoff 0.000000001 --method best_cluster_score --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
