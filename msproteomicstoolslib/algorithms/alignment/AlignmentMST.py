@@ -39,10 +39,9 @@ from sys import stdout
 import numpy
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
-from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 import msproteomicstoolslib.math.Smoothing as smoothing
 
-def getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff):
+def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     dist_matrix = numpy.zeros(shape=(len(exp.runs),len(exp.runs)))
@@ -63,7 +62,7 @@ def getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff):
             stdev_lin = numpy.std(numpy.array(jdata) - numpy.array(idata_lin_aligned))
             dist_matrix[i,j] = stdev_lin
 
-    return MinimumSpanningTree(dist_matrix)
+    return dist_matrix
 
 class TreeConsensusAlignment():
 

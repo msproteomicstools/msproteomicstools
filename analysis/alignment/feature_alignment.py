@@ -45,9 +45,10 @@ from msproteomicstoolslib.format.TransformationCollection import TransformationC
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
-from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getMinimumSpanningTree, TreeConsensusAlignment
+from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix, TreeConsensusAlignment
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
+from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
 class Experiment(MRExperiment):
     """
@@ -467,7 +468,8 @@ class ParamEst(object):
         return decoy_frac
 
 def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff, smoothing_method, method):
-    tree = getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff)
+    tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff))
+    
     print "Got Minimum Spanning Tree"
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
