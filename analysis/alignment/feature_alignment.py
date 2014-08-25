@@ -514,8 +514,9 @@ def getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff):
 
 class TreeConsensusAlignment():
 
-    def __init__(self, max_rt_diff):
+    def __init__(self, max_rt_diff, aligned_fdr_cutoff):
         self._max_rt_diff = max_rt_diff
+        self._aligned_fdr_cutoff = aligned_fdr_cutoff
 
     def align(self, exp, multipeptides, tree, tr_data):
 
@@ -587,7 +588,8 @@ class TreeConsensusAlignment():
         # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
         target_p = m.get_peptide(target)
         matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
-            if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff)]
+            if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff) and
+                pg_.get_fdr_score() < self._aligned_fdr_cutoff]
 
         # If there are no peak groups present in the target run, we simply
         # return the expected retention time.
@@ -602,8 +604,9 @@ class TreeConsensusAlignment():
         # print
         return bestScoringPG, expected_rt
 
-def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff):
-    tree = getMinimalSpanningTree(exp, multipeptides, initial_alignment_cutoff)
+def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff):
+    tree = getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff)
+    print "Got Minimum Spanning Tree"
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     tr_data = TransformationData()
@@ -617,7 +620,7 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
-    TreeConsensusAlignment(max_rt_diff).align(exp, multipeptides, tree_mapped, tr_data)
+    TreeConsensusAlignment(max_rt_diff, aligned_fdr_cutoff).align(exp, multipeptides, tree_mapped, tr_data)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
