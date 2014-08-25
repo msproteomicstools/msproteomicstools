@@ -48,6 +48,7 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Alignme
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
+from msproteomicstoolslib.algorithms.shared.bounds import lower_bound, upper_bound
 
 class Experiment(MRExperiment):
     """
@@ -487,7 +488,7 @@ class ParamEst(object):
         decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
         return decoy_frac
 
-def getMinimalSpanningTree(exp, multipeptides, initial_alignment_cutoff):
+def getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff):
     import scipy.cluster.hierarchy
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
@@ -500,17 +501,123 @@ def getMinimalSpanningTree(exp, multipeptides, initial_alignment_cutoff):
 
             idata, jdata = spl_aligner._getRTData(exp.runs[i], exp.runs[j], multipeptides)
 
+            # Get linear alignment
             smlin = smoothing.SmoothingLinear()
             smlin.initialize(idata, jdata)
             idata_lin_aligned = smlin.predict(idata)
-            stdev_lin = numpy.std(numpy.array(jdata) - numpy.array(idata_lin_aligned))
 
+            # Use stdev to estimate distance between two runs
+            stdev_lin = numpy.std(numpy.array(jdata) - numpy.array(idata_lin_aligned))
             dist_matrix[i,j] = stdev_lin
 
     return MinimumSpanningTree(dist_matrix)
 
-def computeOptimalOrder(exp, multipeptides):
-    tree = getMinimalSpanningTree(exp, multipeptides)
+class TreeConsensusAlignment():
+
+    def __init__(self, max_rt_diff):
+        self._max_rt_diff = max_rt_diff
+
+    def align(self, exp, multipeptides, tree, tr_data):
+
+        verb = False
+        for m in multipeptides:
+
+            # Find the overall best peptide
+            best = m.find_best_peptide_pg()
+            best_rt = best.get_normalized_retentiontime()
+            if verb: 
+                print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
+                print " Best", best.print_out(), "from run", best.peptide.run.get_id()
+
+            # Keep track of which nodes we have already visited in the graph
+            # (also storing the rt at which we found the signal in this run).
+            visited = { best.peptide.run.get_id() : best_rt } 
+
+            while len(visited.keys()) != m.get_nr_runs():
+                for e1, e2 in tree:
+                    if e1 in visited.keys() and not e2 in visited.keys():
+                        newPG, rt = self._findBestPG(m, e1, e2, tr_data, visited[e1])
+                        visited[e2] = rt
+                    if e2 in visited.keys() and not e1 in visited.keys():
+                        newPG, rt = self._findBestPG(m, e2, e1, tr_data, visited[e2])
+                        visited[e1] = rt
+
+    def _extractMatchingRTs(self, tr_data, source, target, source_rt, topN):
+        
+        # This lower bound will actually get the element that is just larger
+        # than the search parameter
+        lb = abs(lower_bound( tr_data.getData(source, target)[0], source_rt))-1
+        if lb - topN < 0:
+            lb = topN
+
+        source_d = tr_data.getData(source, target)[0][lb-topN:lb+topN]
+        target_d = tr_data.getData(source, target)[1][lb-topN:lb+topN]
+
+        return source_d, target_d
+
+    def _findBestPG(self, m,  source, target, tr_data, source_rt):
+
+        # Extract matching pairs of <sourceRT,targetRT> for local estimation of
+        # retention time shift.
+        # If there are not enough values (less than 3), then use the closest 6
+        # values around the target RT.
+        zipped = [(s,t) for s,t in zip(tr_data.getData(source, target)[0], tr_data.getData(source, target)[1]) 
+                  if abs(s-source_rt) < self._max_rt_diff]
+        if len(zipped) < 3:
+            source_d, target_d = self._extractMatchingRTs(tr_data, source, target, source_rt, 3)
+        else:
+            source_d, target_d = zip(*zipped)
+
+        # Transform target data:
+        #   Compute a difference array from the source and apply it to the target
+        #   (local linear differences)
+        source_d_diff = [s - source_rt for s in source_d]
+        target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
+
+        # Use transformed target data to compute expected RT in target domain (weighted average)
+        expected_rt = numpy.average(target_data_transf, weights=[ 1/abs(s) if s != 0.0 else 0.1 for s in source_d_diff])
+        # print "  Diff pred", expected_rt, " std ", numpy.std(target_data_transf), \
+        #        " : diff : ", numpy.average(target_data_transf) - expected_rt
+
+        # If there is no peptide present in the target run, we simply return
+        # the expected retention time.
+        if not m.has_peptide(target):
+            return None, expected_rt
+
+        # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
+        target_p = m.get_peptide(target)
+        matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
+            if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff)]
+
+        # If there are no peak groups present in the target run, we simply
+        # return the expected retention time.
+        if len(matching_peakgroups) == 0:
+            return None, expected_rt
+
+        # Select best scoring peakgroup among those in the matching RT window
+        bestScoringPG = min(matching_peakgroups, key=lambda x: float(x.get_fdr_score()))
+        # closestPG = min(matching_peakgroups, key=lambda x: abs(float(x.get_normalized_retentiontime()) - expected_rt))
+        # print "  closest:", closestPG.print_out(), "diff", abs(closestPG.get_normalized_retentiontime() - expected_rt)
+        # print "  bestScoring:", bestScoringPG.print_out(), "diff", abs(bestScoringPG.get_normalized_retentiontime() - expected_rt)
+        # print
+        return bestScoringPG, expected_rt
+
+def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff):
+    tree = getMinimalSpanningTree(exp, multipeptides, initial_alignment_cutoff)
+
+    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    tr_data = TransformationData()
+
+    # Get alignments
+    for edge in tree:
+        data_0, data_1 = spl_aligner._getRTData(exp.runs[edge[0]], exp.runs[edge[1]], multipeptides)
+        tr_data.addData(exp.runs[edge[0]].get_id(), data_0, exp.runs[edge[1]].get_id(), data_1)
+
+    print "Got Alignment"
+    tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
+
+    # Perform work
+    TreeConsensusAlignment(max_rt_diff).align(exp, multipeptides, tree_mapped, tr_data)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
