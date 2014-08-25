@@ -162,7 +162,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
 
     def test_prepare(self):
         tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
-        self.assertEqual(tree, [(4, 3), (3, 2), (2, 1), (1, 0)])
+        self.assertEqual(tree, [(3, 4), (2, 3), (1, 2), (0, 1)] )
 
     def test_alignBestCluster_0(self):
         """Test the best cluster align
