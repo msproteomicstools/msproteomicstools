@@ -81,9 +81,6 @@ class PeakGroupBase(object):
     def select_this_peakgroup(self):
         self.cluster_id_ = 1
 
-    def unselect_this_peakgroup(self):
-        self.cluster_id_ = -1
-
     def get_cluster_id(self):
         return self.cluster_id_
 
@@ -139,9 +136,6 @@ class MinimalPeakGroup(PeakGroupBase):
     ## Select / De-select peakgroup
     def select_this_peakgroup(self):
         self.peptide.select_pg(self.get_feature_id())
-
-    def unselect_this_peakgroup(self):
-        self.peptide.unselect_pg(self.get_feature_id())
 
     ## Select / De-select peakgroup
     def setClusterID(self, id_):
