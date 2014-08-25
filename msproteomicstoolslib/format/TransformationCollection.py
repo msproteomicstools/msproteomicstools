@@ -36,6 +36,45 @@ $Authors: Hannes Roest$
 """
 
 import msproteomicstoolslib.math.Smoothing as smoothing
+import numpy
+
+class LightTransformationData:
+
+    def __init__(self, ref=None):
+        self.data = {} 
+        self.trafo = {} 
+        self.reference = ref
+
+    def addTrafo(self, run1, run2, trafo):
+      d = self.trafo.get(run1, {})
+      d[run2] = trafo
+      self.trafo[run1] = d
+
+    def addData(self, run1, data1, run2, data2, doSort=True):
+      # Add data from run1 -> run2 and also run2 -> run1
+      self._doAddData(run1, data1, run2, data2, doSort)
+      self._doAddData(run2, data2, run1, data1, doSort)
+
+    def _doAddData(self, run1, data1, run2, data2, doSort):
+      if doSort:
+          data1, data2 = zip(*sorted(zip(data1, data2)))
+      data1 = numpy.array(data1)
+      data2 = numpy.array(data2)
+      d = self.data.get(run1, {})
+      d[run2] = (data1,data2)
+      self.data[run1] = d
+
+    def getData(self, run1, run2):
+        return self.data[run1][run2]
+
+    def getTrafo(self, run1, run2):
+        return self.trafo[run1][run2]
+
+    def getTransformation(self, run1, run2):
+        return self.trafo[run1][run2]
+
+    def getReferenceRunID(self):
+        return self.reference
 
 class TransformationCollection():
     """A class to store information about transformations between multiple runs.
