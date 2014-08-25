@@ -525,6 +525,7 @@ class TreeConsensusAlignment():
 
             # Find the overall best peptide
             best = m.find_best_peptide_pg()
+            best.select_this_peakgroup()
             best_rt = best.get_normalized_retentiontime()
             if verb: 
                 print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
@@ -539,9 +540,13 @@ class TreeConsensusAlignment():
                     if e1 in visited.keys() and not e2 in visited.keys():
                         newPG, rt = self._findBestPG(m, e1, e2, tr_data, visited[e1])
                         visited[e2] = rt
+                        if newPG is not None:
+                            newPG.select_this_peakgroup()
                     if e2 in visited.keys() and not e1 in visited.keys():
                         newPG, rt = self._findBestPG(m, e2, e1, tr_data, visited[e2])
                         visited[e1] = rt
+                        if newPG is not None:
+                            newPG.select_this_peakgroup()
 
     def _extractMatchingRTs(self, tr_data, source, target, source_rt, topN):
         
