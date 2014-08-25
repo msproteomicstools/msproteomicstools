@@ -147,14 +147,16 @@ class Precursor(PrecursorBase):
         - a set of peakgroups 
         - a back-reference to the run it belongs to
     """
+
+    __slots__ = ["id", "run", "peakgroups_", "cluster_ids_", "_decoy", "protein_name", "sequence"]
     def __init__(self, this_id, run):
         self.id = this_id  
-        self.peakgroups = []
         self.run = run
         self.peakgroups_ = []
         self.cluster_ids_ = []
         self._decoy = False
         self.protein_name = ""
+        self.sequence = ""
   
     def __str__(self):
         return "%s (run %s)" % (self.id, self.run)
