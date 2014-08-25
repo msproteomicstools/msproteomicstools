@@ -112,6 +112,14 @@ class SwathChromatogramCollection(object):
 
     Each single run is represented as a SwathChromatogramRun and accessible
     through a run id.
+
+    >>> mzml_files = ["file1.mzML", "file2.mzML"]
+    >>> runMapping = {"file1.mzML": "run1", "file2.mzML" : "run2"}
+    >>> chromatograms = SwathChromatogramCollection()
+    >>> chromatograms.parseFromMzML(mzml_files, runMapping)
+
+    >>> chromatogram = chromatograms.getChromatogram("run1", "ChromatogramId")
+    >>> chromatogram = chromatograms.getChromatogram("run2", "ChromatogramId")
     """
 
     def __init__(self):
@@ -141,8 +149,11 @@ class SwathChromatogramCollection(object):
             return None
         return self.allruns[runid].getChromatogram(chromid)
 
-    def parse(self, trafo_fnames):
-        """ Parse a set of different experiments.
+    def parseFromTrafoFiles(self, trafo_fnames):
+        """ Parse a set of different experiments from the .tr files
+
+        The mzML files belonging to the same run are assumed to be in the same
+        folder as the .tr files.
         """
         swath_chromatograms = {}
         for filename in trafo_fnames:
@@ -164,6 +175,10 @@ class SwathChromatogramCollection(object):
 
     def parseFromMzML(self, mzML_files, runIdMapping):
         """ Parse a set of different experiments.
+
+        Args:
+            mzML_files(list(filename)): a list of filenames of the mzML files
+            runIdMapping(dict): a dictionary mapping each filename to a run id
         """
         swath_chromatograms = {}
         for filename in mzML_files:
@@ -174,7 +189,7 @@ class SwathChromatogramCollection(object):
             self.allruns[runid] = swathrun
             print "Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start)
 
-    def get_runids(self):
+    def getRunIDs(self):
         return self.allruns.keys()
 
 # Main entry points:
@@ -220,8 +235,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     swath_chromatograms = SwathChromatogramCollection()
     swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
-    assert len(swath_chromatograms.get_runids() ) == 1
-    rid = swath_chromatograms.get_runids()[0]
+    assert len(swath_chromatograms.getRunIDs() ) == 1
+    rid = swath_chromatograms.getRunIDs()[0]
 
     initial_alignment_cutoff = 0.0001
     max_rt_diff = 30
@@ -300,10 +315,10 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
         # Do only a single run : read only one single file
         start = time.time()
         swath_chromatograms = SwathChromatogramCollection()
-        swath_chromatograms.parse([ options.do_single_run ])
+        swath_chromatograms.parseFromTrafoFiles([ options.do_single_run ])
         print("Reading the chromatogram files took %ss" % (time.time() - start) )
-        assert len(swath_chromatograms.get_runids() ) == 1
-        rid = swath_chromatograms.get_runids()[0]
+        assert len(swath_chromatograms.getRunIDs() ) == 1
+        rid = swath_chromatograms.getRunIDs()[0]
         # 
         start = time.time()
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
@@ -312,7 +327,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
         return new_exp, multipeptides
 
     swath_chromatograms = SwathChromatogramCollection()
-    swath_chromatograms.parse(trafo_fnames)
+    swath_chromatograms.parseFromTrafoFiles(trafo_fnames)
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
 
     if options.dry_run:
