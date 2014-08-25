@@ -119,7 +119,8 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
 
     del matrix_writer
 
-def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, realign_method, max_rt_diff):
+def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
+                   realign_method, max_rt_diff, topN=5):
     id_0 = run_0.get_id()
     id_1 = run_1.get_id()
 
@@ -134,11 +135,11 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, realign_me
     tr_data.addData(id_0, data_0, id_1, data_1)
 
     # Smoothers
-    sm_0_1 = smoothing.getSmoothingObj(realign_method, topN=3,
+    sm_0_1 = smoothing.getSmoothingObj(realign_method, topN=topN,
                                        max_rt_diff=max_rt_diff,
                                        min_rt_diff=0.1, removeOutliers=False,
                                        tmpdir=None)
-    sm_1_0 = smoothing.getSmoothingObj(realign_method, topN=3,
+    sm_1_0 = smoothing.getSmoothingObj(realign_method, topN=topN,
                                        max_rt_diff=max_rt_diff,
                                        min_rt_diff=0.1, removeOutliers=False,
                                        tmpdir=None)
