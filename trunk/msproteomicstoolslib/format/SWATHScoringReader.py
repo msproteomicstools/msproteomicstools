@@ -840,3 +840,84 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else: raise NotImplemented
 
+def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
+                 sequences_mapping, verbose=False, throwOnMismatch=False):
+        
+    """ Infers a mapping between raw chromatogram files (mzML) and processed feature TSV files
+
+    Usually on feature file can contain multiple aligned runs and maps to
+    multiple chromatogram files (mzML). This function will try to guess the
+    original name of the mzML based on the align_origfilename column in the
+    TSV. Note that both files have some typical endings that are _not_ shared,
+    these are generally removed before comparison.
+
+    Only an excact match is allowed.
+    """
+    import csv, os
+    for file_nr, f in enumerate(aligned_pg_files):
+        header_dict = {}
+        if f.endswith('.gz'):
+            import gzip 
+            filehandler = gzip.open(f,'rb')
+        else:
+            filehandler = open(f)
+        reader = csv.reader(filehandler, delimiter="\t")
+        header = reader.next()
+        for i,n in enumerate(header):
+            header_dict[n] = i
+        if not header_dict.has_key("align_origfilename") or not header_dict.has_key("align_runid"):
+            print header_dict
+            raise Exception("need column header align_origfilename and align_runid")
+
+        for this_row in reader:
+
+            # Get the mapping ... 
+            if header_dict.has_key("FullPeptideName") and \
+              header_dict.has_key("Charge") and \
+              header_dict.has_key("aggr_Fragment_Annotation"):
+                transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
+                peptide_name = this_row[header_dict["FullPeptideName"]]
+                charge_state = this_row[header_dict["Charge"]]
+                key = peptide_name + "/" + charge_state
+                precursors_mapping [ key ] = transitions
+                mapped_precursors = sequences_mapping.get( peptide_name, [] )
+                mapped_precursors.append(key)
+                sequences_mapping[peptide_name] = [ key ]
+
+            # 1. Get the original filename (find a non-NA entry) and the corresponding run id
+            if len(this_row) == 0: 
+                continue
+            if this_row[ header_dict["align_origfilename"] ] == "NA":
+                continue
+            aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
+            if aligned_id in mapping:
+                continue 
+
+            aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
+
+            # 2. Go through all chromatogram input files and try to find
+            # one that matches the one from align_origfilename
+            for rfile in rawdata_files:
+
+                # 2.1 remove common file endings from the raw data
+                rfile_base = os.path.basename(rfile)
+                for ending in [".mzML", ".chrom"]:
+                    rfile_base = rfile_base.split(ending)[0]
+
+                # 2.2 remove common file endings from the tsv data
+                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
+                    aligned_fname = aligned_fname.split(ending)[0]
+
+                # 2.3 Check if we have a match
+                if aligned_fname == rfile_base:
+                    if verbose: 
+                        print "- Found match:", os.path.basename(rfile), " ->", os.path.basename(this_row[ header_dict["align_origfilename"] ])
+                    mapping[aligned_id] = [rfile]
+
+            if not aligned_id in mapping:
+                if verbose or throwOnMismatch:
+                    print "- No match found for :", aligned_fname, "in any of", [os.path.basename(rfile) for rfile in rawdata_files]
+                    print "- This is generally a very bad sign and you might have to either rename your files to have matching filenames or provide an input yaml file describing the matching in detail"
+                if throwOnMismatch:
+                    raise Exception("Mismatch, alignemnt filename could not be matched to input chromatogram")
+
