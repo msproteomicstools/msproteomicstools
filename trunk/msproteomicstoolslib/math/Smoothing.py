@@ -600,7 +600,7 @@ class LocalKernel:
                 return source_d, target_d
 
 class WeightedNearestNeighbour(LocalKernel):
-    """Class for local weighted interpolation
+    """Class for weighted interpolation using local linear differences
     """
 
     def __init__(self, topN, max_diff, min_diff, removeOutliers):
@@ -623,10 +623,12 @@ class WeightedNearestNeighbour(LocalKernel):
             #   (local linear differences)
             source_d_diff = [s - xhat_ for s in source_d]
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
-            self.last_dispersion = numpy.std(target_data_transf)
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
             expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s > self.min_diff else self.min_diff for s in source_d_diff])
+
+            # Compute a measurement of dispersion, standard deviation
+            self.last_dispersion = numpy.std(target_data_transf)
 
             res.append( expected_targ )
 
