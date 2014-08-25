@@ -35,52 +35,44 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-class Run():
-    """
-    One single SWATH run that contains peptides (chromatograms) 
-    It has a unique id and stores the headers from the csv
+import unittest
+import os
 
-    A run has the following attributes: 
-        - an identifier that is unique to this run
-        - a filename where it originally came from
-        - a dictionary of precursors, accessible through a dictionary
-    """
+from msproteomicstoolslib.data_structures.Run import Run
 
-    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None):
-        self.header = header
-        self.header_dict = header_dict
-        self.runid = runid
-        self.orig_filename = orig_input_filename # the original input filename
-        self.openswath_filename = filename # the original OpenSWATH filename
-        self.aligned_filename = aligned_filename # the aligned filename
-        self.all_peptides = {}
-  
-    def get_id(self):
-        return self.runid
+class MockPeptide():
 
-    def get_openswath_filename(self):
-        return self.openswath_filename
+    def __init__(self, id_):
+        self.id_ = id_
 
-    def get_aligned_filename(self):
-        return self.aligned_filename
-  
-    def get_best_peaks(self):
-        result = []
-        for k, peptide in self.all_peptides.iteritems():
-          result.append(peptide.get_best_peakgroup())
-        return result
-  
-    def get_best_peaks_with_cutoff(self, cutoff):
-        return [p for p in self.get_best_peaks() if p.get_fdr_score() < cutoff]
-  
-    def get_peptide(self, id):
-        try:
-          return self.all_peptides[id]
-        except KeyError:
-          # this run has no peakgroup for that peptide
-          return None
+    def get_best_peakgroup(self):
+        return "42"
 
-    def __iter__(self):
-        for peptide in self.all_peptides.values():
-            yield peptide
+class TestUnitRun(unittest.TestCase):
 
+    def setUp(self):
+        pass
+
+    def test_createRun(self):
+        r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")
+        self.assertTrue(True)
+        self.assertEqual(r.get_id(), "run1")
+        self.assertEqual(r.get_openswath_filename(), "file1.csv")
+        self.assertEqual(r.get_aligned_filename(), "file1.tsv")
+
+    def test_get_peptide(self):
+        r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")
+        r.all_peptides = dict( [ (str(i), MockPeptide(i)) for i in range(5) ]  )
+        self.assertEqual( r.get_peptide("2").id_, 2) 
+        self.assertIsNone( r.get_peptide("9_dummy"))
+
+        ids = sorted([p.id_ for p in r])
+        self.assertEqual( ids, range(5))
+
+    def test_get_best_peaks(self):
+        r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")
+        r.all_peptides = dict( [ (str(i), MockPeptide(i)) for i in range(5) ]  )
+        self.assertEqual( r.get_best_peaks(), ["42" for i in range(5)] )
+
+if __name__ == '__main__':
+    unittest.main()
