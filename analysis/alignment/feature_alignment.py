@@ -408,11 +408,11 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     Minimum Spanning Tree (MST) based local aligment 
     """
 
-    tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff))
+    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
     print "Computed Tree:", tree
     
     # Get alignments
-    spl_aligner = SplineAligner(initial_alignment_cutoff)
     tr_data = LightTransformationData()
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
