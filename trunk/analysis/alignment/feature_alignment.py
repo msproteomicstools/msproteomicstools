@@ -178,7 +178,6 @@ class Experiment(MRExperiment):
 
             print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors))
 
-
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
         input_basename = os.path.basename(current_run.orig_filename)
@@ -540,6 +539,7 @@ class TreeConsensusAlignment():
                 print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
                 print " Best", best.print_out(), "from run", best.peptide.run.get_id()
 
+            # Use this peptide to generate a cluster
             for pg_ in self._findPGCluster(tree, tr_data, m, best, {}):
                 pg_.select_this_peakgroup()
 
@@ -548,6 +548,7 @@ class TreeConsensusAlignment():
         from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Cluster
         for m in multipeptides:
 
+            verb = False
             last_cluster = []
             already_seen = set([])
             stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
@@ -559,18 +560,8 @@ class TreeConsensusAlignment():
                 stillLeft = [ b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
                 clusters.append(Cluster(last_cluster))
 
-            #firstcluster = clusters[0]
-            cluster_order = clusters.sort(lambda x,y: 
-                                          cmp(x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups))),
-                                              y.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(y.peakgroups)))) )
-            for i,c in enumerate(clusters): 
-                if False:
-                    print " - Cluster with score", c.getTotalScore(), "at", \
-                      c.getMedianRT(), "+/-", c.getRTstd() , "(norm_score %s)" %\
-                      (float(c.getTotalScore())/((self._aligned_fdr_cutoff/2)**len(c.peakgroups)))
-                for pg in c.peakgroups: 
-                    if False:
-                        print "   = Have member", pg.print_out()
+            # select the first cluster => same behavior as alignBestCluster
+            # firstcluster = clusters[0]
 
             # Get best cluster by length-normalized best score.
             #   Length normalization divides the score by the expected probability
@@ -578,10 +569,19 @@ class TreeConsensusAlignment():
             #   probability between 0 and aligned_fdr_cutoff, the expected value
             #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
             #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
-            bestcluster = min(clusters, key=(lambda x: x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups)))) )
-
-            for pg in bestcluster.peakgroups:
-                pg.select_this_peakgroup()
+            cluster_order = clusters.sort(lambda x,y: 
+                                          cmp(x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups))),
+                                              y.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(y.peakgroups)))) )
+            # bestcluster = cluster[0]
+            for i,c in enumerate(clusters): 
+                if False:
+                    print " - Cluster", i, "with score", c.getTotalScore(), "at", \
+                      c.getMedianRT(), "+/-", c.getRTstd() , "(norm_score %s)" %\
+                      (float(c.getTotalScore())/((self._aligned_fdr_cutoff/2)**len(c.peakgroups)))
+                for pg in c.peakgroups:
+                    pg.setClusterID(i+1)
+                    if False:
+                        print "   = Have member", pg.print_out()
 
     def _findPGCluster(self, tree, tr_data, m, seed, already_seen):
         seed_rt = seed.get_normalized_retentiontime()
