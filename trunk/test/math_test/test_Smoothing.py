@@ -136,6 +136,27 @@ class TestUnitSmoothing(unittest.TestCase):
         for res, exp in zip(r,expected):
             self.assertAlmostEqual(res,exp)
 
+    def test_smooth_spline_scipy_uni(self):
+        """Test the univariate spline using scipy"""
+        sm = smoothing.UnivarSplineNoCV()
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data1)
+        self.assertEqual(len(r), 8)
+
+        expected =  [4.1457135130652265, 7.442333705513172, 8.9177273726462474, 10.248891199849604, 11.414111021721407, 13.991054262042756, 7.5957445613093642, 5.8444243638522186]
+        self.assertEqual(len(r), 8)
+        for a,b in zip(expected,r):
+          #self.assertTrue( abs(1-a/b) < 0.05)
+          self.assertAlmostEqual(a, b)
+
+        r = sm.predict(self.data2)
+        expected = [2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
+                11.85840597,  13.48225519,   7.44184246,   6.61579704]
+
+        self.assertEqual(len(r), 8)
+        for a,b in zip(expected,r):
+          self.assertTrue( abs(1-a/b) < 0.05)
+
     def test_smooth_spline_r(self):
         """Test the smoothing spline using R"""
         sm = smoothing.SmoothingR()

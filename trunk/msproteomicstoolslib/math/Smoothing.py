@@ -333,6 +333,31 @@ class SmoothingPy:
         yhat_new = s.predict(xhat)
         return yhat_new
 
+class SmoothingPyUni:
+    """Smoothing of 2D data using generalized crossvalidation
+
+    Will call _smooth_spline_scikit internally but only at a few select
+    points. It then uses the generated smoothed spline to construct an
+    interpolated spline on which then the xhat data is evaluated.
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        from scipy.interpolate import UnivariateSpline
+
+        data1s, data2s = zip(*sorted(zip(data1, data2)))
+
+        # print "Data len", len(data1)
+        # TODO estimate s from the linear regression?
+        mys = 10000000
+        mys = 50000
+        self.sp = UnivariateSpline(data1s, data2s, k=3, s=mys)
+
+    def predict(self, xhat):
+        return list(self.sp(xhat))
+
 class SmoothingLinear:
     """Class for linear transformation
     """
