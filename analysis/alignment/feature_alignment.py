@@ -503,6 +503,7 @@ def handle_args():
     parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
+    parser.add_argument('--realign_runs', dest='realign_method', default="diRT", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line, 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother)")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
@@ -512,10 +513,6 @@ def handle_args():
     experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, type=float, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30')
     experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
-    experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Tries to re-align runs based on their true RT (instead of using the less accurate iRT values by computing a spline against a reference run)")
-    experimental_parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
-    experimental_parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
-    experimental_parser.add_argument('--use_external_r', action='store_true', default=False, help="Use external R call for alignment (instead of rpy2)")
     experimental_parser.add_argument("--tmpdir", dest="tmpdir", default="/tmp/", help="Temporary directory")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
@@ -555,7 +552,7 @@ def main(options):
     # Read the files
     start = time.time()
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod, readfilter)
-    runs = reader.parse_files(options.realign_runs, options.verbosity)
+    runs = reader.parse_files(options.realign_method != "diRT", options.verbosity)
     # Create experiment
     this_exp = Experiment()
     this_exp.set_runs(runs)
@@ -607,12 +604,11 @@ def main(options):
         print "-"*35
 
     # If we want to align runs
-    if options.realign_runs:
+    if options.realign_method != "diRT":
         start = time.time()
-        spl_aligner = SplineAligner(options.alignment_score,
-                                   options.use_scikit,
-                                   options.use_linear,
-                                   options.use_external_r, options.tmpdir)
+        spl_aligner = SplineAligner(alignment_fdr_threshold = options.alignment_score, 
+                                   smoother=options.realign_method,
+                                   external_r_tmpdir = options.tmpdir)
         tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         this_exp.transformation_collection = tcoll
         trafoError = spl_aligner.getTransformationError()

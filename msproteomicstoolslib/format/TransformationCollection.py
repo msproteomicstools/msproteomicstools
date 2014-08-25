@@ -93,7 +93,7 @@ class TransformationCollection():
       except KeyError:
           return None
 
-    def initialize_from_data(self, reverse=False, use_scikit=False, use_linear=False):
+    def initialize_from_data(self, reverse=False, smoother="lowess"):
 
         # use the data in self.transformation_data to create the trafos
         for s_from, darr in self.transformation_data.iteritems():
@@ -110,11 +110,11 @@ class TransformationCollection():
                         sm_rev.initialize(self.getTransformedData(s_from, s_to), data[0])
                         self._addTransformation(sm_rev, s_to, s_from)
                 else:
-                    sm = smoothing.get_smooting_operator(use_scikit, use_linear)
+                    sm = smoothing.getSmoothingObj(smoother)
                     sm.initialize(data[0], data[1])
                     self.transformations[s_from][s_to] = sm
                     if reverse: 
-                        sm_rev = smoothing.get_smooting_operator(use_scikit, use_linear)
+                        sm_rev = smoothing.getSmoothingObj(smoother)
                         sm_rev.initialize(data[1], data[0])
                         self._addTransformation(sm_rev, s_to, s_from)
                 print "Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from)
