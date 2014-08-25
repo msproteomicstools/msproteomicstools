@@ -462,11 +462,14 @@ def doReferenceAlignment(options, this_exp, multipeptides):
             options.rt_diff_cutoff = 2*numpy.median(list(trafoError.getStdev()))
         elif options.rt_diff_cutoff == "auto_3medianstdev":
             options.rt_diff_cutoff = 3*numpy.median(list(trafoError.getStdev()))
+        elif options.rt_diff_cutoff == "auto_4medianstdev":
+            options.rt_diff_cutoff = 4*numpy.median(list(trafoError.getStdev()))
         elif options.rt_diff_cutoff == "auto_maxstdev":
             options.rt_diff_cutoff = max(list(trafoError.getStdev()))
         else:
-            raise Exception("max_rt_diff either needs to be a value in seconds or one of ('auto_2medianstdev', 'auto_3medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
-
+            raise Exception("max_rt_diff either needs to be a value in seconds or" + \
+                            "one of ('auto_2medianstdev', 'auto_3medianstdev', " + \
+                            "'auto_4medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
 
     print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
     start = time.time()
