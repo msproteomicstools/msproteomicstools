@@ -684,17 +684,15 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
         for p in m.get_peptides():
-            selected_pg = p.peakgroups[0]
-            if selected_pg is None: 
-                continue
-            if single_outfile:
-                # Only write the newly imputed ones ... 
-                if float(selected_pg.get_value("m_score")) > 1.0:
+            for selected_pg in p.peakgroups:
+                if single_outfile:
+                    # Only write the newly imputed ones ... 
+                    if float(selected_pg.get_value("m_score")) > 1.0:
+                        row_to_write = selected_pg.row
+                        writer.writerow(row_to_write)
+                else:
                     row_to_write = selected_pg.row
                     writer.writerow(row_to_write)
-            else:
-                row_to_write = selected_pg.row
-                writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
         write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0, style=options.matrix_output_method)
