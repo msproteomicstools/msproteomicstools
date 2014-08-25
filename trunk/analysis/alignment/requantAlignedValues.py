@@ -246,7 +246,9 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     print("Parsing the peakgroups file took %ss" % (time.time() - start) )
 
     mapping = {}
-    inferMapping([ mzML_file ], [ peakgroups_file ], mapping, verbose=False)
+    precursors_mapping = {}
+    sequences_mapping = {}
+    inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, verbose=False)
     mapping_inv = dict([(v[0],k) for k,v in mapping.iteritems()])
 
     # Do only a single run : read only one single file
