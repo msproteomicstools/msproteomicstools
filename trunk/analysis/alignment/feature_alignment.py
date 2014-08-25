@@ -48,6 +48,8 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Alignme
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 
+from MinimumSpanningTree import MinimumSpanningTree
+
 class Experiment(MRExperiment):
     """
     An Experiment is a container for multiple experimental runs - some of which may contain the same precursors.
@@ -463,6 +465,31 @@ class ParamEst(object):
 
         decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
         return decoy_frac
+
+def getMinimalSpanningTree(exp, multipeptides, initial_alignment_cutoff):
+    import scipy.cluster.hierarchy
+
+    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    dist_matrix = numpy.zeros(shape=(len(exp.runs),len(exp.runs)))
+    for i in range(len(exp.runs)):
+        for j in range(len(exp.runs)):
+            if i == j:
+                dist_matrix[i,j] = 0
+                continue 
+
+            idata, jdata = spl_aligner._getRTData(exp.runs[i], exp.runs[j], multipeptides)
+
+            smlin = smoothing.SmoothingLinear()
+            smlin.initialize(idata, jdata)
+            idata_lin_aligned = smlin.predict(idata)
+            stdev_lin = numpy.std(numpy.array(jdata) - numpy.array(idata_lin_aligned))
+
+            dist_matrix[i,j] = stdev_lin
+
+    return MinimumSpanningTree(dist_matrix)
+
+def computeOptimalOrder(exp, multipeptides):
+    tree = getMinimalSpanningTree(exp, multipeptides)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
