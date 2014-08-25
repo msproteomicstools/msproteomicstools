@@ -47,7 +47,10 @@ class Multipeptide():
         self._nr_runs = -1
 
     def __str__(self):
-        return "Precursors of %s runs, identified by %s." % (len(self._nr_runs), self.get_peptides()[0].id)
+        if len(self.get_peptides()) > 0:
+            return "Precursors of %s runs, identified by %s." % (self._nr_runs, self.get_peptides()[0].id)
+        else:
+            return "Empty set of precursors."
   
     # 
     ## Getters  / Setters
@@ -68,18 +71,22 @@ class Multipeptide():
       return self._peptides.values()
 
     def get_id(self):
-      if len(self.get_peptides()) == 0: return None
+      if len(self.get_peptides()) == 0:
+           return None
+
       return self.get_peptides()[0].get_id()
 
     def more_than_fraction_selected(self, fraction):
       assert self._nr_runs >= 0
       # returns true if more than fraction of the peakgroups are selected
-      if len( self.get_selected_peakgroups() )*1.0 / self._nr_runs < fraction:
+      if len( self.get_selected_peakgroups() ) *1.0 / self._nr_runs < fraction:
           return False
       return True
 
     def get_decoy(self):
-        if len(self.get_peptides()) == 0: return False
+        if len(self.get_peptides()) == 0: 
+            return False
+
         return self.get_peptides()[0].get_decoy() 
 
     def has_null_peptides(self):
@@ -103,34 +110,20 @@ class Multipeptide():
     def find_best_peptide_pg(self):
       # Find best peakgroup across all peptides
       best_fdr = 1.0
+      result = None
       for p in self.get_peptides():
-        if(p.get_best_peakgroup().get_fdr_score() < best_fdr): 
+        if p.get_best_peakgroup().get_fdr_score() < best_fdr: 
             result = p.get_best_peakgroup()
             best_fdr = p.get_best_peakgroup().get_fdr_score() 
       return result
   
-    # 
-    ## Methods
-    #
-
-    def detect_outliers(self):
-        from msproteomicstoolslib.math.chauvenet import chauvenet
-        import numpy
-        # Uses chauvenet's criterion for outlier detection to find peptides
-        # whose retention time is different from the rest.
-        rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
-        runids = numpy.array([p.get_run_id() for p in self.get_peptides() if p.get_selected_peakgroup() is not None])
-        if len(rts) == 1: return []
-        outliers = chauvenet(numpy.array(rts),numpy.array(rts))
-        return runids[~outliers]
-
     # 
     ## Boolean questions
     #
 
     def all_above_cutoff(self, cutoff):
       assert self._nr_runs >= 0
-      if len(self.get_peptides())< self._nr_runs:
+      if len(self.get_peptides()) < self._nr_runs:
           return False
 
       for p in self.get_peptides():
@@ -140,7 +133,7 @@ class Multipeptide():
   
     def all_selected(self):
       assert self._nr_runs >= 0
-      if len(self.get_peptides())< self._nr_runs:
+      if len(self.get_peptides()) < self._nr_runs:
           return False
 
       for p in self.get_peptides():
