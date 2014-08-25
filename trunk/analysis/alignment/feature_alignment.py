@@ -35,7 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import os, sys, csv
+import os, sys, csv, time
 import numpy
 import argparse
 from msproteomicstoolslib.math.chauvenet import chauvenet
@@ -48,6 +48,7 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Alignme
 from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix, TreeConsensusAlignment
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
+from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
 class Experiment(MRExperiment):
@@ -311,17 +312,20 @@ class Experiment(MRExperiment):
 
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
     print "Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100)
+
     for aligned_fdr_cutoff in fdr_range:
-        # do the alignment and annotate chromatograms without identified features
-        # then perform an outlier detection over multiple runs
+        # Do the alignment and annotate chromatograms without identified features 
+        # Then perform an outlier detection over multiple runs
         # unselect all
         for m in multipeptides:
             for p in m.get_peptides():
                 p.unselect_all()
+
         # now align
         options.aligned_fdr_cutoff = aligned_fdr_cutoff
         alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
         est_fdr = this_exp.estimate_real_fdr(multipeptides, options.min_frac_selected).est_real_fdr
+
         print "Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff
         if est_fdr > options.target_fdr:
             # Unselect the peptides again ...
@@ -330,15 +334,16 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
                     p.unselect_all()
             return aligned_fdr_cutoff
 
-def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method):
+def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method):
+    """
+    Minimum Spanning Tree (MST) based local aligment 
+    """
+
     tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff))
     
-    print "Got Minimum Spanning Tree"
-
+    # Get alignments
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     tr_data = LightTransformationData()
-
-    # Get alignments
     for edge in tree:
         id_0 = exp.runs[edge[0]].get_id()
         id_1 = exp.runs[edge[1]].get_id()
@@ -354,7 +359,6 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
         tr_data.addTrafo(id_0, id_1, sm_0_1)
         tr_data.addTrafo(id_1, id_0, sm_1_0)
 
-    print "Got Alignment"
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
@@ -363,6 +367,107 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
         al.alignBestCluster(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
+
+def doParameterEstimation(options, multipeptides):
+    """
+    Perform (q-value) parameter estimation
+    """
+
+    start = time.time()
+    print "-"*35
+    print "Do Parameter estimation"
+    p = ParamEst(min_runs=options.nr_high_conf_exp,verbose=True)
+    decoy_frac = p.compute_decoy_frac(multipeptides, options.target_fdr)
+    print "Found target decoy fraction overall %0.4f%%" % (decoy_frac*100)
+    try:
+        fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
+    except UnboundLocalError:
+        raise Exception("Could not estimate FDR accurately!")
+
+    if fdr_cutoff_calculated > options.target_fdr:
+        # Re-read the multipeptides with the new cutoff (since the cutoff might
+        # be higher than before, we might have to consider more peptides now).
+        multipeptides = this_exp.get_all_multipeptides(fdr_cutoff_calculated, verbose=True)
+        print "Re-parse the files!"
+        try:
+            fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
+        except UnboundLocalError:
+            raise Exception("Could not estimate FDR accurately!")
+
+    options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
+    if options.aligned_fdr_cutoff < 0:
+        # Estimate the aligned_fdr parameter -> if the new fdr cutoff is
+        # lower than the target fdr, we can use the target fdr as aligned
+        # cutoff but if its higher we have to guess (here we take
+        # 2xcutoff).
+        if fdr_cutoff_calculated < options.target_fdr:
+            options.aligned_fdr_cutoff = options.target_fdr
+        else:
+            options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
+
+    options.fdr_cutoff = fdr_cutoff_calculated
+    print "Using an m_score (q-value) cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
+    print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
+    print("Parameter estimation took %ss" % (time.time() - start) )
+    print "-"*35
+    return multipeptides
+
+def doReferenceAlignment(options, this_exp, multipeptides):
+
+    # Performing re-alignment using a reference run
+    if options.realign_method != "diRT":
+        start = time.time()
+        spl_aligner = SplineAligner(alignment_fdr_threshold = options.alignment_score, 
+                                   smoother=options.realign_method,
+                                   external_r_tmpdir = options.tmpdir)
+        this_exp.transformation_collection = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
+        trafoError = spl_aligner.getTransformationError()
+        print("Aligning the runs took %ss" % (time.time() - start) )
+
+    try:
+        options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
+    except ValueError:
+        # We have a range of values to step through. 
+        # Since we trust the input, wo dont do error checking.
+        exec("fdr_range = numpy.arange(%s)" % options.aligned_fdr_cutoff)
+        options.aligned_fdr_cutoff = estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range)
+
+    try:
+        options.rt_diff_cutoff = float(options.rt_diff_cutoff)
+    except ValueError:
+        if options.rt_diff_cutoff == "auto_2medianstdev":
+            options.rt_diff_cutoff = 2*numpy.median(list(trafoError.getStdev()))
+        elif options.rt_diff_cutoff == "auto_3medianstdev":
+            options.rt_diff_cutoff = 3*numpy.median(list(trafoError.getStdev()))
+        elif options.rt_diff_cutoff == "auto_maxstdev":
+            options.rt_diff_cutoff = max(list(trafoError.getStdev()))
+        else:
+            raise Exception("max_rt_diff either needs to be a value in seconds or one of ('auto_2medianstdev', 'auto_3medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
+
+
+    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
+    start = time.time()
+    AlignmentAlgorithm().align_features(multipeptides, 
+                    options.rt_diff_cutoff, options.fdr_cutoff,
+                    options.aligned_fdr_cutoff, options.method)
+    print("Re-aligning peak groups took %ss" % (time.time() - start) )
+
+    # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+    for mpep in multipeptides:
+        # check if we have found enough peakgroups which are below the cutoff
+        count = 0
+        for pg in mpep.get_selected_peakgroups():
+            if pg.get_fdr_score() < options.fdr_cutoff:
+                count += 1
+        if count < options.nr_high_conf_exp:
+            for p in mpep.get_peptides():
+                p.unselect_all()
+
+    # print statistics, write output
+    start = time.time()
+    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+    this_exp.write_to_file(multipeptides, options)
+    print("Writing output took %ss" % (time.time() - start) )
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
@@ -421,14 +526,14 @@ def handle_args():
             pass
     return args
 
-class DReadFilter(object):
-    def __init__(self, cutoff):
-        self.cutoff = cutoff
-    def __call__(self, row, header):
-        return float(row[ header["d_score" ] ]) > self.cutoff
-
 def main(options):
-    import time
+
+    class DReadFilter(object):
+        def __init__(self, cutoff):
+            self.cutoff = cutoff
+        def __call__(self, row, header):
+            return float(row[ header["d_score" ] ]) > self.cutoff
+
 
     readfilter = ReadFilter()
     if options.use_dscore_filter:
@@ -438,6 +543,7 @@ def main(options):
     start = time.time()
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod, readfilter)
     runs = reader.parse_files(options.realign_method != "diRT", options.verbosity)
+
     # Create experiment
     this_exp = Experiment()
     this_exp.set_runs(runs)
@@ -450,112 +556,21 @@ def main(options):
     print("Mapping the precursors took %ss" % (time.time() - start) )
 
     if options.target_fdr > 0:
-        ### Do parameter estimation
-        start = time.time()
-        print "-"*35
-        print "Do Parameter estimation"
-        p = ParamEst(min_runs=options.nr_high_conf_exp,verbose=True)
-        decoy_frac = p.compute_decoy_frac(multipeptides, options.target_fdr)
-        print "Found target decoy fraction overall %0.4f%%" % (decoy_frac*100)
-        try:
-            fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
-        except UnboundLocalError:
-            raise Exception("Could not estimate FDR accurately!")
-
-        if fdr_cutoff_calculated > options.target_fdr:
-            #### Re-read the multipeptides with the new cutoff ... !
-            multipeptides = this_exp.get_all_multipeptides(fdr_cutoff_calculated, verbose=True)
-            print "Re-parse the files!"
-            try:
-                fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
-            except UnboundLocalError:
-                raise Exception("Could not estimate FDR accurately!")
-
-        options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
-        if options.aligned_fdr_cutoff < 0:
-            # Estimate the aligned_fdr parameter -> if the new fdr cutoff is
-            # lower than the target fdr, we can use the target fdr as aligned
-            # cutoff but if its higher we have to guess (here we take
-            # 2xcutoff).
-            if fdr_cutoff_calculated < options.target_fdr:
-                options.aligned_fdr_cutoff = options.target_fdr
-            else:
-                options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
-
-        options.fdr_cutoff = fdr_cutoff_calculated
-        print "Using an m_score (q-value) cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
-        print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
-        print("Parameter estimation took %ss" % (time.time() - start) )
-        print "-"*35
+        multipeptides = doParameterEstimation(options, multipeptides)
 
     if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
-        computeOptimalOrder(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
+        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
                     options.fdr_cutoff, float(options.aligned_fdr_cutoff), options.realign_method, options.method)
 
         print("Re-aligning peak groups took %ss" % (time.time() - start) )
 
-        # print statistics, write output
         start = time.time()
         this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
         this_exp.write_to_file(multipeptides, options)
         print("Writing output took %ss" % (time.time() - start) )
-        return
-
-    # If we want to align runs
-    if options.realign_method != "diRT":
-        start = time.time()
-        spl_aligner = SplineAligner(alignment_fdr_threshold = options.alignment_score, 
-                                   smoother=options.realign_method,
-                                   external_r_tmpdir = options.tmpdir)
-        tcoll = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
-        this_exp.transformation_collection = tcoll
-        trafoError = spl_aligner.getTransformationError()
-        print("Aligning the runs took %ss" % (time.time() - start) )
-
-    try:
-        options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
-    except ValueError:
-        # We have a range, since we trust the input we dont parse it very much ...
-        exec("fdr_range = numpy.arange(%s)" % options.aligned_fdr_cutoff)
-        options.aligned_fdr_cutoff = estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range)
-
-    try:
-        options.rt_diff_cutoff = float(options.rt_diff_cutoff)
-    except ValueError:
-        if options.rt_diff_cutoff == "auto_2medianstdev":
-            options.rt_diff_cutoff = 2*numpy.median(list(trafoError.getStdev()))
-        elif options.rt_diff_cutoff == "auto_3medianstdev":
-            options.rt_diff_cutoff = 3*numpy.median(list(trafoError.getStdev()))
-        elif options.rt_diff_cutoff == "auto_maxstdev":
-            options.rt_diff_cutoff = max(list(trafoError.getStdev()))
-        else:
-            raise Exception("max_rt_diff either needs to be a value in seconds or one of ('auto_2medianstdev', 'auto_3medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
-
-
-    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
-    start = time.time()
-    AlignmentAlgorithm().align_features(multipeptides, 
-                    options.rt_diff_cutoff, options.fdr_cutoff,
-                    options.aligned_fdr_cutoff, options.method)
-    print("Re-aligning peak groups took %ss" % (time.time() - start) )
-
-    # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
-    for mpep in multipeptides:
-        # check if we have found enough peakgroups which are below the cutoff
-        count = 0
-        for pg in mpep.get_selected_peakgroups():
-            if pg.get_fdr_score() < options.fdr_cutoff:
-                count += 1
-        if count < options.nr_high_conf_exp:
-            for p in mpep.get_peptides():
-                p.unselect_all()
-
-    # print statistics, write output
-    start = time.time()
-    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-    this_exp.write_to_file(multipeptides, options)
-    print("Writing output took %ss" % (time.time() - start) )
+    else:
+        doReferenceAlignment(options, this_exp, multipeptides)
 
 if __name__=="__main__":
     options = handle_args()
