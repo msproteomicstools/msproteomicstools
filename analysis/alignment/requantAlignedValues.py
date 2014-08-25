@@ -457,7 +457,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
     for element in ["transition_group_id"]:
         newpg.set_value(element, template_pg.get_value(element))
-    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z"]:
+    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z", "align_clusterid"]:
         try:
             newpg.set_value(element, template_pg.get_value(element))
         except KeyError:
