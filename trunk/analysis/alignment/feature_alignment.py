@@ -191,15 +191,17 @@ class Experiment(MRExperiment):
                 "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", max_pg - alignment.nr_quantified, \
-                "(removed %s peakgroups)" % alignment.nr_removed
+                alignment.nr_aligned
+        print "  The order of", alignment.nr_changed, "peakgroups was changed,", max_pg - alignment.nr_quantified, \
+                "could not be aligned and %s were removed. Ambigous cases: %s, multiple suitable peakgroups: %s" % (
+                    alignment.nr_removed, self.nr_ambiguous, self.nr_multiple_align)
         print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
           alignment.nr_quant_precursors, alignment.nr_good_precursors, min_nrruns, nr_precursors_in_all, precursors_in_all_runs_wo_align)
         print "We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
           len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
         print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
           len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
-        print "  Of these %s proteins, %s were multiple hits and %s were single hits" % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins)
+        print "  Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins)
 
         # Get decoy estimates
         decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
@@ -407,6 +409,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     """
 
     tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff))
+    print "Computed Tree:", tree
     
     # Get alignments
     spl_aligner = SplineAligner(initial_alignment_cutoff)
@@ -429,9 +432,11 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
-    # Store number of ambigous cases (e.g. where more than one possibility was
-    # found in the RT window).
+    # Store number of ambigous cases (e.g. where more than one peakgroup below
+    # the strict quality cutoff was found in the RT window) and the number of
+    # cases where multiple possibilities were found.
     exp.nr_ambiguous = al.nr_ambiguous
+    exp.nr_multiple_align = al.nr_multiple_align
 
 def doParameterEstimation(options, this_exp, multipeptides):
     """
