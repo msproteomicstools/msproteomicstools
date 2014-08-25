@@ -108,7 +108,6 @@ class PeakGroupBase(object):
     def get_cluster_id(self):
         return self.cluster_id_
 
-
 class MinimalPeakGroup(PeakGroupBase):
     """
     A single peakgroup that is defined by a retention time in a chromatogram
@@ -224,8 +223,8 @@ class GeneralPeakGroup(PeakGroupBase):
     def print_out(self):
         return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " norm_RT:" + str(self.get_normalized_retentiontime()) + " RT:" + str(self.get_value("RT")) + " Int : " + str(self.get_value("Intensity"))
   
-    def setClusterID(self, dummy):
-        pass
+    def setClusterID(self, clid):
+        self.cluster_id_ = clid
 
 class PrecursorBase(object):
     def __init__(self, this_id, run):
@@ -634,6 +633,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         left_width_name = "leftWidth"
         right_width_name = "rightWidth"
         charge_name = "Charge"
+        cluster_id = -1
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
@@ -641,6 +641,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
             diff_from_assay_in_sec_name = "RT"
+        if "align_clusterid" in run.header_dict: 
+            cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
@@ -678,7 +680,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
-          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
           rightWidth = this_row[run.header_dict[right_width_name]]
@@ -692,6 +694,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
+          peakgroup.setClusterID(cluster_id)
           run.all_peptides[trgr_id].add_peakgroup(peakgroup)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
@@ -916,8 +919,11 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
             if not aligned_id in mapping:
                 if verbose or throwOnMismatch:
-                    print "- No match found for :", aligned_fname, "in any of", [os.path.basename(rfile) for rfile in rawdata_files]
-                    print "- This is generally a very bad sign and you might have to either rename your files to have matching filenames or provide an input yaml file describing the matching in detail"
+                    print "- No match found for :", aligned_fname, "in any of", \
+                            [os.path.basename(rfile) for rfile in rawdata_files]
+                    print "- This is generally a very bad sign and you might have" +\
+                            +"to either rename your files to have matching filenames " +\
+                            "or provide an input yaml file describing the matching in detail"
                 if throwOnMismatch:
                     raise Exception("Mismatch, alignemnt filename could not be matched to input chromatogram")
 
