@@ -51,6 +51,51 @@ from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligne
 from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
+class AlignmentStatistics():
+
+    def __init__(self): 
+        self.nr_aligned = 0
+        self.nr_changed = 0
+        self.nr_quantified = 0
+        self.nr_removed = 0
+
+        self.nr_good_peakgroups = 0
+        self.nr_good_precursors = 0
+        self.good_peptides = set([])
+        self.good_proteins = set([])
+
+    def count(astats, multipeptides, fdr_cutoff):
+
+        for m in multipeptides:
+            astats.nr_quantified += len(m.get_selected_peakgroups())
+
+            # Count how many precursors / peptides / proteins fall below the threshold
+            if m.find_best_peptide_pg().get_fdr_score() < fdr_cutoff:
+                astats.nr_good_precursors += 1
+                astats.good_peptides.update([m.get_peptides()[0].sequence])
+                astats.good_proteins.update([m.get_peptides()[0].protein_name])
+
+            for p in m.get_peptides():
+
+                # Count how many peakgroups simply fall below the threshold
+                if p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
+                    astats.nr_good_peakgroups += 1
+
+                if p.get_selected_peakgroup() is not None:
+
+                    # Number of peakgroups that are different from the original
+                    if p.get_best_peakgroup().get_feature_id() != p.get_selected_peakgroup().get_feature_id() \
+                       and p.get_selected_peakgroup().get_fdr_score() < fdr_cutoff:
+                        astats.nr_changed += 1
+                    # Number of peakgroups that were added
+                    if p.get_best_peakgroup().get_fdr_score() > fdr_cutoff:
+                        astats.nr_aligned += 1
+
+                # Best peakgroup exists and is not selected
+                elif p.get_best_peakgroup() is not None \
+                  and p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
+                    astats.nr_removed += 1
+
 class Experiment(MRExperiment):
     """
     An Experiment is a container for multiple experimental runs - some of which may contain the same precursors.
@@ -93,50 +138,8 @@ class Experiment(MRExperiment):
 
     def print_stats(self, multipeptides, fdr_cutoff, fraction_present, min_nrruns):
 
-        class AlignmentStatistics():
-
-            def __init__(self): 
-                self.nr_aligned = 0
-                self.nr_changed = 0
-                self.nr_quantified = 0
-                self.nr_removed = 0
-
-                self.nr_good_peakgroups = 0
-                self.nr_good_precursors = 0
-                self.good_peptides = set([])
-                self.good_proteins = set([])
-
         astats = AlignmentStatistics()
-        for m in multipeptides:
-            astats.nr_quantified += len(m.get_selected_peakgroups())
-
-            # Count how many precursors / peptides / proteins fall below the threshold
-            if m.find_best_peptide_pg().get_fdr_score() < fdr_cutoff:
-                astats.nr_good_precursors += 1
-                astats.good_peptides.update([m.get_peptides()[0].sequence])
-                astats.good_proteins.update([m.get_peptides()[0].protein_name])
-
-            for p in m.get_peptides():
-
-                # Count how many peakgroups simply fall below the threshold
-                if p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
-                    astats.nr_good_peakgroups += 1
-
-                if p.get_selected_peakgroup() is not None:
-
-                    # Number of peakgroups that are different from the original
-                    if p.get_best_peakgroup().get_feature_id() != p.get_selected_peakgroup().get_feature_id() \
-                       and p.get_selected_peakgroup().get_fdr_score() < fdr_cutoff:
-                        astats.nr_changed += 1
-                    # Number of peakgroups that were added
-                    if p.get_best_peakgroup().get_fdr_score() > fdr_cutoff:
-                        astats.nr_aligned += 1
-
-                # Best peakgroup exists and is not selected
-                elif p.get_best_peakgroup() is not None \
-                  and p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
-                    astats.nr_removed += 1
-
+        astats.count(multipeptides, fdr_cutoff)
         alignment = astats
 
         nr_precursors_total = len(self.union_transition_groups_set)
