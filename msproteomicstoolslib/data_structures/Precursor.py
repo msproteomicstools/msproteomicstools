@@ -85,6 +85,7 @@ class GeneralPrecursor(PrecursorBase):
         self.peakgroups = []
         self.run = run
         self._decoy = False
+        self.protein_name = ""
   
     def add_peakgroup(self, peakgroup):
         self.peakgroups.append(peakgroup)
@@ -153,6 +154,7 @@ class Precursor(PrecursorBase):
         self.peakgroups_ = []
         self.cluster_ids_ = []
         self._decoy = False
+        self.protein_name = ""
   
     def __str__(self):
         return "%s (run %s)" % (self.id, self.run)
