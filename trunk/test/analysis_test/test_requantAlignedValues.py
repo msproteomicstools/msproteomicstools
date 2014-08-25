@@ -40,7 +40,7 @@ import subprocess as sub
 import os
 from nose.plugins.attrib import attr
 
-class TestFeatureAlignment(unittest.TestCase):
+class TestNoiseIntegration(unittest.TestCase):
 
     def setUp(self):
         self.dirname = os.path.dirname(os.path.abspath(__file__))
