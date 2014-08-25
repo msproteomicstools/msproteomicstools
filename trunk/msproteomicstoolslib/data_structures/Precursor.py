@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
 class PrecursorBase(object):
+
     def __init__(self, this_id, run):
         raise NotImplemented
 
@@ -132,7 +133,7 @@ class Precursor(PrecursorBase):
     or can return the transition group that is closest to a given iRT time.
     Its id is the transition_group_id (e.g. the id of the chromatogram)
 
-    The "selected" peakgroup is reprsented by the peakgroup that belongs to
+    The "selected" peakgroup is represented by the peakgroup that belongs to
     cluster number 1 (cluster_id == 1) which in this case is "special".
     
     For memory reasons, we store all information about the peakgroup in a
@@ -143,7 +144,7 @@ class Precursor(PrecursorBase):
     A peakgroup has the following attributes: 
         - an identifier that is unique among all other precursors 
         - a set of peakgroups 
-        - a backreference to the run it belongs to
+        - a back-reference to the run it belongs to
     """
     def __init__(self, this_id, run):
         self.id = this_id  
@@ -166,12 +167,16 @@ class Precursor(PrecursorBase):
             3. intensity
             (4. d_score optional)
         """
-        assert self.id == tpl_id # Check that the peak group is added to the correct precursor
+        # Check that the peak group is added to the correct precursor
+        if self.id != tpl_id:
+            raise Exception("Cannot add a tuple to this precursor with a different id")
+
         if len(pg_tuple) == 4:
             pg_tuple = pg_tuple + (None,)
+
         assert len(pg_tuple) == 5
         self.peakgroups_.append(pg_tuple)
-        self.cluster_ids_.append(-1)
+        self.cluster_ids_.append(cluster_id)
 
     def get_id(self):
         return self.id 
@@ -179,36 +184,36 @@ class Precursor(PrecursorBase):
     def get_run_id(self):
       return self.run.get_id()
     
-    def get_decoy(self):
-        return self._decoy
-
-    # store information about the peakgroup - tuples (e.g. whether they are selected)
+    # 
+    # Peakgroup cluster membership
+    # 
     def select_pg(self, this_id):
-        pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
-        assert len(pg_id) == 1
-        self.cluster_ids_[pg_id[0]] = 1
+        self.setClusterID(this_id, 1)
 
     def unselect_pg(self, this_id):
-        pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
-        assert len(pg_id) == 1
-        self.cluster_ids_[pg_id[0]] = -1
+        self.setClusterID(this_id, -1)
 
     def setClusterID(self, this_id, cl_id):
         pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
         assert len(pg_id) == 1
+        assert cl_id == -1 or len([0 for i in self.cluster_ids_ if i == cl_id] ) == 0
         self.cluster_ids_[pg_id[0]] = cl_id
 
     def unselect_all(self):
         for i in range(len(self.cluster_ids_)) : 
             self.cluster_ids_[i] = -1
 
+    # 
+    # Peakgroup selection
+    # 
     def get_best_peakgroup(self):
-        if len(self.peakgroups_) == 0: return None
+        if len(self.peakgroups_) == 0:
+            return None
+
         best_score = self.peakgroups_[0][1]
         result = self.peakgroups_[0]
         for peakgroup in self.peakgroups_:
             if peakgroup[1] <= best_score:
-                #print "better score : ", peakgroup[1]
                 best_score = peakgroup[1]
                 result = peakgroup
         index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
@@ -239,5 +244,5 @@ class Precursor(PrecursorBase):
     def find_closest_in_iRT(self, delta_assay_rt):
       result = min(self.peakgroups_, key=lambda x: abs(float(x[2]) - float(delta_assay_rt)))
       index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-      return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4], self.cluster_ids_[index])
+      return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
 
