@@ -117,16 +117,6 @@ class AlignmentAlgorithm():
         Returns:
             Alignment object with alignment statistics
         """
-
-        class AlignmentStatistics():
-            def __init__(self): 
-                self.nr_aligned = 0
-                self.nr_changed = 0
-                self.nr_quantified = 0
-                self.could_not_align = 0
-                self.fdr_good_in_all = 0
-        astas = AlignmentStatistics()
-
         self.alignment_writeout = False
         if alignment_out != "":
             self.alignment_out_f = open(alignment_out, "w")
@@ -139,24 +129,21 @@ class AlignmentAlgorithm():
                 # In non-global algorithms, do not re-align if the fdr is above the threshold in all runs
                 for p in mpep.get_peptides():
                     p.get_best_peakgroup().select_this_peakgroup()
-                    astas.nr_quantified += 1
                 continue
 
             if method == "global_best_cluster_score" or method == "best_cluster_score":
-                self.align_features_cluster_(mpep, astas, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
+                self.align_features_cluster_(mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
             elif method == "global_best_overall" or method == "best_overall":
-                self.align_features_best_(mpep, astas, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
+                self.align_features_best_(mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
             else:
                 raise Exception("Method '%s' unknown" % method)
 
         if self.alignment_writeout:
             self.alignment_out_f.close()
 
-        return astas
-
-    def align_features_cluster_(self, m, a, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
+    def align_features_cluster_(self, m, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
         verb=self.verbose
-        if verb: print "00000000000000000000000000000000000 new peptide ", m.get_peptides()[0].sequence
+        if verb: print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
 
         # i) get all RTs above the cutoff
         for p in m.get_peptides(): # loop over runs
@@ -205,21 +192,18 @@ class AlignmentAlgorithm():
         bestcluster = min(clusters_rt_obj, key=(lambda x: x.getTotalScore()/(((aligned_fdr_cutoff/2)**len(c.peakgroups)))) )
 
         for pg in bestcluster.peakgroups:
-          a.nr_quantified += 1
           pg.select_this_peakgroup()
           if pg.get_fdr_score() > fdr_cutoff:
-              a.nr_aligned += 1
               if pg.get_normalized_retentiontime() != pg.peptide.get_best_peakgroup().get_normalized_retentiontime():
-                  a.nr_changed += 1
                   if verb: print "FDR new align", pg.peptide.get_best_peakgroup().print_out(), "\tnew ====> ", pg.print_out()
               else:
                   if verb: print "FDR boost", pg.peptide.get_best_peakgroup().print_out(), " old ====> ", pg.print_out()
           else:
             if verb: print "no need to align", pg.print_out()
 
-    def align_features_best_(self, m, a, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
+    def align_features_best_(self, m, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
         verb=self.verbose
-        if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.get_peptides()[0].sequence
+        if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.get_peptides()[0].get_id()
 
         # If we just choose the cluster with the "best" peptide, we find find the best peptide over all runs
         best = m.find_best_peptide_pg()
@@ -232,7 +216,6 @@ class AlignmentAlgorithm():
             if current_best_pg.get_fdr_score() < fdr_cutoff and method == "best_overall":
                 # The pg is below the fdr cutoff, we just take it and go with it in "best overall"
                 current_best_pg.select_this_peakgroup()
-                a.nr_quantified += 1
                 if verb: 
                     print " == Selected peakgroup ", current_best_pg.print_out()
 
@@ -255,10 +238,7 @@ class AlignmentAlgorithm():
             if bestScoringPG.get_fdr_score() < aligned_fdr_cutoff: 
                 bestScoringPG.select_this_peakgroup()
 
-                a.nr_aligned += 1
-                a.nr_quantified += 1
                 if current_best_pg.get_normalized_retentiontime() != bestScoringPG.get_normalized_retentiontime():
-                  a.nr_changed += 1
                   if verb: print "FDR new align", current_best_pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
                 else:
                   if verb: print "FDR boost", current_best_pg.print_out(), " old ====> ", bestScoringPG.print_out()
@@ -266,5 +246,4 @@ class AlignmentAlgorithm():
                 if verb: print "could not align", current_best_pg.peptide.run.get_id(), current_best_pg.peptide.run.orig_filename, "best rt_diff was ", \
                       abs(float(bestScoringPG.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
                       bestScoringPG.get_fdr_score() 
-                a.could_not_align += 1
 
