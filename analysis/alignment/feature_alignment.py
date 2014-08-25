@@ -208,18 +208,23 @@ class Experiment(MRExperiment):
         fraction_needed_selected = options.min_frac_selected
         file_format = options.file_format
 
+        # 1. Collect ids of selected features
         selected_pgs = []
         for m in multipeptides:
+
             selected_peakgroups = m.get_selected_peakgroups()
-            if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : 
+            if (len(selected_peakgroups)*1.0 / len(self.runs)) < fraction_needed_selected: 
                 continue
+
             for p in m.get_peptides():
                 selected_pg = p.get_selected_peakgroup()
                 clustered_pg = p.getClusteredPeakgroups()
                 for pg in clustered_pg:
                     selected_pgs.append(pg)
+
         selected_ids_dict = dict( [ (pg.get_feature_id(), pg) for pg in selected_pgs] )
 
+        # 2. Write out the (selected) ids
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
             id_writer = csv.writer(fh, delimiter="\t")
@@ -228,9 +233,14 @@ class Experiment(MRExperiment):
             fh.close()
             del id_writer
 
+        # 3. Write out the matrix outfile
         if len(matrix_outfile) > 0:
-            write_out_matrix_file(matrix_outfile, self.runs, multipeptides, fraction_needed_selected, style=options.matrix_output_method, aligner_mscore_treshold=options.fdr_cutoff)
+            write_out_matrix_file(matrix_outfile, self.runs, multipeptides,
+                                  fraction_needed_selected,
+                                  style=options.matrix_output_method,
+                                  aligner_mscore_treshold=options.fdr_cutoff)
 
+        # 4. Write out the full outfile
         if len(outfile) > 0 and options.readmethod == "full":
             # write out the complete original files 
             writer = csv.writer(open(outfile, "w"), delimiter="\t")
@@ -241,11 +251,16 @@ class Experiment(MRExperiment):
             writer.writerow(header_first)
 
             for m in multipeptides:
+
                 selected_peakgroups = m.get_selected_peakgroups()
-                if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
+                if (len(selected_peakgroups)*1.0 / len(self.runs)) < fraction_needed_selected:
+                    continue
+
                 for p in m.get_peptides():
                     selected_pg = p.get_selected_peakgroup()
-                    if selected_pg is None: continue
+                    if selected_pg is None: 
+                        continue
+
                     row_to_write = selected_pg.row
                     row_to_write += [selected_pg.run.get_id(), selected_pg.run.orig_filename]
                     # Replace run_id with the aligned id (align_runid) ->
@@ -254,8 +269,10 @@ class Experiment(MRExperiment):
                     writer.writerow(row_to_write)
 
         elif len(outfile) > 0 and file_format == "openswath":
-            # only in openswath we have the ID and can go back to the original file ... 
-            # write out the complete original files 
+
+            # Only in openswath we have the ID and can go back to the original file.
+            # We can write out the complete original files.
+
             writer = csv.writer(open(outfile, "w"), delimiter="\t")
             header_first = self.runs[0].header
             for run in self.runs:
@@ -270,10 +287,12 @@ class Experiment(MRExperiment):
                   filehandler = gzip.open(f,'rb')
               else:
                   filehandler = open(f)
+
               reader = csv.reader(filehandler, delimiter="\t")
               header = reader.next()
               for i,n in enumerate(header):
                 header_dict[n] = i
+
               for row in reader:
                   f_id = row[ header_dict["id"]]
                   if selected_ids_dict.has_key(f_id):
@@ -291,6 +310,7 @@ class Experiment(MRExperiment):
 
         self._write_trafo_files()
 
+        # 5. Write out the YAML file
         if len(yaml_outfile) > 0:
             import yaml
             myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
