@@ -553,6 +553,11 @@ class LocalKernel:
             pass
 
     def _getLocalDatapoints(self, data1, data2, topN, max_diff, xhat):
+            """ Return all datapoints that are within max_diff of xhat
+
+            If there are less than 2 * topN datapoints within max_diff of xhat,
+            returns the 2 * topN datpoints around xhat.
+            """
 
             # This lower bound will actually get the element that is just larger
             # than the search parameter
@@ -560,19 +565,34 @@ class LocalKernel:
             if lb - topN < 0:
                 lb = topN
 
-            # Select a decent slice of target and source data (hope that 10x should suffice)
-            source_d_slice = data1[lb-topN*10:lb+topN*10]
-            target_d_slice = data2[lb-topN*10:lb+topN*10]
+            source_d = []
+            target_d = []
 
-            zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
-                       if abs(s-xhat) < max_diff]
+            # Walk to the left (down)
+            it = lb
+            while it >= 0:
+                if abs(data1[it] - xhat) < max_diff:
+                    source_d.append(data1[it])
+                    target_d.append(data2[it])
+                else: 
+                    break
+                it -= 1
 
-            if len(zipped) < topN:
+            # Walk to the right (up)
+            it = lb + 1
+            while it < len(data1):
+                if abs(data1[it] - xhat) < max_diff:
+                    source_d.append(data1[it])
+                    target_d.append(data2[it])
+                else: 
+                    break
+                it += 1
+
+            # Check if we have enough datapoints
+            if len(source_d) < 2*topN:
                 return data1[lb-topN:lb+topN], data2[lb-topN:lb+topN]
             else:
-                return zip(*zipped)
-
-            return zip(*zipped)
+                return source_d, target_d
 
 class WeightedNearestNeighbour(LocalKernel):
     """Class for local weighted interpolation
