@@ -559,11 +559,16 @@ class LocalKernel:
             returns the 2 * topN datpoints around xhat.
             """
 
+            if len(data1) < 2*topN:
+                return data1, data2
+
             # This lower bound will actually get the element that is just larger
             # than the search parameter
             lb = abs(lower_bound( data1, xhat))-1
             if lb - topN < 0:
                 lb = topN
+            if lb >= len(data1):
+                lb = len(data1)-topN
 
             source_d = []
             target_d = []
