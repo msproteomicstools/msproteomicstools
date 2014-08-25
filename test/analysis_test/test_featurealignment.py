@@ -59,7 +59,6 @@ class TestFeatureAlignment(unittest.TestCase):
                 except ValueError:
                     self.assertEqual(field1,field2)
 
-
     def test_1_featureAlignment_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")

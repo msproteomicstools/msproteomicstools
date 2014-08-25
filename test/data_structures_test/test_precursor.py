@@ -147,7 +147,6 @@ class TestUnitPrecursor(unittest.TestCase):
         firstpg = list(p.get_all_peakgroups())[0]
         self.assertEqual( firstpg.get_cluster_id(), -1)
 
-
     def test_selection(self):
         p = precursor.Precursor("precursor_2", [])
         self.assertIsNone( p.get_best_peakgroup() )
