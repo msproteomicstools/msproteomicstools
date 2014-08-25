@@ -352,9 +352,17 @@ class Experiment(MRExperiment):
             import yaml
             myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
                       "ReferenceRun" : self.transformation_collection.getReferenceRunID(), 
+                      "FeatureAlignment" : 
+                      {
+                        "RawInputParameters" : options.__dict__,
+                        "Parameters" : {}
+                      },
                       "Parameters" : {}
                      }
-            myYaml["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff)
+            myYaml["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff) # deprecated
+            myYaml["FeatureAlignment"]["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff)
+            myYaml["FeatureAlignment"]["Parameters"]["fdr_cutoff"] = float(options.fdr_cutoff)
+            myYaml["FeatureAlignment"]["Parameters"]["aligned_fdr_cutoff"] = float(options.aligned_fdr_cutoff)
             for current_run in self.runs:
                 current_id = current_run.get_id()
                 ref_id = self.transformation_collection.getReferenceRunID()
