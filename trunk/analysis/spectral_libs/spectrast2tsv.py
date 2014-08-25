@@ -113,28 +113,37 @@ def writeStandardConfigFile(filename):
 
     config.write()
 
+class Label(object):
+
+    def __init__(self, AA, deltamass, name):
+        self.AA = AA
+        self.deltamass = deltamass
+        self.name = name
 
 def readLabelingFile(labeling_file) :
     #Returns a dictionary of amino-acides (including also C-Term and N-Term) with the mass shifts due to an isotope labeling experiment.
     labeling = {}
 
-    file = open (labeling_file,"r")
-    while True :
-        line = file.readline()
-        if len(line) == 0 : break
+    cur_file = open (labeling_file,"r")
+    for line in cur_file:
+        # Skip empty lines or comments
+        if len(line.strip()) == 0 : continue
         if line[0] == '#' : continue
 
+        labelname = ''
         aminoacid = ''
         mass_shift = 0.0
 
-        sline = line.split('\t')
+        sline = line.strip().split('\t')
         if len(sline) >= 2 :
             aminoacid  = sline[0]
             mass_shift = float(sline[1])
+            if len(sline) >= 3:
+                labelname = sline[2]
 
-        labeling[aminoacid] = mass_shift
+        labeling[aminoacid] = Label(aminoacid, mass_shift, labelname)
 
-    file.close()
+    cur_file.close()
 
     print "Labeling file :" , labeling
     return labeling
@@ -1060,7 +1069,7 @@ def main(argv) :
 
 
                     for aa in sequence_heavy :
-                        if aa in labeling : precursorMZ_heavy += labeling[aa] / z_parent
+                        if aa in labeling : precursorMZ_heavy += labeling[aa].deltamass / z_parent
 
                     frg_seq = sequence_heavy
                     #b series
@@ -1069,15 +1078,15 @@ def main(argv) :
                     if frg_serie == 'y': frg_seq = sequence_heavy[-frg_number:]
 
                     for aa in frg_seq :
-                        if aa in labeling : fragment_mz_heavy += labeling[aa] / frg_z
+                        if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
 
                     #Check for C- and N-terminal labelings
                     if 'C-term' in labeling :
-                        precursorMZ_heavy += labeling['C-term'] / z_parent
-                        if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'] /frg_z
+                        precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
+                        if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
                     if 'N-term' in labeling :
-                        precursorMZ_heavy += labeling['N-term'] / z_parent
-                        if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'] /frg_z
+                        precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
+                        if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
 
 
                     #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.
@@ -1175,7 +1184,7 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
 
 
             for aa in sequence_heavy :
-                if aa in labeling : precursorMZ_heavy += labeling[aa] / z_parent
+                if aa in labeling : precursorMZ_heavy += labeling[aa].deltamass / z_parent
 
             frg_seq = sequence_heavy
             #b series
@@ -1184,15 +1193,15 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
             if frg_serie == 'y': frg_seq = sequence_heavy[-frg_number:]
 
             for aa in frg_seq :
-                if aa in labeling : fragment_mz_heavy += labeling[aa] / frg_z
+                if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
 
             #Check for C- and N-terminal labelings
             if 'C-term' in labeling :
-                precursorMZ_heavy += labeling['C-term'] / z_parent
-                if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'] /frg_z
+                precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
+                if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
             if 'N-term' in labeling :
-                precursorMZ_heavy += labeling['N-term'] / z_parent
-                if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'] /frg_z
+                precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
+                if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
 
 
             #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.
