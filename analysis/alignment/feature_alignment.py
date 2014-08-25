@@ -88,7 +88,25 @@ class Experiment(MRExperiment):
         d.est_real_fdr = d.decoy_pcnt / self.estimated_decoy_pcnt * self.initial_fdr_cutoff
         return d
 
-    def print_stats(self, multipeptides, alignment, outlier_detection, fdr_cutoff, fraction_present, min_nrruns):
+    def print_stats(self, multipeptides, fdr_cutoff, fraction_present, min_nrruns):
+
+        class AlignmentStatistics():
+            def __init__(self): 
+                self.nr_aligned = 0
+                self.nr_changed = 0
+                self.nr_quantified = 0
+
+        astats = AlignmentStatistics()
+        for m in multipeptides:
+            astats.nr_quantified += len(m.get_selected_peakgroups())
+            for p in m.get_peptides():
+                if p.get_selected_peakgroup() is not None:
+                    if p.get_best_peakgroup().get_feature_id() != p.get_selected_peakgroup().get_feature_id():
+                        astats.nr_changed += 1
+                    if p.get_best_peakgroup().get_fdr_score() > 0.01:
+                        astats.nr_aligned += 1
+        alignment = astats
+
         nr_precursors_total = len(self.union_transition_groups_set)
 
         # Do statistics and print out
@@ -136,7 +154,7 @@ class Experiment(MRExperiment):
                 "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
+                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", max_pg - alignment.nr_quantified 
 
         print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
           nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align)
@@ -599,7 +617,7 @@ def main(options):
 
     print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
     start = time.time()
-    alignment = AlignmentAlgorithm().align_features(multipeptides, 
+    AlignmentAlgorithm().align_features(multipeptides, 
                     options.rt_diff_cutoff, options.fdr_cutoff,
                     options.aligned_fdr_cutoff, options.method, options.algo_outfile)
     print("Re-aligning peak groups took %ss" % (time.time() - start) )
@@ -617,7 +635,7 @@ def main(options):
 
     # print statistics, write output
     start = time.time()
-    this_exp.print_stats(multipeptides, alignment, None, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
     this_exp.write_to_file(multipeptides, options)
     print("Writing output took %ss" % (time.time() - start) )
 
