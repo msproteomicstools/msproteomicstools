@@ -63,7 +63,7 @@ class PeakGroupBase(object):
         self.normalized_retentiontime = None
         self.id_ = None
         self.intensity_ = None
-        self.selected_ = False
+        self.cluster_id_ = -1
   
     def get_value(self, value):
         raise Exception("Needs implementation")
@@ -97,13 +97,16 @@ class PeakGroupBase(object):
 
     # Selected
     def is_selected(self):
-        return self.selected_
+        return self.cluster_id_ == 1
 
     def select_this_peakgroup(self):
-        self.selected_ = True
+        self.cluster_id_ = 1
 
     def unselect_this_peakgroup(self):
-        self.selected_ = False
+        self.cluster_id_ = -1
+
+    def get_cluster_id(self):
+        return self.cluster_id_
 
 
 class MinimalPeakGroup(PeakGroupBase):
@@ -111,7 +114,8 @@ class MinimalPeakGroup(PeakGroupBase):
     A single peakgroup that is defined by a retention time in a chromatogram
     of multiple transitions. Additionally it has an fdr_score and it has an
     aligned RT (e.g. retention time in normalized space).
-    A peakgroup can be selected for quantification or not.
+    A peakgroup can be selected for quantification or not (this is stored as
+    having cluster_id == 1).
     
     Note that for performance reasons, the peakgroups are created on-the-fly
     and not stored as objects but rather as tuples in "Peptide".
@@ -119,15 +123,16 @@ class MinimalPeakGroup(PeakGroupBase):
     Each peak group has a unique id, a score (fdr score usually), a retention
     time as well as a back-reference to the precursor that generated the
     peakgroup.
-    In this case, the peak group can also be selected or unselected.
-    
+    In this case, the peak group can also be assigned a cluster id (where the
+    cluster 1 is special as the one we will use for quantification).
     """
-    def __init__(self, unique_id, fdr_score, assay_rt, selected, peptide, intensity=None, dscore=None):
+
+    def __init__(self, unique_id, fdr_score, assay_rt, selected, cluster_id, peptide, intensity=None, dscore=None):
       super(MinimalPeakGroup, self).__init__()
       self.id_ = unique_id
       self.fdr_score = fdr_score
       self.normalized_retentiontime = assay_rt 
-      self.selected_ = selected
+      self.cluster_id_ = cluster_id
       self.peptide = peptide
       self.intensity_ = intensity
       self.dscore_ = dscore
@@ -155,12 +160,18 @@ class MinimalPeakGroup(PeakGroupBase):
 
     ## Select / De-select peakgroup
     def select_this_peakgroup(self):
-        self.selected_ = True
         self.peptide.select_pg(self.get_feature_id())
 
     def unselect_this_peakgroup(self):
-        self.selected_ = False
-        self.peptide.unselect_pg(self.get_feature_id() )
+        self.peptide.unselect_pg(self.get_feature_id())
+
+    ## Select / De-select peakgroup
+    def setClusterID(self, id_):
+        self.cluster_id_ = id_
+        self.peptide.setClusterID(self.get_feature_id(), id_)
+
+    def get_cluster_id(self):
+        return self.cluster_id_
 
 class GuiPeakGroup(PeakGroupBase):
     """
@@ -211,8 +222,11 @@ class GeneralPeakGroup(PeakGroupBase):
         return self.get_value("d_score")
 
     def print_out(self):
-        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " norm_RT:" + str(self.get_normalized_retentiontime()) + " RT:" + str(self.get_value("RT"))
+        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " norm_RT:" + str(self.get_normalized_retentiontime()) + " RT:" + str(self.get_value("RT")) + " Int : " + str(self.get_value("Intensity"))
   
+    def setClusterID(self, dummy):
+        pass
+
 class PrecursorBase(object):
     def __init__(self, this_id, run):
         raise NotImplemented
@@ -306,11 +320,14 @@ class Precursor(PrecursorBase):
     A peptide can return its best transition group, the selected peakgroup,
     or can return the transition group that is closest to a given iRT time.
     Its id is the transition_group_id (e.g. the id of the chromatogram)
+
+    The "selected" peakgroup is reprsented by the peakgroup that belongs to
+    cluster number 1 (cluster_id == 1) which in this case is "special".
     
     For memory reasons, we store all information about the peakgroup in a
     tuple (invariable). This tuple contains a unique feature id, a score and
-    a retention time. Additionally, we also store, whether the feature was
-    selected or not.
+    a retention time. Additionally, we also store, in which cluster the
+    peakgroup belongs (if the user sets this).
 
     A peakgroup has the following attributes: 
         - an identifier that is unique among all other precursors 
@@ -322,13 +339,13 @@ class Precursor(PrecursorBase):
         self.peakgroups = []
         self.run = run
         self.peakgroups_ = []
-        self.selected_ = []
+        self.cluster_ids_ = []
         self._decoy = False
   
     def __str__(self):
         return "%s (run %s)" % (self.id, self.run)
 
-    def add_peakgroup_tpl(self, pg_tuple, tpl_id):
+    def add_peakgroup_tpl(self, pg_tuple, tpl_id, cluster_id=-1):
         """Adds a peakgroup to this precursor.
 
         The peakgroup should be a tuple of length 4 with the following components:
@@ -343,7 +360,7 @@ class Precursor(PrecursorBase):
             pg_tuple = pg_tuple + (None,)
         assert len(pg_tuple) == 5
         self.peakgroups_.append(pg_tuple)
-        self.selected_.append(False)
+        self.cluster_ids_.append(-1)
 
     def get_id(self):
         return self.id 
@@ -358,15 +375,21 @@ class Precursor(PrecursorBase):
     def select_pg(self, this_id):
         pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
         assert len(pg_id) == 1
-        self.selected_[pg_id[0]] = True
+        self.cluster_ids_[pg_id[0]] = 1
 
     def unselect_pg(self, this_id):
         pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
         assert len(pg_id) == 1
-        self.selected_[pg_id[0]] = False
+        self.cluster_ids_[pg_id[0]] = -1
+
+    def setClusterID(self, this_id, cl_id):
+        pg_id = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == this_id]
+        assert len(pg_id) == 1
+        self.cluster_ids_[pg_id[0]] = cl_id
 
     def unselect_all(self):
-        for i in range(len(self.selected_)) : self.selected_[i] = False
+        for i in range(len(self.cluster_ids_)) : 
+            self.cluster_ids_[i] = -1
 
     def get_best_peakgroup(self):
         if len(self.peakgroups_) == 0: return None
@@ -374,31 +397,38 @@ class Precursor(PrecursorBase):
         result = self.peakgroups_[0]
         for peakgroup in self.peakgroups_:
             if peakgroup[1] <= best_score:
+                #print "better score : ", peakgroup[1]
                 best_score = peakgroup[1]
                 result = peakgroup
         index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
+        return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
 
     def get_selected_peakgroup(self):
       # return the selected peakgroup of this peptide, we can only select 1 or
       # zero groups per chromatogram!
-      selected = [i for i,pg in enumerate(self.selected_) if pg]
+      selected = [i for i,pg in enumerate(self.cluster_ids_) if pg == 1]
       assert len(selected) < 2
       if len(selected) == 1:
         index = selected[0]
         result = self.peakgroups_[index]
-        return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
+        return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
       else: 
           return None
 
+    def getClusteredPeakgroups(self):
+      selected = [i for i,pg in enumerate(self.cluster_ids_) if pg != -1]
+      for index in selected:
+        result = self.peakgroups_[index]
+        yield MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
+
     def get_all_peakgroups(self):
         for index, result in enumerate(self.peakgroups_):
-            yield MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
+            yield MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
   
     def find_closest_in_iRT(self, delta_assay_rt):
       result = min(self.peakgroups_, key=lambda x: abs(float(x[2]) - float(delta_assay_rt)))
       index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
-      return MinimalPeakGroup(result[0], result[1], result[2], self.selected_[index], self, result[3], result[4])
+      return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4], self.cluster_ids_[index])
 
 class Run():
     """
