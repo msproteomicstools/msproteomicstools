@@ -211,11 +211,13 @@ class Experiment(MRExperiment):
         selected_pgs = []
         for m in multipeptides:
             selected_peakgroups = m.get_selected_peakgroups()
-            if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
+            if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : 
+                continue
             for p in m.get_peptides():
                 selected_pg = p.get_selected_peakgroup()
-                if selected_pg is None: continue
-                selected_pgs.append(selected_pg)
+                clustered_pg = p.getClusteredPeakgroups()
+                for pg in clustered_pg:
+                    selected_pgs.append(pg)
         selected_ids_dict = dict( [ (pg.get_feature_id(), pg) for pg in selected_pgs] )
 
         if len(ids_outfile) > 0:
@@ -250,6 +252,7 @@ class Experiment(MRExperiment):
                     # otherwise the run_id is not guaranteed to be unique 
                     row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                     writer.writerow(row_to_write)
+
         elif len(outfile) > 0 and file_format == "openswath":
             # only in openswath we have the ID and can go back to the original file ... 
             # write out the complete original files 
@@ -257,7 +260,7 @@ class Experiment(MRExperiment):
             header_first = self.runs[0].header
             for run in self.runs:
                 assert header_first == run.header
-            header_first += ["align_runid", "align_origfilename"]
+            header_first += ["align_runid", "align_origfilename", "align_clusterid"]
             writer.writerow(header_first)
 
             for file_nr, f in enumerate(infiles):
@@ -280,7 +283,7 @@ class Experiment(MRExperiment):
                       unique_peptide_id = row[ header_dict["transition_group_id"]]
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
-                          row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f]
+                          row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
                           # Replace run_id with the aligned id (align_runid) ->
                           # otherwise the run_id is not guaranteed to be unique 
                           row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
