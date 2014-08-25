@@ -92,7 +92,8 @@ class TestAlignment(unittest.TestCase):
     def test_shortestDistance_1(self):
 
         rid = "0_0"
-        dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff)
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner)
 
         # Select peakgroups, compute left/right border
         selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
@@ -110,7 +111,8 @@ class TestAlignment(unittest.TestCase):
     def test_shortestPath_1(self):
 
         rid = "0_0"
-        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
@@ -130,7 +132,8 @@ class TestAlignment(unittest.TestCase):
         rid = "0_0"
         self.tr_data.reference = "0_2" # set reference run to 0_2
 
-        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
@@ -160,7 +163,8 @@ class TestAlignment(unittest.TestCase):
     def test_shortestDistance_2(self):
 
         rid = "0_1"
-        dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff)
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner)
 
         # Select peakgroups, compute left/right border
         selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
@@ -178,7 +182,8 @@ class TestAlignment(unittest.TestCase):
     def test_shortestPath_2(self):
 
         rid = "0_1"
-        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
@@ -196,7 +201,8 @@ class TestAlignment(unittest.TestCase):
     def test_shortestPath_3(self):
 
         rid = "0_1"
-        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
@@ -222,7 +228,8 @@ class TestAlignment(unittest.TestCase):
         rid = "0_1"
         self.tr_data.reference = "0_0" # set reference run to 0_0
 
-        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border

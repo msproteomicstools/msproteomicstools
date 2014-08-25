@@ -43,6 +43,7 @@ from nose.plugins.attrib import attr
 import msproteomicstoolslib.algorithms.alignment.AlignmentMST as algo
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
+from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 
 class MockRun():
 
@@ -161,7 +162,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
                 helper.addDataToTrafo(self.tr_data, run_0, run_1, spl_aligner, self.multipeptides, "linear", 30)
 
     def test_prepare(self):
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         self.assertEqual(tree, [(3, 4), (2, 3), (1, 2), (0, 1)] )
 
     def test_alignBestCluster_0(self):
@@ -176,7 +178,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
           - Run5 : 139s     [threadRT = 133s]
         """
 
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.exp.runs[a].get_id(), self.exp.runs[b].get_id()) for a,b in tree]
 
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
@@ -201,7 +204,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         too far for 7 seconds tolerance).
         """
 
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.exp.runs[a].get_id(), self.exp.runs[b].get_id()) for a,b in tree]
 
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=False)
@@ -231,7 +235,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         By using a larger tolerance of 15s, we can still manage to find all the correct peakgroups
         """
 
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.exp.runs[a].get_id(), self.exp.runs[b].get_id()) for a,b in tree]
 
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 15, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=False)
@@ -258,7 +263,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
           - Run5 : 139s     [threadRT = 133s]
         """
 
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.exp.runs[a].get_id(), self.exp.runs[b].get_id()) for a,b in tree]
 
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
@@ -293,7 +299,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
 
         """
 
-        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, self.initial_alignment_cutoff))
+        spl_aligner = SplineAligner(self.initial_alignment_cutoff)
+        tree = MinimumSpanningTree(algo.getDistanceMatrix(self.exp, self.multipeptides, spl_aligner))
         tree_mapped = [(self.exp.runs[a].get_id(), self.exp.runs[b].get_id()) for a,b in tree]
 
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 9, fdr_cutoff = 0.2, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
