@@ -58,19 +58,22 @@ class Cluster:
       If there are multiple peakgroups selected, only the best one is retained.
       """
       run_ids = {}
-      if verbose: print "len pg ", len(self.peakgroups)
+      if verbose: 
+          print "Select one per run: len pg ", len(self.peakgroups)
+          print "Best pg", bestpg.print_out()
       for pg in self.peakgroups:
           rid = pg.peptide.get_run_id()
           if rid in run_ids:
-              if verbose: print "have run id", rid, "multiple times", pg.get_fdr_score(),\
-                 "/", pg.get_normalized_retentiontime(), " vs ", \
-                 run_ids[rid].get_fdr_score(), "/", run_ids[rid].get_normalized_retentiontime()
+              if verbose: 
+                  print "have run id", rid, "multiple times", pg.get_fdr_score(),\
+                  "/", pg.get_normalized_retentiontime(), " vs ", \
+                  run_ids[rid].get_fdr_score(), "/", run_ids[rid].get_normalized_retentiontime()
               if run_ids[rid].get_fdr_score() > pg.get_fdr_score():
                   run_ids[rid] = pg
           else: run_ids[rid] = pg
       self.peakgroups = run_ids.values()
 
-    def get_total_score(self):
+    def getTotalScore(self):
       """
       Calculate the total score of a cluster (multiplication of probabilities)
       """
@@ -79,12 +82,18 @@ class Cluster:
         mult = mult * pg.get_fdr_score()
       return mult
 
-    def get_median_rt(self):
+    def getMedianRT(self):
       """
-      Calculate the total score of a cluster (multiplication of probabilities)
+      Calculate the median retention time of a cluster
       """
 
       return numpy.median( [pg.get_normalized_retentiontime() for pg in self.peakgroups] )
+
+    def getRTstd(self):
+      """
+      Calculate the standard deviation of the retention times
+      """
+      return numpy.std( [pg.get_normalized_retentiontime() for pg in self.peakgroups] )
 
 class AlignmentAlgorithm():
     """ A class of alignment algorithms
