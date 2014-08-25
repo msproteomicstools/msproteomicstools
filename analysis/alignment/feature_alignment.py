@@ -98,16 +98,20 @@ class Experiment(MRExperiment):
                 self.nr_aligned = 0
                 self.nr_changed = 0
                 self.nr_quantified = 0
+                self.nr_removed = 0
 
         astats = AlignmentStatistics()
         for m in multipeptides:
             astats.nr_quantified += len(m.get_selected_peakgroups())
             for p in m.get_peptides():
                 if p.get_selected_peakgroup() is not None:
-                    if p.get_best_peakgroup().get_feature_id() != p.get_selected_peakgroup().get_feature_id():
+                    if p.get_best_peakgroup().get_feature_id() != p.get_selected_peakgroup().get_feature_id() \
+                       and p.get_selected_peakgroup().get_fdr_score() < fdr_cutoff:
                         astats.nr_changed += 1
                     if p.get_best_peakgroup().get_fdr_score() > 0.01:
                         astats.nr_aligned += 1
+                elif p.get_best_peakgroup() is not None and p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
+                        astats.nr_removed += 1
         alignment = astats
 
         nr_precursors_total = len(self.union_transition_groups_set)
@@ -157,7 +161,8 @@ class Experiment(MRExperiment):
                 "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
                 "giving maximally nr peakgroups", max_pg
         print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", max_pg - alignment.nr_quantified 
+                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", max_pg - alignment.nr_quantified, \
+                "(removed %s peakgroups)" % alignment.nr_removed
 
         print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
           nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align)
