@@ -60,7 +60,7 @@ class Cluster:
       run_ids = {}
       if verbose: 
           print "Select one per run: len pg ", len(self.peakgroups)
-          print "Best pg", bestpg.print_out()
+          # print "Best pg", bestpg.print_out()
       for pg in self.peakgroups:
           rid = pg.peptide.get_run_id()
           if rid in run_ids:
@@ -100,6 +100,7 @@ class AlignmentAlgorithm():
     """
     def __init__(self): 
         self.verbose = False
+        self.alignment_writeout = False
 
     def align_features(self, multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method="best_overall", alignment_out=""):
         """ Perform the alignment on a set of multipeptides
@@ -117,7 +118,7 @@ class AlignmentAlgorithm():
         Returns:
             Alignment object with alignment statistics
         """
-        self.alignment_writeout = False
+
         if alignment_out != "":
             self.alignment_out_f = open(alignment_out, "w")
             self.alignment_out_f.write("%s\t%s\t%s\t%s\n" % ("align_runid", "transition_group_id", "id", "cluster"))
@@ -239,7 +240,8 @@ class AlignmentAlgorithm():
                 bestScoringPG.select_this_peakgroup()
 
                 if current_best_pg.get_normalized_retentiontime() != bestScoringPG.get_normalized_retentiontime():
-                  if verb: print "FDR new align", current_best_pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
+                  if verb: 
+                      print "FDR new align", current_best_pg.print_out(), "\tnew ====> ", bestScoringPG.print_out()
                 else:
                   if verb: print "FDR boost", current_best_pg.print_out(), " old ====> ", bestScoringPG.print_out()
             else:
