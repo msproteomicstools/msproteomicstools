@@ -311,6 +311,12 @@ class TransformationData:
 
     def __init__(self):
         self.data = {} 
+        self.trafo = {} 
+
+    def addTrafo(self, run1, run2, trafo):
+      d = self.trafo.get(run1, {})
+      d[run2] = trafo
+      self.trafo[run1] = d
 
     def addData(self, run1, data1, run2, data2, doSort=True):
       # Add data from run1 -> run2 and also run2 -> run1
@@ -329,6 +335,8 @@ class TransformationData:
     def getData(self, run1, run2):
         return self.data[run1][run2]
 
+    def getTrafo(self, run1, run2):
+        return self.trafo[run1][run2]
 
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
     print "Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100)
@@ -548,46 +556,10 @@ class TreeConsensusAlignment():
                         if newPG is not None:
                             newPG.select_this_peakgroup()
 
-    def _extractMatchingRTs(self, tr_data, source, target, source_rt, topN):
-        """
-        Extract matching pairs of <sourceRT,targetRT> for local estimation of
-        retention time shift.
-        If there are not enough values (less than 3), then use the closest 6
-        """
-        
-        # This lower bound will actually get the element that is just larger
-        # than the search parameter
-        lb = abs(lower_bound( tr_data.getData(source, target)[0], source_rt))-1
-        if lb - topN < 0:
-            lb = topN
-
-        # Select a decent slice of target and source data (hope that 10x should suffice)
-        source_d_slice = tr_data.getData(source, target)[0][lb-topN*10:lb+topN*10]
-        target_d_slice = tr_data.getData(source, target)[1][lb-topN*10:lb+topN*10]
-
-        zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
-                   if abs(s-source_rt) < self._max_rt_diff]
-
-        if len(zipped) < topN:
-            return tr_data.getData(source, target)[0][lb-topN:lb+topN], tr_data.getData(source, target)[1][lb-topN:lb+topN]
-        else:
-            return zip(*zipped)
-
     def _findBestPG(self, m,  source, target, tr_data, source_rt):
 
-        # Get matching pairs
-        source_d, target_d = self._extractMatchingRTs(tr_data, source, target, source_rt, 3)
-
-        # Transform target data:
-        #   Compute a difference array from the source and apply it to the target
-        #   (local linear differences)
-        source_d_diff = [s - source_rt for s in source_d]
-        target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
-
-        # Use transformed target data to compute expected RT in target domain (weighted average)
-        expected_rt = numpy.average(target_data_transf, weights=[ 1/abs(s) if s != 0.0 else 0.1 for s in source_d_diff])
-        # print "  Diff pred", expected_rt, " std ", numpy.std(target_data_transf), \
-        #        " : diff : ", numpy.average(target_data_transf) - expected_rt
+        # Get expected RT (transformation of source into target domain)
+        expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
 
         # If there is no peptide present in the target run, we simply return
         # the expected retention time.
@@ -622,8 +594,19 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
 
     # Get alignments
     for edge in tree:
+        id_0 = exp.runs[edge[0]].get_id()
+        id_1 = exp.runs[edge[1]].get_id()
+        # Data
         data_0, data_1 = spl_aligner._getRTData(exp.runs[edge[0]], exp.runs[edge[1]], multipeptides)
-        tr_data.addData(exp.runs[edge[0]].get_id(), data_0, exp.runs[edge[1]].get_id(), data_1)
+        tr_data.addData(id_0, data_0, exp.runs[edge[1]].get_id(), data_1)
+        # Smoothers
+        sm_0_1 = smoothing.WeightedNearestNeighbour(3, max_rt_diff, 0.1, False)
+        sm_1_0 = smoothing.WeightedNearestNeighbour(3, max_rt_diff, 0.1, False)
+
+        sm_0_1.initialize(data_0, data_1)
+        sm_1_0.initialize(data_1, data_0)
+        tr_data.addTrafo(id_0, id_1, sm_0_1)
+        tr_data.addTrafo(id_1, id_0, sm_1_0)
 
     print "Got Alignment"
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
