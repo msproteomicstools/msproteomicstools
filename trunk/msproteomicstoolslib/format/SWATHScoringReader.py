@@ -302,7 +302,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
             diff_from_assay_in_sec_name = "Tr" 
             diff_from_assay_seconds = float(this_row[run.header_dict["Tr"]]) 
         else:
-            diff_from_assay_seconds = float(this_row[run.header_dict["iRT_empirical"]]) - float(this_row[run.header_dict["iRT_prediced"]])
+            diff_from_assay_seconds = float(this_row[run.header_dict["iRT_empirical"]]) - float(this_row[run.header_dict["iRT_predicted"]])
 
         # create some id
         import uuid 
@@ -347,11 +347,10 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         self.aligned_run_id_name = "align_runid"
         self.readmethod = readmethod
         self.readfilter = readfilter
+
+        # Only minimal reading is implemented
         if readmethod == "minimal":
             self.Precursor = Precursor
-        else:
-            self.Precursor = GeneralPrecursor
-            self.PeakGroup = GeneralPeakGroupPeakView
 
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "Decoy"
@@ -409,11 +408,14 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
           p.set_decoy(decoy)
           run.all_peptides[trgr_id] = p
           if verb: print "add peptide", trgr_id
+
+        # Only minimal reading is implemented
         if self.readmethod == "minimal":
           if verb: print "append tuple", peakgroup_tuple
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
           run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
-        else: raise NotImplemented
+        else:
+            raise NotImplemented
 
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, verbose=False, throwOnMismatch=False):
