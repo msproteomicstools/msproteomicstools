@@ -330,12 +330,14 @@ class TreeConsensusAlignment():
         while len(visited.keys()) < m.get_nr_runs():
             for e1, e2 in tree:
                 if e1 in visited.keys() and not e2 in visited.keys():
-                    # print "try to align", e2, "from", e1
+                    if self.verbose:
+                        print "try to align", e2, "from", e1
                     newPG, rt = self._findBestPG(m, e1, e2, tr_data, rt_map[e1], already_seen)
                     rt_map[e2] = rt
                     visited[e2] = newPG
                 if e2 in visited.keys() and not e1 in visited.keys():
-                    # print "try to align", e1, "from", e2
+                    if self.verbose: 
+                        print "try to align", e1, "from", e2
                     newPG, rt = self._findBestPG(m, e2, e1, tr_data, rt_map[e2], already_seen)
                     rt_map[e1] = rt
                     visited[e1] = newPG
@@ -360,6 +362,9 @@ class TreeConsensusAlignment():
         """
         # Get expected RT (transformation of source into target domain)
         expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
+        if self.verbose:
+            print "Expected RT", expected_rt, " (source RT)", source_rt
+            print " --- and back again :::  ", tr_data.getTrafo(target, source).predict([expected_rt])[0]
 
         # If there is no peptide present in the target run, we simply return
         # the expected retention time.
@@ -376,6 +381,9 @@ class TreeConsensusAlignment():
                 max_rt_diff = self._stdev_max_rt_per_run * tr_data.getTrafo(source, target).last_dispersion
 
             max_rt_diff = max(self._max_rt_diff, max_rt_diff)
+
+        if self.verbose:
+            print "Used rt diff:", max_rt_diff
 
         # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
         target_p = m.get_peptide(target)
