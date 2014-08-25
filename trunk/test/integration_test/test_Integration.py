@@ -225,5 +225,51 @@ class TestAlignment(unittest.TestCase):
         self.assertAlmostEqual(border_l, 187.18146718146681)
         self.assertAlmostEqual(border_r, 202.00772200772167)
 
+class MatrixOutputWriters(unittest.TestCase):
+
+    def setUp(self):
+
+        # Set up dirs
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
+        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.scriptdir = os.path.join(self.topdir, "analysis")
+
+        # Set up files
+        peakgroups_file = os.path.join(self.datadir, "imputeValues/imputeValues_5_input.csv")
+        mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.mzML")
+
+        fdr_cutoff_all_pg = 1.0
+
+        # Read input
+        reader = SWATHScoringReader.newReader([peakgroups_file], "openswath", readmethod="complete")
+        self.exp = MRExperiment()
+        self.exp.runs = reader.parse_files()
+        self.multipeptides = self.exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
+
+    def test_matrix_out(self):
+        """Test the output matrix writers"""
+
+        import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
+
+        tmpfile = "tmp.output.csv"
+        helper.write_out_matrix_file(tmpfile, self.exp.runs, self.multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
+        tmpfile = "tmp.output.tsv"
+        helper.write_out_matrix_file(tmpfile, self.exp.runs, self.multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
+        tmpfile = "tmp.output.xls"
+        helper.write_out_matrix_file(tmpfile, self.exp.runs, self.multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+        tmpfile = "tmp.output.xlsx"
+        helper.write_out_matrix_file(tmpfile, self.exp.runs, self.multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
 if __name__ == '__main__':
     unittest.main()
