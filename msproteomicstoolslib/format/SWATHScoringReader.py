@@ -209,6 +209,9 @@ class GeneralPeakGroup(PeakGroupBase):
 
     def get_dscore(self):
         return self.get_value("d_score")
+
+    def print_out(self):
+        return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " norm_RT:" + str(self.get_normalized_retentiontime()) + " RT:" + str(self.get_value("RT"))
   
 class PrecursorBase(object):
     def __init__(self, this_id, run):
