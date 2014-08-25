@@ -81,10 +81,9 @@ class SplineAligner():
         print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, self.alignment_fdr_threshold_)
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
-    def _spline_align_runs(self, bestrun, run, multipeptides):
-        """Will align run against bestrun"""
+    def _getRTData(self, bestrun, run, multipeptides):
+        """ Return retention time data for reference and slave run """
 
-        # get those peptides we want to use for alignment => for this use the mapping
         # data1 = reference data (master)
         # data2 = data to be aligned (slave)
         data1 = []
@@ -100,19 +99,18 @@ class SplineAligner():
             if ref_pep.get_fdr_score() < self.alignment_fdr_threshold_ and align_pep.get_fdr_score() < self.alignment_fdr_threshold_:
                 data1.append(ref_pep.get_normalized_retentiontime())
                 data2.append(align_pep.get_normalized_retentiontime())
+        return data1,data2
 
-        # from run to bestrun
-        self.transformation_collection.addTransformationData([data2, data1], run.get_id(), bestrun.get_id() )
+    def _spline_align_runs(self, bestrun, run, multipeptides):
+        """Will align run against bestrun"""
 
-        all_pg = []
-        for pep in run.all_peptides.values():
-            all_pg.extend( [ (pg.get_normalized_retentiontime(), pg.get_feature_id()) for pg in pep.get_all_peakgroups()] )
-
-        rt_eval = [ pg[0] for pg in all_pg]
-
-        # Since we want to predict how to convert from slave to master, slave
-        # is first and master is second.
         sm = smoothing.getSmoothingObj(smoother = self.smoother, tmpdir = self.tmpdir_)
+
+        # get those peptides we want to use for alignment => for this use the mapping
+        # data1 = reference data (master)
+        # data2 = data to be aligned (slave)
+        data1,data2 = self._getRTData(bestrun, run, multipeptides)
+
 
         if len(data2) < 2:
             print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
@@ -120,19 +118,14 @@ class SplineAligner():
             print "If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)." 
             raise Exception("Not enough datapoints (less than 2 datapoints).")
 
+        # Since we want to predict how to convert from slave to master, slave
+        # is first and master is second.
         sm.initialize(data2, data1)
-        aligned_result = sm.predict(rt_eval)
-
         data2_aligned = sm.predict(data2)
-        self.transformation_collection.addTransformedData(data2_aligned, run.get_id(), bestrun.get_id() )
 
-        # The two methods produce very, very similar results
-        # but R is faster => prefer to use R when possible.
-        # hist(aligned_result - aligned_result_2, 100)
-        # numpy.std(aligned_result - aligned_result_2)
-        # 0.66102016517870454
-        # numpy.median(aligned_result - aligned_result_2)
-        # -0.020456989235640322
+        # Store transformation in collection (from run to bestrun)
+        self.transformation_collection.addTransformationData([data2, data1], run.get_id(), bestrun.get_id() )
+        self.transformation_collection.addTransformedData(data2_aligned, run.get_id(), bestrun.get_id() )
 
         stdev = numpy.std(numpy.array(data1) - numpy.array(data2_aligned))
         median = numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
@@ -144,8 +137,13 @@ class SplineAligner():
         d[bestrun.get_id()] = [stdev, median]
         self.transformation_error.transformations[ run.get_id() ] = d
 
-        # now re-populate the peptide data!
+        # Now predict on _all_ data and write this back to the data
         i = 0
+        all_pg = []
+        for pep in run.all_peptides.values():
+            all_pg.extend( [ (pg.get_normalized_retentiontime(), pg.get_feature_id()) for pg in pep.get_all_peakgroups()] )
+        rt_eval = [ pg[0] for pg in all_pg]
+        aligned_result = sm.predict(rt_eval)
         for pep in run.all_peptides.values():
             mutable = [list(pg) for pg in pep.peakgroups_]
             for k in range(len(mutable)):
