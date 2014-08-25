@@ -215,9 +215,9 @@ class TreeConsensusAlignment():
 
             # Find the overall best peptide
             best = m.find_best_peptide_pg()
-            if self.verbose: 
-                print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
-                print " Best", best.print_out(), "from run", best.peptide.run.get_id()
+
+            if best.get_fdr_score() >= self._fdr_cutoff:
+                continue
 
             # Use this peptide to generate a cluster
             for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
@@ -319,6 +319,9 @@ class TreeConsensusAlignment():
         Returns:
             list(PeakGroupBase): List of peakgroups belonging to this cluster
         """
+        if self.verbose: 
+            print "111111111111111111111111 new cluster"
+            print " Seed", seed.print_out(), "from run", seed.peptide.run.get_id()
 
         seed_rt = seed.get_normalized_retentiontime()
 
