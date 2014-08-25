@@ -421,7 +421,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
-def doParameterEstimation(options, multipeptides):
+def doParameterEstimation(options, this_exp, multipeptides):
     """
     Perform (q-value) parameter estimation
     """
@@ -459,9 +459,9 @@ def doParameterEstimation(options, multipeptides):
             options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
 
     options.fdr_cutoff = fdr_cutoff_calculated
-    print "Using an m_score (q-value) cutoff of %0.4f%%" % (fdr_cutoff_calculated*100)
-    print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
-    print("Parameter estimation took %ss" % (time.time() - start) )
+    print "Using an m_score (q-value) cutoff of %0.7f%%" % (fdr_cutoff_calculated*100)
+    print "For the aligned values, use a cutoff of %0.7f%%" % (options.aligned_fdr_cutoff*100)
+    print("Parameter estimation took %0.2fs" % (time.time() - start) )
     print "-"*35
     return multipeptides
 
@@ -475,7 +475,7 @@ def doReferenceAlignment(options, this_exp, multipeptides):
                                    external_r_tmpdir = options.tmpdir)
         this_exp.transformation_collection = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         trafoError = spl_aligner.getTransformationError()
-        print("Aligning the runs took %ss" % (time.time() - start) )
+        print("Aligning the runs took %0.2fs" % (time.time() - start) )
 
     try:
         options.aligned_fdr_cutoff = float(options.aligned_fdr_cutoff)
@@ -506,24 +506,7 @@ def doReferenceAlignment(options, this_exp, multipeptides):
     AlignmentAlgorithm().align_features(multipeptides, 
                     options.rt_diff_cutoff, options.fdr_cutoff,
                     options.aligned_fdr_cutoff, options.method)
-    print("Re-aligning peak groups took %ss" % (time.time() - start) )
-
-    # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
-    for mpep in multipeptides:
-        # check if we have found enough peakgroups which are below the cutoff
-        count = 0
-        for pg in mpep.get_selected_peakgroups():
-            if pg.get_fdr_score() < options.fdr_cutoff:
-                count += 1
-        if count < options.nr_high_conf_exp:
-            for p in mpep.get_peptides():
-                p.unselect_all()
-
-    # print statistics, write output
-    start = time.time()
-    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-    this_exp.write_to_file(multipeptides, options)
-    print("Writing output took %ss" % (time.time() - start) )
+    print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
@@ -607,33 +590,51 @@ def main(options):
     # Create experiment
     this_exp = Experiment()
     this_exp.set_runs(runs)
-    print("Reading the input files took %ss" % (time.time() - start) )
+    print("Reading the input files took %0.2fs" % (time.time() - start) )
 
     # Map the precursors across multiple runs, determine the number of
     # precursors in all runs without alignment.
     start = time.time()
     multipeptides = this_exp.get_all_multipeptides(options.fdr_cutoff, verbose=False, verbosity=options.verbosity)
-    print("Mapping the precursors took %ss" % (time.time() - start) )
+    print("Mapping the precursors took %0.2fs" % (time.time() - start) )
 
     if options.target_fdr > 0:
-        multipeptides = doParameterEstimation(options, multipeptides)
+        multipeptides = doParameterEstimation(options, this_exp, multipeptides)
 
     if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
+        if options.mst_stdev_max_per_run > 0:
+            stdev_max_rt_per_run = options.mst_stdev_max_per_run
+        else:
+            stdev_max_rt_per_run = None
+            
         doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff),
                        float(options.alignment_score), options.fdr_cutoff,
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
-                       options.mst_correct_rt, options.mst_stdev_max_per_run,
+                       options.mst_correct_rt, stdev_max_rt_per_run,
                        options.mst_local_stdev)
-        print("Re-aligning peak groups took %ss" % (time.time() - start) )
-
-        start = time.time()
-        this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-        this_exp.write_to_file(multipeptides, options, writeTrafoFiles=False)
-        print("Writing output took %ss" % (time.time() - start) )
+        print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
+
+
+    # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+    for mpep in multipeptides:
+        # check if we have found enough peakgroups which are below the cutoff
+        count = 0
+        for pg in mpep.get_selected_peakgroups():
+            if pg.get_fdr_score() < options.fdr_cutoff:
+                count += 1
+        if count < options.nr_high_conf_exp:
+            for p in mpep.get_peptides():
+                p.unselect_all()
+
+    # print statistics, write output
+    start = time.time()
+    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+    this_exp.write_to_file(multipeptides, options)
+    print("Writing output took %0.2fs" % (time.time() - start) )
 
 if __name__=="__main__":
     options = handle_args()
