@@ -52,6 +52,7 @@ from feature_alignment import Experiment
 
 # The Window overlap which needs to be taken into account when calculating from which swath window to extract!
 SWATH_EDGE_SHIFT = 1
+VERBOSE = False
 
 class ImputeValuesHelper(object):
     """
@@ -229,6 +230,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     sequences_mapping = {}
     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, verbose=False)
     mapping_inv = dict([(v[0],k) for k,v in mapping.iteritems()])
+    if VERBOSE:
+        print mapping
 
     # Do only a single run : read only one single file
     start = time.time()
@@ -376,7 +379,10 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
 
     print "Will work on %s peptides" % (len(multipeptides))
     for i,m in enumerate(multipeptides):
-        if i % 500 == 0: print "Done with %s out of %s" % (i, len(multipeptides))
+        if i % 500 == 0: 
+            print "Done with %s out of %s" % (i, len(multipeptides))
+        if VERBOSE:
+            print "do", m.get_peptides()[0].get_id()
 
         # Ensure that each run has either exactly one peakgroup (or zero)
         if all ([pg.get_cluster_id() == -1 for p in m.get_peptides() for pg in p.get_all_peakgroups()]) and \
@@ -425,7 +431,8 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
                 rmap = dict([(r.get_id(),i) for i,r in enumerate(new_exp.runs) ])
 
-                # print "Will try to fill NA in run", current_run.get_id(), "for peptide", current_mpep.get_peptides()[0].get_id()
+                if VERBOSE: 
+                    print "Will try to fill NA in run", current_run.get_id(), "for peptide", current_mpep.get_peptides()[0].get_id()
                 if tree is not None:
                     border_l, border_r = integrationBorderShortestPath(selected_pg, 
                         rid, transformation_collection_, tree)
@@ -437,8 +444,9 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
                                              border_l, border_r, cnt)
                 if newpg != "NA": 
-                    # print "Managed to fill NA in run", current_run.get_id(), \
-                    #       "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r
+                    if VERBOSE: 
+                        print "Managed to fill NA in run", current_run.get_id(), \
+                          "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r
                     cnt.imputation_succ += 1
                     precursor = GeneralPrecursor(newpg.get_value("transition_group_id"), current_run)
                     # Select for output, add to precursor
