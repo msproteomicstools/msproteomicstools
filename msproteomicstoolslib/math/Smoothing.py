@@ -59,7 +59,7 @@ def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = F
     print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
   return None
 
-def getSmoothingObj(smoother, tmpdir=None):
+def getSmoothingObj(smoother, topN=None, max_rt_diff=None, min_rt_diff=None, removeOutliers=None, tmpdir=None):
     if smoother == "diRT":
         return SmoothingNull()
     elif smoother == "linear":
@@ -76,6 +76,10 @@ def getSmoothingObj(smoother, tmpdir=None):
         return UnivarSplineNoCV()
     elif smoother == "CVSpline":
         return UnivarSplineCV()
+    elif smoother == "CVSpline":
+        return UnivarSplineCV()
+    elif smoother == "WeightedNearestNeighbour":
+        return WeightedNearestNeighbour(topN, max_rt_diff, min_rt_diff, removeOutliers)
 
 class SmoothingR:
     """Class to smooth data using the smooth.spline function from R
@@ -530,21 +534,25 @@ class SmoothingInterpolation:
             return self.linear_sm.predict(xhat)
         return list(predicted_result)
 
-class SmoothingLocalWeightedInterpolation:
+class WeightedNearestNeighbour:
     """Class for local weighted interpolation
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, topN, max_diff, min_diff, removeOutliers):
+        self.topN = topN
+        self.max_diff = max_diff
+        self.min_diff = min_diff
+        self.removeOutliers = removeOutliers
 
-    def initialize(self, data1, data2, topN, max_diff):
+    def initialize(self, data1, data2):
         # data1 is the predictor (e.g. the input) -> x
         # data2 is the response (e.g. what we want to predict) -> y
         data1, data2 = zip(*sorted(zip(data1, data2)))
         self.data1 = numpy.array(data1)
         self.data2 = numpy.array(data2)
-        self.topN = topN
-        self.max_diff = max_diff
+
+        if self.removeOutliers:
+            pass
 
     def predict(self, xhat):
 
@@ -575,11 +583,9 @@ class SmoothingLocalWeightedInterpolation:
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
-            expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s != 0.0 else 0.1 for s in source_d_diff])
+            expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s > self.min_diff else self.min_diff for s in source_d_diff])
 
             res.append( expected_targ )
 
         return res
-
-
 
