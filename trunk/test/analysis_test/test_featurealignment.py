@@ -147,5 +147,25 @@ class TestFeatureAlignment(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
+    def test_6_featureAlignment_openswath_best_overall(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
+        filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")
+        expected_outcome = os.path.join(self.datadir, "feature_alignment_6_output_1_ids.csv")
+        expected_matrix_outcome = os.path.join(self.datadir, "feature_alignment_6_output_2_matrix.csv")
+        tmpfilename = "featureAlignment_6.out.tmp"
+        tmpfilename_ids = "featureAlignment_6.out.tmp_idsonly.csv"
+        tmpfilename_matrix = "featureAlignment_6.out.tmp_matrix.tsv"
+
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --method LocalMSTAllCluster --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename_ids, expected_outcome)
+        self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
+
+        os.remove(tmpfilename)
+        os.remove(tmpfilename_ids)
+        os.remove(tmpfilename_matrix)
+
 if __name__ == '__main__':
     unittest.main()
