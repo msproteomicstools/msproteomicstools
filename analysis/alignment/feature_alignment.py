@@ -361,7 +361,9 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
                     p.unselect_all()
             return aligned_fdr_cutoff
 
-def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method):
+def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
+                   fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
+                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev):
     """
     Minimum Spanning Tree (MST) based local aligment 
     """
@@ -379,7 +381,11 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fd
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
-    al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff)
+    al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff,
+                                correctRT_using_pg=use_RT_correction,
+                                stdev_max_rt_per_run=stdev_max_rt_per_run,
+                                use_local_stdev=use_local_stdev)
+
     if method == "LocalMST":
         al.alignBestCluster(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
@@ -492,6 +498,7 @@ def handle_args():
     usage += "\nIf only one file is given, it will act as peakgroup selector (best by m_score)" + \
             "\nand will apply the provided FDR cutoff."
 
+    import ast
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
     parser.add_argument("--out", dest="outfile", required=True, default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
@@ -516,6 +523,9 @@ def handle_args():
     experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     experimental_parser.add_argument("--tmpdir", dest="tmpdir", default="/tmp/", help="Temporary directory")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
+    experimental_parser.add_argument("--mst:useRTCorrection", dest="mst_correct_rt", type=ast.literal_eval, default=False, help="Use aligned peakgroup RT to continue threading in MST algorithm", metavar='True')
+    experimental_parser.add_argument("--mst:Stdev_multiplier", dest="mst_stdev_max_per_run", type=float, default=-1.0, help="How many standard deviations the peakgroup can deviate in RT during the alignment (if less than max_rt_diff, then max_rt_diff is used)", metavar='True')
+    experimental_parser.add_argument("--mst:useLocalStdev", dest="mst_local_stdev", type=ast.literal_eval, default=False, help="Use standard deviation of local region of the chromatogram", metavar='True')
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
 
     args = parser.parse_args(sys.argv[1:])
@@ -577,9 +587,12 @@ def main(options):
 
     if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
-        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
-                    options.fdr_cutoff, float(options.aligned_fdr_cutoff), options.realign_method, options.method)
-
+        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff),
+                       float(options.alignment_score), options.fdr_cutoff,
+                       float(options.aligned_fdr_cutoff),
+                       options.realign_method, options.method,
+                       options.mst_correct_rt, options.mst_stdev_max_per_run,
+                       options.mst_local_stdev)
         print("Re-aligning peak groups took %ss" % (time.time() - start) )
 
         start = time.time()
