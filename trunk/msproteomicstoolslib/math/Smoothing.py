@@ -371,6 +371,7 @@ class LowessSmoothingPy:
         from Bio.Statistics.lowess import lowess
         import math
 
+        old_settings = numpy.seterr(all='ignore')
         result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=10)
         if all([math.isnan(it) for it in result]):
             # Try standard paramters
@@ -378,6 +379,7 @@ class LowessSmoothingPy:
 
         self.internal_interpolation = SmoothingInterpolation()
         self.internal_interpolation.initialize(data1, result)
+        numpy.seterr(**old_settings)
 
     def predict(self, xhat):
         return self.internal_interpolation.predict(xhat)
