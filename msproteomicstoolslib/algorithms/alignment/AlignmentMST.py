@@ -160,7 +160,7 @@ class TreeConsensusAlignment():
     """
 
     def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff,
-                 correctRT_using_pg=False, verbose=False)
+                 correctRT_using_pg=False, stdev_max_rt_per_run=None, verbose=False):
         """ Initialization with parameters
 
         Args:
@@ -170,12 +170,20 @@ class TreeConsensusAlignment():
                 reach (seed FDR)
             aligned_fdr_cutoff(float): maximal FDR that a peakgroup needs to
                 reach to be considered for extension (extension FDR)
+            correctRT_using_pg(bool): use the apex of the aligned peak group
+                as the input for the next alignment during MST traversal
+                (opposed to using the transformed RT plain)
+            stdev_max_rt_per_run(float): use a different maximal RT tolerance
+                for each alignment, depending on the goodness of the alignment.
+                The RT tolerance used by the algorithm will be the standard
+                deviation times stdev_max_rt_per_run.
         """
 
         self._max_rt_diff = max_rt_diff
         self._aligned_fdr_cutoff = aligned_fdr_cutoff
         self._fdr_cutoff = fdr_cutoff
         self._correctRT_using_pg = correctRT_using_pg
+        self._stdev_max_rt_per_run = stdev_max_rt_per_run
         self.verbose = verbose
 
     def alignBestCluster(self, multipeptides, tree, tr_data):
@@ -356,10 +364,15 @@ class TreeConsensusAlignment():
         if not m.has_peptide(target):
             return None, expected_rt
 
+        max_rt_diff = self._max_rt_diff
+        if self._stdev_max_rt_per_run is not None:
+            max_rt_diff = self._stdev_max_rt_per_run * tr_data.getStdev(source, target)
+            max_rt_diff = max(self._max_rt_diff, max_rt_diff)
+
         # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
         target_p = m.get_peptide(target)
         matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
-            if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff) and
+            if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < max_rt_diff) and
                 pg_.get_fdr_score() < self._aligned_fdr_cutoff and 
                 pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen]
 
