@@ -134,6 +134,12 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     data_0, data_1 = spl_aligner._getRTData(run_0, run_1, multipeptides)
     tr_data.addData(id_0, data_0, id_1, data_1)
 
+    if len(data_0) == 0:
+        null = smoothing.SmoothingNull()
+        tr_data.addTrafo(id_0, id_1, null)
+        tr_data.addTrafo(id_1, id_0, null)
+        return
+
     # Smoothers
     sm_0_1 = smoothing.getSmoothingObj(realign_method, topN=topN,
                                        max_rt_diff=max_rt_diff,
