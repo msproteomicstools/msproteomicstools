@@ -93,7 +93,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.15
 
-        self.al.align_features_cluster_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_cluster(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 1)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -105,7 +105,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.3
 
-        self.al.align_features_cluster_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_cluster(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 2)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNotNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -118,7 +118,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.3
 
-        self.al.align_features_cluster_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_cluster(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 2)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNotNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -143,7 +143,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.15
 
-        self.al.align_features_best_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_best(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 1)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -155,7 +155,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.3
 
-        self.al.align_features_best_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_best(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 2)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNotNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -168,7 +168,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         aligned_fdr_cutoff = 0.3
 
-        self.al.align_features_best_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_best(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 2)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNotNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -181,7 +181,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         rt_diff_cutoff = 4
 
-        self.al.align_features_best_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
+        self.al._align_features_best(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "dummy")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 1)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
@@ -193,7 +193,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         fdr_cutoff = 0.15
         rt_diff_cutoff = 4
 
-        self.al.align_features_best_(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "best_overall")
+        self.al._align_features_best(self.mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, "best_overall")
         self.assertEqual( len(self.mpep.get_selected_peakgroups()), 1)
         self.assertIsNotNone( self.mpep.get_peptide("0_1").get_selected_peakgroup() )
         self.assertIsNone( self.mpep.get_peptide("0_2").get_selected_peakgroup() )
