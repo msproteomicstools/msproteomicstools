@@ -42,7 +42,7 @@ from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligne
 import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
 
-def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
+def getDistanceMatrix(exp, multipeptides, spl_aligner):
     """Compute distance matrix of all runs.
 
     Computes a n x n distance matrix between all runs of an experiment. The
@@ -64,7 +64,6 @@ def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
         numpy (n x n) matrix(float): distance matrix
     """
 
-    spl_aligner = SplineAligner(initial_alignment_cutoff)
     dist_matrix = numpy.zeros(shape=(len(exp.runs),len(exp.runs)))
     for i in range(len(exp.runs)):
         for j in range(len(exp.runs)):

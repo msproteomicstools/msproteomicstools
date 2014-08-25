@@ -249,7 +249,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     if method == "singleClosestRun":
         tree_mapped = None
 
-        dist_matrix = getDistanceMatrix(new_exp, multipeptides, initial_alignment_cutoff)
+        dist_matrix = getDistanceMatrix(new_exp, multipeptides, spl_aligner)
         run_1 = [r for r in new_exp.runs if r.get_id() == rid][0]
         for run_0 in new_exp.runs:
             helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, options.realign_method, max_rt_diff)
@@ -257,7 +257,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     elif method == "singleShortestPath":
         dist_matrix = None
 
-        tree = MinimumSpanningTree(getDistanceMatrix(new_exp, multipeptides, initial_alignment_cutoff))
+        tree = MinimumSpanningTree(getDistanceMatrix(new_exp, multipeptides, spl_aligner))
         tree_mapped = [(new_exp.runs[a].get_id(), new_exp.runs[b].get_id()) for a,b in tree]
         for edge in tree:
             helper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
