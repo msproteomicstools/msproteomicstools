@@ -549,6 +549,11 @@ class TreeConsensusAlignment():
                             newPG.select_this_peakgroup()
 
     def _extractMatchingRTs(self, tr_data, source, target, source_rt, topN):
+        """
+        Extract matching pairs of <sourceRT,targetRT> for local estimation of
+        retention time shift.
+        If there are not enough values (less than 3), then use the closest 6
+        """
         
         # This lower bound will actually get the element that is just larger
         # than the search parameter
@@ -556,23 +561,22 @@ class TreeConsensusAlignment():
         if lb - topN < 0:
             lb = topN
 
-        source_d = tr_data.getData(source, target)[0][lb-topN:lb+topN]
-        target_d = tr_data.getData(source, target)[1][lb-topN:lb+topN]
+        # Select a decent slice of target and source data (hope that 10x should suffice)
+        source_d_slice = tr_data.getData(source, target)[0][lb-topN*10:lb+topN*10]
+        target_d_slice = tr_data.getData(source, target)[1][lb-topN*10:lb+topN*10]
 
-        return source_d, target_d
+        zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
+                   if abs(s-source_rt) < self._max_rt_diff]
+
+        if len(zipped) < topN:
+            return tr_data.getData(source, target)[0][lb-topN:lb+topN], tr_data.getData(source, target)[1][lb-topN:lb+topN]
+        else:
+            return zip(*zipped)
 
     def _findBestPG(self, m,  source, target, tr_data, source_rt):
 
-        # Extract matching pairs of <sourceRT,targetRT> for local estimation of
-        # retention time shift.
-        # If there are not enough values (less than 3), then use the closest 6
-        # values around the target RT.
-        zipped = [(s,t) for s,t in zip(tr_data.getData(source, target)[0], tr_data.getData(source, target)[1]) 
-                  if abs(s-source_rt) < self._max_rt_diff]
-        if len(zipped) < 3:
-            source_d, target_d = self._extractMatchingRTs(tr_data, source, target, source_rt, 3)
-        else:
-            source_d, target_d = zip(*zipped)
+        # Get matching pairs
+        source_d, target_d = self._extractMatchingRTs(tr_data, source, target, source_rt, 3)
 
         # Transform target data:
         #   Compute a difference array from the source and apply it to the target
