@@ -244,18 +244,21 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     start = time.time()
     initial_alignment_cutoff = 0.0001
     max_rt_diff = 30
+    sd_data = -1 # We do not use the standard deviation data in this algorithm
     tr_data = transformations.LightTransformationData()
     spl_aligner = SplineAligner(initial_alignment_cutoff)
 
     if method == "singleClosestRun":
         tree_mapped = None
-        dist_matrix = getDistanceMatrix(new_exp, multipeptides, spl_aligner)
+
+        run_1 = [r for r in new_exp.runs if r.get_id() == rid][0]
+        dist_matrix = getDistanceMatrix(new_exp, multipeptides, spl_aligner, singleRowId=run_1.get_id())
         print("Distance matrix took %ss" % (time.time() - start) )
 
         start = time.time()
-        run_1 = [r for r in new_exp.runs if r.get_id() == rid][0]
         for run_0 in new_exp.runs:
-            helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, options.realign_method, max_rt_diff)
+            helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
+                options.realign_method, max_rt_diff, sd_max_data_length=sd_data)
 
     elif method == "singleShortestPath":
         dist_matrix = None
@@ -267,7 +270,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
         start = time.time()
         for edge in tree:
             helper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
-                new_exp.runs[edge[1]], spl_aligner, multipeptides, options.realign_method, max_rt_diff)
+                new_exp.runs[edge[1]], spl_aligner, multipeptides, 
+                options.realign_method, max_rt_diff, sd_max_data_length=sd_data)
 
     else:
         raise Exception("Unknown method: " + method)
@@ -426,13 +430,13 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
             # Check whether we have a peakgroup for this run id, if yes we mark
             # this peakgroup as selected for output, otherwise we try to impute.
             if not any([pg.peptide.run.get_id() == rid for pg in selected_pg]):
-                cnt.imputations += 1
-                imputed=True
 
                 # Skip if we should not extract from this run
                 if not onlyExtractFromRun is None:
                     if onlyExtractFromRun != rid:
                         continue
+
+                cnt.imputations += 1
 
                 # Select current run, compute right/left integration border and then integrate
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
