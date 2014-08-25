@@ -344,6 +344,9 @@ def main(options):
     print("Mapping the precursors took %ss" % (time.time() - start) )
 
     for m in multipeptides:
+        if len(m.get_selected_peakgroups() ) > 0:
+            continue 
+
         for p in m.get_peptides():
             if len(list(p.get_all_peakgroups())) != 1:
                 print p
