@@ -1,0 +1,4 @@
+# Labeling file, contains AA and mass shift
+K	8.014199	13C(6) 15N(2) Silac label
+R	10.008269	13C(6) 15N(4) Silac label
+
