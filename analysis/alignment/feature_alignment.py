@@ -526,37 +526,83 @@ class TreeConsensusAlignment():
         self._max_rt_diff = max_rt_diff
         self._aligned_fdr_cutoff = aligned_fdr_cutoff
 
-    def align(self, exp, multipeptides, tree, tr_data):
+    def alignBestCluster(self, exp, multipeptides, tree, tr_data):
 
         verb = False
         for m in multipeptides:
 
             # Find the overall best peptide
             best = m.find_best_peptide_pg()
-            best.select_this_peakgroup()
-            best_rt = best.get_normalized_retentiontime()
             if verb: 
                 print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
                 print " Best", best.print_out(), "from run", best.peptide.run.get_id()
 
-            # Keep track of which nodes we have already visited in the graph
-            # (also storing the rt at which we found the signal in this run).
-            visited = { best.peptide.run.get_id() : best_rt } 
+            for pg_ in self._findPGCluster(tree, tr_data, m, best, {}):
+                pg_.select_this_peakgroup()
 
-            while len(visited.keys()) != m.get_nr_runs():
-                for e1, e2 in tree:
-                    if e1 in visited.keys() and not e2 in visited.keys():
-                        newPG, rt = self._findBestPG(m, e1, e2, tr_data, visited[e1])
-                        visited[e2] = rt
-                        if newPG is not None:
-                            newPG.select_this_peakgroup()
-                    if e2 in visited.keys() and not e1 in visited.keys():
-                        newPG, rt = self._findBestPG(m, e2, e1, tr_data, visited[e2])
-                        visited[e1] = rt
-                        if newPG is not None:
-                            newPG.select_this_peakgroup()
+    def alignAllCluster(self, exp, multipeptides, tree, tr_data):
 
-    def _findBestPG(self, m,  source, target, tr_data, source_rt):
+        from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Cluster
+        for m in multipeptides:
+
+            last_cluster = []
+            already_seen = set([])
+            stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
+            clusters = []
+            while len(stillLeft) > 0:
+                best = min(stillLeft, key=lambda x: float(x.get_fdr_score()))
+                last_cluster = self._findPGCluster(tree, tr_data, m, best, already_seen)
+                already_seen.update( set([ b.get_feature_id() + b.peptide.get_id() for b in last_cluster if b is not None]) )
+                stillLeft = [ b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
+                clusters.append(Cluster(last_cluster))
+
+            #firstcluster = clusters[0]
+            cluster_order = clusters.sort(lambda x,y: 
+                                          cmp(x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups))),
+                                              y.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(y.peakgroups)))) )
+            for i,c in enumerate(clusters): 
+                if False:
+                    print " - Cluster with score", c.getTotalScore(), "at", \
+                      c.getMedianRT(), "+/-", c.getRTstd() , "(norm_score %s)" %\
+                      (float(c.getTotalScore())/((self._aligned_fdr_cutoff/2)**len(c.peakgroups)))
+                for pg in c.peakgroups: 
+                    if False:
+                        print "   = Have member", pg.print_out()
+
+            # Get best cluster by length-normalized best score.
+            #   Length normalization divides the score by the expected probability
+            #   values if all peakgroups were chosen randomly (assuming equal
+            #   probability between 0 and aligned_fdr_cutoff, the expected value
+            #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
+            #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
+            bestcluster = min(clusters, key=(lambda x: x.getTotalScore()/(((self._aligned_fdr_cutoff/2)**len(x.peakgroups)))) )
+
+            for pg in bestcluster.peakgroups:
+                pg.select_this_peakgroup()
+
+    def _findPGCluster(self, tree, tr_data, m, seed, already_seen):
+        seed_rt = seed.get_normalized_retentiontime()
+
+        # Keep track of which nodes we have already visited in the graph
+        # (also storing the rt at which we found the signal in this run).
+        rt_map = { seed.peptide.run.get_id() : seed_rt } 
+        visited = { seed.peptide.run.get_id() : seed } 
+
+        while len(visited.keys()) != m.get_nr_runs():
+            for e1, e2 in tree:
+                if e1 in visited.keys() and not e2 in visited.keys():
+                    # print "try to align", e2, "from", e1
+                    newPG, rt = self._findBestPG(m, e1, e2, tr_data, rt_map[e1], already_seen)
+                    rt_map[e2] = rt
+                    visited[e2] = newPG
+                if e2 in visited.keys() and not e1 in visited.keys():
+                    # print "try to align", e1, "from", e2
+                    newPG, rt = self._findBestPG(m, e2, e1, tr_data, rt_map[e2], already_seen)
+                    rt_map[e1] = rt
+                    visited[e1] = newPG
+        return [pg for pg in visited.values() if pg is not None]
+
+    def _findBestPG(self, m,  source, target, tr_data, source_rt, already_seen):
 
         # Get expected RT (transformation of source into target domain)
         expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
@@ -570,7 +616,8 @@ class TreeConsensusAlignment():
         target_p = m.get_peptide(target)
         matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
             if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff) and
-                pg_.get_fdr_score() < self._aligned_fdr_cutoff]
+                pg_.get_fdr_score() < self._aligned_fdr_cutoff and 
+                pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen ]
 
         # If there are no peak groups present in the target run, we simply
         # return the expected retention time.
@@ -585,7 +632,7 @@ class TreeConsensusAlignment():
         # print
         return bestScoringPG, expected_rt
 
-def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff, smoothing_method):
+def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff, smoothing_method, method):
     tree = getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff)
     print "Got Minimum Spanning Tree"
 
@@ -612,7 +659,11 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
-    TreeConsensusAlignment(max_rt_diff, aligned_fdr_cutoff).align(exp, multipeptides, tree_mapped, tr_data)
+    al = TreeConsensusAlignment(max_rt_diff, aligned_fdr_cutoff)
+    if method == "LocalMST":
+        al.alignBestCluster(exp, multipeptides, tree_mapped, tr_data)
+    elif method == "LocalMSTAllCluster":
+        al.alignAllCluster(exp, multipeptides, tree_mapped, tr_data)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
@@ -734,10 +785,10 @@ def main(options):
         print("Parameter estimation took %ss" % (time.time() - start) )
         print "-"*35
 
-    if options.method == "LocalMST":
+    if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
         computeOptimalOrder(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
-                    float(options.aligned_fdr_cutoff), options.realign_method)
+                    float(options.aligned_fdr_cutoff), options.realign_method, options.method)
 
         print("Re-aligning peak groups took %ss" % (time.time() - start) )
 
