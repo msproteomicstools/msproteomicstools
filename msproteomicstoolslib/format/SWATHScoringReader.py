@@ -914,15 +914,15 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
                     if verbose: 
-                        print "- Found match:", os.path.basename(rfile), " ->", os.path.basename(this_row[ header_dict["align_origfilename"] ])
+                        print "- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ])
                     mapping[aligned_id] = [rfile]
 
             if not aligned_id in mapping:
                 if verbose or throwOnMismatch:
                     print "- No match found for :", aligned_fname, "in any of", \
                             [os.path.basename(rfile) for rfile in rawdata_files]
-                    print "- This is generally a very bad sign and you might have" +\
-                            +"to either rename your files to have matching filenames " +\
+                    print "- This is generally a very bad sign and you might have " +\
+                            "to either rename your files to have matching filenames " +\
                             "or provide an input yaml file describing the matching in detail"
                 if throwOnMismatch:
                     raise Exception("Mismatch, alignemnt filename could not be matched to input chromatogram")

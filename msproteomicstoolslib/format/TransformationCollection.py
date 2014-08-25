@@ -52,11 +52,12 @@ class LightTransformationData:
 
     def addData(self, run1, data1, run2, data2, doSort=True):
       # Add data from run1 -> run2 and also run2 -> run1
+      assert len(data1) == len(data2)
       self._doAddData(run1, data1, run2, data2, doSort)
       self._doAddData(run2, data2, run1, data1, doSort)
 
     def _doAddData(self, run1, data1, run2, data2, doSort):
-      if doSort:
+      if doSort and len(data1) > 0:
           data1, data2 = zip(*sorted(zip(data1, data2)))
       data1 = numpy.array(data1)
       data2 = numpy.array(data2)

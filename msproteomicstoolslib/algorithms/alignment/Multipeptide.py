@@ -86,12 +86,16 @@ class Multipeptide():
       return self._has_null
 
     def insert(self, runid, peptide):
-      assert not self.has_peptide(runid)
+        if self.has_peptide(runid):
+            # Add all peakgroups to this peptide
+            for pg in peptide.get_all_peakgroups():
+                self._peptides[runid].add_peakgroup(pg)
+            return
 
-      if peptide is None: 
-          self._has_null = True 
-          return
-      self._peptides[runid] = peptide
+        if peptide is None: 
+            self._has_null = True 
+            return
+        self._peptides[runid] = peptide
     
     def get_selected_peakgroups(self):
       return [p.get_selected_peakgroup() for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
