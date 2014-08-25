@@ -47,8 +47,7 @@ from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
-
-from MinimumSpanningTree import MinimumSpanningTree
+from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
 class Experiment(MRExperiment):
     """
