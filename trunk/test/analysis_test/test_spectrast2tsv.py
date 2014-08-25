@@ -51,15 +51,32 @@ class TestSpectrast2TSV(unittest.TestCase):
         f1 = open(name1, "r")
         f2 = open(name2, "r")
         for l1,l2 in zip(f1,f2):
-            self.assertEqual(l1,l2)
+            self.assertEqual(l1,l2, "Different files %s %s\n Offending \n%s \n!= \n%s" %(name1,name2,l1,l2) )
 
     def test_spectrast2tsv_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "spectral_libs"), "spectrast2tsv.py")
         filename = os.path.join(self.datadir, "testlib.sptxt")
         expected_outcome = os.path.join(self.datadir, "spectrast2tsv_1_openswath_out.csv")
-        tmpfilename = "spectrast2tsv.out.tmp"
+        swath_file = os.path.join(self.datadir, "swaths_file.txt")
+        tmpfilename = "spectrast2tsv_1_out.tmp"
 
-        args = "-k openswath -t minutes -a %s %s" % (tmpfilename, filename)
+        args = "-k openswath -t minutes -w %s -a %s %s" % (swath_file, tmpfilename, filename)
+        cmd = "python %s %s" % (script, args)
+        sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
+
+        os.remove(tmpfilename)
+
+    def test_spectrast2tsv_openswath_heavy_light(self):
+        script = os.path.join(os.path.join(self.scriptdir, "spectral_libs"), "spectrast2tsv.py")
+        filename = os.path.join(self.datadir, "testlib.sptxt")
+        expected_outcome = os.path.join(self.datadir, "spectrast2tsv_2_openswath_out.csv")
+        tmpfilename = "spectrast2tsv_2_out.tmp"
+        labeling_file = os.path.join(self.datadir, "labeling_file.txt")
+        swath_file = os.path.join(self.datadir, "swaths_file.txt")
+
+        args = "-k openswath -t minutes -w %s -i %s -a %s %s" % (swath_file, labeling_file, tmpfilename, filename)
         cmd = "python %s %s" % (script, args)
         sub.check_call(cmd,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
         
