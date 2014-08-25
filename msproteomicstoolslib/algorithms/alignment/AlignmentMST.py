@@ -160,7 +160,8 @@ class TreeConsensusAlignment():
     """
 
     def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff,
-                 correctRT_using_pg=False, stdev_max_rt_per_run=None, verbose=False):
+                 correctRT_using_pg=False, stdev_max_rt_per_run=None,
+                 use_local_stdev=False, verbose=False):
         """ Initialization with parameters
 
         Args:
@@ -184,6 +185,7 @@ class TreeConsensusAlignment():
         self._fdr_cutoff = fdr_cutoff
         self._correctRT_using_pg = correctRT_using_pg
         self._stdev_max_rt_per_run = stdev_max_rt_per_run
+        self._use_local_stdev = use_local_stdev
         self.verbose = verbose
 
     def alignBestCluster(self, multipeptides, tree, tr_data):
@@ -367,6 +369,12 @@ class TreeConsensusAlignment():
         max_rt_diff = self._max_rt_diff
         if self._stdev_max_rt_per_run is not None:
             max_rt_diff = self._stdev_max_rt_per_run * tr_data.getStdev(source, target)
+
+            # Whether to use the standard deviation in this local region of the
+            # chromatogram (if available)
+            if self._use_local_stdev:
+                max_rt_diff = self._stdev_max_rt_per_run * tr_data.getTrafo(source, target).last_dispersion
+
             max_rt_diff = max(self._max_rt_diff, max_rt_diff)
 
         # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
