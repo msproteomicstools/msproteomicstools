@@ -111,7 +111,6 @@ class SplineAligner():
         # data2 = data to be aligned (slave)
         data1,data2 = self._getRTData(bestrun, run, multipeptides)
 
-
         if len(data2) < 2:
             print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
                 run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)

@@ -585,7 +585,7 @@ class TreeConsensusAlignment():
         # print
         return bestScoringPG, expected_rt
 
-def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff):
+def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff, smoothing_method):
     tree = getMinimumSpanningTree(exp, multipeptides, initial_alignment_cutoff)
     print "Got Minimum Spanning Tree"
 
@@ -600,9 +600,9 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
         data_0, data_1 = spl_aligner._getRTData(exp.runs[edge[0]], exp.runs[edge[1]], multipeptides)
         tr_data.addData(id_0, data_0, exp.runs[edge[1]].get_id(), data_1)
         # Smoothers
-        sm_0_1 = smoothing.WeightedNearestNeighbour(3, max_rt_diff, 0.1, False)
-        sm_1_0 = smoothing.WeightedNearestNeighbour(3, max_rt_diff, 0.1, False)
-
+        sm_0_1 = smoothing.getSmoothingObj(smoothing_method, topN=3, max_rt_diff=max_rt_diff, min_rt_diff=0.1, removeOutliers=False, tmpdir=None)
+        sm_1_0 = smoothing.getSmoothingObj(smoothing_method, topN=3, max_rt_diff=max_rt_diff, min_rt_diff=0.1, removeOutliers=False, tmpdir=None)
+        # Add data
         sm_0_1.initialize(data_0, data_1)
         sm_1_0.initialize(data_1, data_0)
         tr_data.addTrafo(id_0, id_1, sm_0_1)
@@ -733,6 +733,20 @@ def main(options):
         print "For the aligned values, use a cutoff of %0.4f%%" % (options.aligned_fdr_cutoff*100)
         print("Parameter estimation took %ss" % (time.time() - start) )
         print "-"*35
+
+    if options.method == "LocalMST":
+        start = time.time()
+        computeOptimalOrder(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
+                    float(options.aligned_fdr_cutoff), options.realign_method)
+
+        print("Re-aligning peak groups took %ss" % (time.time() - start) )
+
+        # print statistics, write output
+        start = time.time()
+        this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+        this_exp.write_to_file(multipeptides, options)
+        print("Writing output took %ss" % (time.time() - start) )
+        return
 
     # If we want to align runs
     if options.realign_method != "diRT":

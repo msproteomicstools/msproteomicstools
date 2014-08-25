@@ -80,6 +80,10 @@ def getSmoothingObj(smoother, topN=None, max_rt_diff=None, min_rt_diff=None, rem
         return UnivarSplineCV()
     elif smoother == "WeightedNearestNeighbour":
         return WeightedNearestNeighbour(topN, max_rt_diff, min_rt_diff, removeOutliers)
+    elif smoother == "None":
+        return SmoothingNull()
+    else:
+        raise Exception("Unknown smoothing method: " + smoother)
 
 class SmoothingR:
     """Class to smooth data using the smooth.spline function from R
