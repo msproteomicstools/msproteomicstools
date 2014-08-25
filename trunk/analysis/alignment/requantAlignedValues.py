@@ -40,10 +40,11 @@ import numpy
 import argparse
 from msproteomicstoolslib.format.SWATHScoringReader import *
 import msproteomicstoolslib.format.TransformationCollection as transformations
+from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
+import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
 from msproteomicstoolslib.algorithms.alignment.BorderIntegration import \
         integrationBorderShortestPath, integrationBorderShortestDistance, integrationBorderReference
 import msproteomicstoolslib.math.Smoothing as smoothing
@@ -78,34 +79,6 @@ class ImputeValuesHelper(object):
             if len(selected) == 1: 
                 res[k] = selected[0]
         return res
-
-    @staticmethod
-    def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, realign_method, max_rt_diff):
-        id_0 = run_0.get_id()
-        id_1 = run_1.get_id()
-
-        if id_0 == id_1:
-            return
-
-        # Data
-        data_0, data_1 = spl_aligner._getRTData(run_0, run_1, multipeptides)
-        tr_data.addData(id_0, data_0, id_1, data_1)
-
-        # Smoothers
-        sm_0_1 = smoothing.getSmoothingObj(options.realign_method, topN=3,
-                                           max_rt_diff=max_rt_diff,
-                                           min_rt_diff=0.1, removeOutliers=False,
-                                           tmpdir=None)
-        sm_1_0 = smoothing.getSmoothingObj(options.realign_method, topN=3,
-                                           max_rt_diff=max_rt_diff,
-                                           min_rt_diff=0.1, removeOutliers=False,
-                                           tmpdir=None)
-
-        # Add data
-        sm_0_1.initialize(data_0, data_1)
-        sm_1_0.initialize(data_1, data_0)
-        tr_data.addTrafo(id_0, id_1, sm_0_1)
-        tr_data.addTrafo(id_1, id_0, sm_1_0)
 
 class SwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run.
@@ -261,7 +234,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
         dist_matrix = getDistanceMatrix(new_exp, multipeptides, initial_alignment_cutoff)
         run_1 = [r for r in new_exp.runs if r.get_id() == rid][0]
         for run_0 in new_exp.runs:
-            ImputeValuesHelper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, options.realign_method, max_rt_diff)
+            helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, options.realign_method, max_rt_diff)
 
     elif method == "singleShortestPath":
         dist_matrix = None
@@ -269,7 +242,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
         tree = MinimumSpanningTree(getDistanceMatrix(new_exp, multipeptides, initial_alignment_cutoff))
         tree_mapped = [(new_exp.runs[a].get_id(), new_exp.runs[b].get_id()) for a,b in tree]
         for edge in tree:
-            ImputeValuesHelper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
+            helper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
                 new_exp.runs[edge[1]], spl_aligner, multipeptides, options.realign_method, max_rt_diff)
 
     else:
@@ -567,7 +540,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
                     writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
-        write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0, style=options.matrix_output_method)
+        helper.write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0, style=options.matrix_output_method)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 

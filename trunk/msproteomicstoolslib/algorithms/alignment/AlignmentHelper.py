@@ -40,7 +40,7 @@ import numpy
 import scipy.stats
 
 from msproteomicstoolslib.format.MatrixWriters import getwriter
-
+import msproteomicstoolslib.math.Smoothing as smoothing
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
                           style="none", write_requant=True, aligner_mscore_treshold=1.0):
@@ -118,3 +118,34 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
         matrix_writer.newline()
 
     del matrix_writer
+
+def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, realign_method, max_rt_diff):
+    id_0 = run_0.get_id()
+    id_1 = run_1.get_id()
+
+    if id_0 == id_1:
+        null = smoothing.SmoothingNull()
+        tr_data.addTrafo(id_0, id_1, null)
+        tr_data.addTrafo(id_1, id_0, null)
+        return
+
+    # Data
+    data_0, data_1 = spl_aligner._getRTData(run_0, run_1, multipeptides)
+    tr_data.addData(id_0, data_0, id_1, data_1)
+
+    # Smoothers
+    sm_0_1 = smoothing.getSmoothingObj(realign_method, topN=3,
+                                       max_rt_diff=max_rt_diff,
+                                       min_rt_diff=0.1, removeOutliers=False,
+                                       tmpdir=None)
+    sm_1_0 = smoothing.getSmoothingObj(realign_method, topN=3,
+                                       max_rt_diff=max_rt_diff,
+                                       min_rt_diff=0.1, removeOutliers=False,
+                                       tmpdir=None)
+
+    # Add data
+    sm_0_1.initialize(data_0, data_1)
+    sm_1_0.initialize(data_1, data_0)
+    tr_data.addTrafo(id_0, id_1, sm_0_1)
+    tr_data.addTrafo(id_1, id_0, sm_1_0)
+
