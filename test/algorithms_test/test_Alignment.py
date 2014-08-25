@@ -66,6 +66,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         m = Multipeptide()
         m.set_nr_runs(2)
 
+        # Run 1
         p = precursor.Precursor("precursor_1", MockRun("0_1"))
         pg_tuple = ("someID_1", 0.1, 100, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
