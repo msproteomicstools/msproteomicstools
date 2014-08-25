@@ -71,6 +71,10 @@ def getSmoothingObj(smoother, tmpdir=None):
         return SmoothingPy()
     elif smoother == "lowess":
         return LowessSmoothingPy()
+    elif smoother == "nonCVSpline":
+        return UnivarSplineNoCV()
+    elif smoother == "CVSpline":
+        return UnivarSplineCV()
 
 class SmoothingR:
     """Class to smooth data using the smooth.spline function from R
@@ -369,12 +373,11 @@ class LowessSmoothingPy:
     def predict(self, xhat):
         return self.internal_interpolation.predict(xhat)
 
-class SmoothingPyUni:
-    """Smoothing of 2D data using generalized crossvalidation
+class UnivarSplineNoCV:
+    """Smoothing of 2D data using a Python spline (no crossvalidation).
 
-    Will call _smooth_spline_scikit internally but only at a few select
-    points. It then uses the generated smoothed spline to construct an
-    interpolated spline on which then the xhat data is evaluated.
+    Will use UnivariateSpline internally, it seems to have a tendency to
+    overfit.
     """
 
     def __init__(self):
@@ -385,11 +388,99 @@ class SmoothingPyUni:
 
         data1s, data2s = zip(*sorted(zip(data1, data2)))
 
-        # print "Data len", len(data1)
-        # TODO estimate s from the linear regression?
-        mys = 10000000
-        mys = 50000
-        self.sp = UnivariateSpline(data1s, data2s, k=3, s=mys)
+        self.sp = UnivariateSpline(data1s, data2s)
+
+    def predict(self, xhat):
+        return list(self.sp(xhat))
+
+class UnivarSplineCV:
+    """Smoothing of 2D data using a Python spline (using crossvalidation to determine smoothing parameters).
+
+    Will use UnivariateSpline internally, setting the scipy smoothing parameter
+    optimally "s" using crossvalidation  with part of the data (usually 25/75
+    split). This prevents overfit to the data.
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2, frac_training_data = 0.75, max_iter = 100, s_iter_decrease = 0.75, verb=False):
+        from scipy.interpolate import UnivariateSpline
+        import random
+
+        if verb: 
+            print " --------------------" 
+        
+        # Random subsetting of parts of the data
+        train_idx = random.sample(range(len(data1)), int(len(data1)*frac_training_data) )
+        i = 0
+        train_data1 = []
+        train_data2 = []
+        test_data1 = []
+        test_data2 = []
+        for d1,d2 in zip(data1, data2):
+            if i in train_idx:
+                train_data1.append(data1[i])
+                train_data2.append(data2[i])
+            else:
+                test_data1.append(data1[i])
+                test_data2.append(data2[i])
+            i += 1
+
+        # Sorted data points
+        data1s, data2s = zip(*sorted(zip(data1, data2)))
+        test_data1s, test_data2s = zip(*sorted(zip(test_data1, test_data2)))
+        train_data1s, train_data2s = zip(*sorted(zip(train_data1, train_data2)))
+
+        # Use initial linear Smoothing to find good smoothing parameter s
+        smlin = SmoothingLinear()
+        smlin.initialize(data2, data1)
+        data2_lin_aligned = smlin.predict(data2)
+        stdev_lin = numpy.std(numpy.array(data1) - numpy.array(data2_lin_aligned))
+        linear_error = stdev_lin*stdev_lin
+
+        # Perform initial spline approximation
+        self.s = linear_error * len(train_data1s)
+        self.sp = UnivariateSpline(train_data1s, train_data2s, k=3, s=self.s)
+
+        # Apply spline approximation to the testdata
+        test_data1_aligned = self.sp(test_data1)
+        test_stdev = numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned))
+        if verb:
+            test_median = numpy.median(numpy.array(test_data2) - numpy.array(test_data1_aligned))
+            train_data1_aligned = self.sp(train_data1)
+            tr_stdev = numpy.std(numpy.array(train_data2) - numpy.array(train_data1_aligned))
+            tr_median = numpy.median(numpy.array(train_data2) - numpy.array(train_data1_aligned))
+            print "  Lin:Computed stdev", stdev_lin
+            print "  Train Computed stdev", tr_stdev, "and median", tr_median
+            print "  Test Computed stdev", test_stdev, "and median", test_median
+
+        stdev_prev = test_stdev
+        s_prev = self.s
+        s_iter = self.s
+        myIter = 0
+        for i in range(max_iter):
+            s_iter = s_iter * s_iter_decrease
+            self.sp = UnivariateSpline(train_data1s, train_data2s, k=3, s=s_iter)
+            test_data1_aligned = self.sp(test_data1)
+            stdev = numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned))
+            if verb:
+                print " == Iter", s_iter, "\tstdev",  numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned))
+
+            # Stop if stdev does not improve significantly any more
+            #if stdev_prev - stdev < 0 or (i > 5 and (stdev_prev - stdev < 0.5)):
+            if stdev_prev - stdev < 0:
+                break
+
+            stdev_prev = stdev
+            s_prev = s_iter
+            
+        if verb:
+            print " == Done ", s_prev
+
+        # Final spline
+        self.s = s_prev
+        self.sp = UnivariateSpline(data1s, data2s, k=3, s=self.s)
 
     def predict(self, xhat):
         return list(self.sp(xhat))
