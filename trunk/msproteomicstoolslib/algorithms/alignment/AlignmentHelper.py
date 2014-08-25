@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import os
 import numpy
 import scipy.stats
+import random
 
 from msproteomicstoolslib.format.MatrixWriters import getwriter
 import msproteomicstoolslib.math.Smoothing as smoothing
@@ -120,7 +121,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
     del matrix_writer
 
 def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
-                   realign_method, max_rt_diff, topN=5):
+                   realign_method, max_rt_diff, topN=5, sd_max_data_length=1000):
     id_0 = run_0.get_id()
     id_1 = run_1.get_id()
 
@@ -154,11 +155,14 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     sm_1_0.initialize(data_1, data_0)
 
     # Compute error for alignment (standard deviation)
-    data0_aligned = sm_0_1.predict(data_0)
-    stdev_0_1 = numpy.std(numpy.array(data_1) - numpy.array(data0_aligned))
-    data1_aligned = sm_1_0.predict(data_1)
-    stdev_1_0 = numpy.std(numpy.array(data_0) - numpy.array(data1_aligned))
-    print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0
+    sample_idx = random.sample( xrange(len(data_0)), min(sd_max_data_length, len(data_0))  )
+    data_0_s = [data_0[i] for i in sample_idx]
+    data_1_s = [data_1[i] for i in sample_idx]
+    data0_aligned = sm_0_1.predict(data_0_s)
+    stdev_0_1 = numpy.std(numpy.array(data_1_s) - numpy.array(data0_aligned))
+    data1_aligned = sm_1_0.predict(data_1_s)
+    stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
+    print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s)
 
     # Add data
     tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
