@@ -1063,7 +1063,19 @@ def main(argv) :
                         frg_serie              = heavy_transition[15]
                         frg_z                   = heavy_transition[16]
                         frg_number               = heavy_transition[17]
-                                        
+
+                        # Modify full sequence with name of label
+                        fullseq = heavy_transition[11]
+                        fullseq_n = ""
+                        for aa in fullseq:
+                            fullseq_n += aa
+                            if aa in labeling and labeling[aa].name:
+                                fullseq_n += "(%s)" % labeling[aa].name
+
+                        # Store modified sequence and make transition id unique again
+                        heavy_transition[11] = fullseq_n
+                        heavy_transition[3] += 'heavy'
+
                     #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
                     if frg_serie[0] not in ['y','b'] : continue
 
