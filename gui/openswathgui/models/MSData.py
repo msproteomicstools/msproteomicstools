@@ -39,7 +39,7 @@ import os
 
 try:
     from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
+    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
     from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
 except ImportError:
     print "Could not find msproteomicstoolslib, certain functions are not available."
@@ -145,59 +145,7 @@ class DataModel(object):
         precursors_mapping = {}
         sequences_mapping = {}
         mapping = {}
-        import csv, os
-        for file_nr, f in enumerate(aligned_pg_files):
-            header_dict = {}
-            if f.endswith('.gz'):
-                import gzip 
-                filehandler = gzip.open(f,'rb')
-            else:
-                filehandler = open(f)
-            reader = csv.reader(filehandler, delimiter="\t")
-            header = reader.next()
-            for i,n in enumerate(header):
-                header_dict[n] = i
-            if not header_dict.has_key("align_origfilename") or not header_dict.has_key("align_runid"):
-                print header_dict
-                raise Exception("need column header align_origfilename and align_runid")
-
-            for this_row in reader:
-
-                # Get the mapping ... 
-                if header_dict.has_key("FullPeptideName") and \
-                  header_dict.has_key("Charge") and \
-                  header_dict.has_key("aggr_Fragment_Annotation"):
-                    transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
-                    peptide_name = this_row[header_dict["FullPeptideName"]]
-                    charge_state = this_row[header_dict["Charge"]]
-                    key = peptide_name + "/" + charge_state
-                    precursors_mapping [ key ] = transitions
-                    mapped_precursors = sequences_mapping.get( peptide_name, [] )
-                    mapped_precursors.append(key)
-                    sequences_mapping[peptide_name] = [ key ]
-
-                # 1. Get the original filename (find a non-NA entry) and the corresponding run id
-                if len(this_row) == 0: continue
-                if this_row[ header_dict["align_origfilename"] ] == "NA": continue
-                aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
-                if aligned_id in mapping: continue 
-                aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
-
-                # 2. Go through all chromatogram input files and try to find
-                # one that matches the one from align_origfilename
-                for rfile in rawdata_files:
-                    # 2.1 remove common file endings from the raw data
-                    rfile_base = os.path.basename(rfile)
-                    for ending in [".mzML", ".chrom"]:
-                        rfile_base = rfile_base.split(ending)[0]
-                    # 2.2 remove common file endings from the tsv data
-                    for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
-                        aligned_fname = aligned_fname.split(ending)[0]
-                    # 2.3 Check if we have a match
-                    if aligned_fname == rfile_base:
-                        print "- Found match:", rfile_base, aligned_fname
-                        mapping[aligned_id] = [rfile]
-
+        inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
         print "Found the following mapping: mapping", mapping
 
         # Read the chromatograms
