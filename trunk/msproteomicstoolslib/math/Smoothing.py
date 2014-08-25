@@ -59,7 +59,7 @@ def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = F
     print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
   return None
 
-def getSmoothingObj(smoother, topN=None, max_rt_diff=None, min_rt_diff=None, removeOutliers=None, tmpdir=None):
+def getSmoothingObj(smoother, topN=3, max_rt_diff=30, min_rt_diff=0.1, removeOutliers=False, tmpdir=None):
     if smoother == "diRT":
         return SmoothingNull()
     elif smoother == "linear":
@@ -74,8 +74,6 @@ def getSmoothingObj(smoother, topN=None, max_rt_diff=None, min_rt_diff=None, rem
         return LowessSmoothingPy()
     elif smoother == "nonCVSpline":
         return UnivarSplineNoCV()
-    elif smoother == "CVSpline":
-        return UnivarSplineCV()
     elif smoother == "CVSpline":
         return UnivarSplineCV()
     elif smoother == "WeightedNearestNeighbour":
@@ -540,15 +538,9 @@ class SmoothingInterpolation:
             return self.linear_sm.predict(xhat)
         return list(predicted_result)
 
-class WeightedNearestNeighbour:
-    """Class for local weighted interpolation
+class LocalKernel:
+    """Base class for local kernel smoothing
     """
-
-    def __init__(self, topN, max_diff, min_diff, removeOutliers):
-        self.topN = topN
-        self.max_diff = max_diff
-        self.min_diff = min_diff
-        self.removeOutliers = removeOutliers
 
     def initialize(self, data1, data2):
         # data1 is the predictor (e.g. the input) -> x
@@ -560,33 +552,53 @@ class WeightedNearestNeighbour:
         if self.removeOutliers:
             pass
 
+    def _getLocalDatapoints(self, data1, data2, topN, max_diff, xhat):
+
+            # This lower bound will actually get the element that is just larger
+            # than the search parameter
+            lb = abs(lower_bound( data1, xhat))-1
+            if lb - topN < 0:
+                lb = topN
+
+            # Select a decent slice of target and source data (hope that 10x should suffice)
+            source_d_slice = data1[lb-topN*10:lb+topN*10]
+            target_d_slice = data2[lb-topN*10:lb+topN*10]
+
+            zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
+                       if abs(s-xhat) < max_diff]
+
+            if len(zipped) < topN:
+                return data1[lb-topN:lb+topN], data2[lb-topN:lb+topN]
+            else:
+                return zip(*zipped)
+
+            return zip(*zipped)
+
+class WeightedNearestNeighbour(LocalKernel):
+    """Class for local weighted interpolation
+    """
+
+    def __init__(self, topN, max_diff, min_diff, removeOutliers):
+        assert topN is not None 
+
+        self.topN = topN
+        self.max_diff = max_diff
+        self.min_diff = min_diff
+        self.removeOutliers = removeOutliers
+
     def predict(self, xhat):
 
         res = []
         for xhat_ in xhat:
-            # This lower bound will actually get the element that is just larger
-            # than the search parameter
-            lb = abs(lower_bound( self.data1, xhat_))-1
-            if lb - self.topN < 0:
-                lb = self.topN
 
-            # Select a decent slice of target and source data (hope that 10x should suffice)
-            source_d_slice = self.data1[lb-self.topN*10:lb+self.topN*10]
-            target_d_slice = self.data2[lb-self.topN*10:lb+self.topN*10]
-
-            zipped = [(s,t) for s,t in zip(source_d_slice, target_d_slice) 
-                       if abs(s-xhat_) < self.max_diff]
-
-            if len(zipped) < self.topN:
-                source_d,target_d = self.data1[lb-self.topN:lb+self.topN], self.data2[lb-self.topN:lb+self.topN]
-            else:
-                source_d,target_d = zip(*zipped)
+            source_d, target_d = self._getLocalDatapoints(self.data1, self.data2, self.topN, self.max_diff, xhat_)
 
             # Transform target data:
             #   Compute a difference array from the source and apply it to the target
             #   (local linear differences)
             source_d_diff = [s - xhat_ for s in source_d]
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
+            self.last_dispersion = numpy.std(target_data_transf)
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
             expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s > self.min_diff else self.min_diff for s in source_d_diff])
