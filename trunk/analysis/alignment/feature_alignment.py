@@ -198,7 +198,7 @@ class Experiment(MRExperiment):
             self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
             self.transformation_collection.readTransformationData(filename)
 
-    def write_to_file(self, multipeptides, options):
+    def write_to_file(self, multipeptides, options, writeTrafoFiles=True):
 
         infiles = options.infiles
         outfile = options.outfile
@@ -308,9 +308,11 @@ class Experiment(MRExperiment):
                           row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                           writer.writerow(row_to_write)
 
-        self._write_trafo_files()
+        # 5. Write out the .tr transformation files
+        if writeTrafoFiles:
+            self._write_trafo_files()
 
-        # 5. Write out the YAML file
+        # 6. Write out the YAML file
         if len(yaml_outfile) > 0:
             import yaml
             myYaml = {"RawData" : [], "PeakGroupData" : [ outfile ],
@@ -577,7 +579,7 @@ def main(options):
 
         start = time.time()
         this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-        this_exp.write_to_file(multipeptides, options)
+        this_exp.write_to_file(multipeptides, options, writeTrafoFiles=False)
         print("Writing output took %ss" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
