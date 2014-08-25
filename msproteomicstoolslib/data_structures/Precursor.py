@@ -39,6 +39,8 @@ from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
 class PrecursorBase(object):
 
+    __slots__ = ["_decoy"]
+
     def __init__(self, this_id, run):
         raise NotImplemented
 
@@ -80,12 +82,16 @@ class GeneralPrecursor(PrecursorBase):
     # to one run.
     # A peptide can return its best transition group, the selected peakgroup,
     # or can return the transition group that is closest to a given iRT time.
+
+    __slots__ = ["id", "run", "peakgroups", "protein_name", "sequence"]
+
     def __init__(self, this_id, run):
         self.id = this_id
         self.peakgroups = []
         self.run = run
         self._decoy = False
         self.protein_name = ""
+        self.sequence = ""
   
     def add_peakgroup(self, peakgroup):
         self.peakgroups.append(peakgroup)
@@ -148,7 +154,7 @@ class Precursor(PrecursorBase):
         - a back-reference to the run it belongs to
     """
 
-    __slots__ = ["id", "run", "peakgroups_", "cluster_ids_", "_decoy", "protein_name", "sequence"]
+    __slots__ = ["id", "run", "peakgroups_", "cluster_ids_", "protein_name", "sequence"]
     def __init__(self, this_id, run):
         self.id = this_id  
         self.run = run
