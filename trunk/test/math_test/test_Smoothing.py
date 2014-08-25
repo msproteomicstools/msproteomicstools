@@ -88,7 +88,7 @@ class TestUnitSmoothing(unittest.TestCase):
 
     @attr('slow')
     def test_smooth_spline_scikit_wrap(self):
-        """Test the smoothing spline using scikit"""
+        """Test the smoothing spline using scikit and the wrapper"""
         sm = smoothing.SmoothingPy()
         import numpy
         sm.initialize(self.data1, self.data2, xmin=numpy.min(numpy.array(self.data1)), xmax=numpy.max(numpy.array(self.data1)))
@@ -137,7 +137,7 @@ class TestUnitSmoothing(unittest.TestCase):
             self.assertAlmostEqual(res,exp)
 
     def test_smooth_spline_scipy_uni(self):
-        """Test the univariate spline using scipy"""
+        """Test the univariate spline using spline (no crossvalidation)"""
         sm = smoothing.UnivarSplineNoCV()
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data1)
@@ -157,7 +157,7 @@ class TestUnitSmoothing(unittest.TestCase):
           self.assertTrue( abs(1-a/b) < 0.05)
 
     def test_smooth_spline_scipy_cv(self):
-        """Test the univariate spline using scipy"""
+        """Test the univariate spline using spline (with crossvalidation)"""
         sm = smoothing.UnivarSplineCV()
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data1)
@@ -169,7 +169,7 @@ class TestUnitSmoothing(unittest.TestCase):
             self.assertTrue( abs(1.0-a/b) < 0.1)
 
     def test_smooth_nn(self):
-        """Test the univariate spline using scipy"""
+        """Test the univariate spline using local kernel smoothing"""
         sm = smoothing.WeightedNearestNeighbour(3, 5, 0.5, False)
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data1)
@@ -215,7 +215,7 @@ class TestUnitSmoothing(unittest.TestCase):
           self.assertAlmostEqual(a, b)
 
     def test_smooth_spline_r_extern(self):
-        """Test the smoothing spline using R"""
+        """Test the smoothing spline using external R"""
         sm = smoothing.SmoothingRExtern()
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data2)
@@ -227,6 +227,9 @@ class TestUnitSmoothing(unittest.TestCase):
           self.assertAlmostEqual(a, b)
 
     def test_duplication(self):
+        """
+        Test de-duplication of array data
+        """
         arr = [0, 0, 5, 6, 6, 7, 8, 8]
         sm = smoothing.SmoothingPy()
         de_dupl,duplications = sm.de_duplicate_array(arr)
@@ -235,6 +238,9 @@ class TestUnitSmoothing(unittest.TestCase):
         self.assertEqual(re_dupl, arr)
 
     def test_gettingOperator(self):
+        """
+        Test getting the correct smoothing operator
+        """
         op = smoothing.get_smooting_operator()
         self.assertTrue(isinstance(op, smoothing.SmoothingR))
 
@@ -248,6 +254,9 @@ class TestUnitSmoothing(unittest.TestCase):
         self.assertTrue(isinstance(op, smoothing.SmoothingRExtern))
 
     def test_gettingOperator_obj(self):
+        """
+        Test getting the correct smoothing operator (new interface)
+        """
 
         op = smoothing.getSmoothingObj("diRT")
         self.assertTrue(isinstance(op, smoothing.SmoothingNull))
