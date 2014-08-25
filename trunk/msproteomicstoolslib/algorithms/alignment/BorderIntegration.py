@@ -103,7 +103,6 @@ def integrationBorderShortestDistance(selected_pg, target_run, transformation_co
     lwidth = float(best_pg.get_value("leftWidth"))
     leftW = transformation_collection_.getTrafo(source_run, target_run).predict([lwidth])[0]
     rightW = transformation_collection_.getTrafo(source_run, target_run).predict([rwidth])[0]
-    print "before", rwidth, "after", rightW
     return leftW, rightW
 
 def integrationBorderReference(new_exp, selected_pg, rid, transformation_collection_, border_option):
@@ -130,7 +129,9 @@ def integrationBorderReference(new_exp, selected_pg, rid, transformation_collect
             normalized_space_rt = transformation_collection_.getTransformation(orig_runid, ref_id).predict( [rt] )[0]
             return transformation_collection_.getTransformation(ref_id, target_runid).predict( [normalized_space_rt] )[0]
         except AttributeError as e:
-            print "Could not convert from run %s to run %s (throug reference run %s)- are you sure you gave the correspoding trafo file with the --in parameter?" % (orig_runid, target_runid, ref_id)
+            print "Could not convert from run %s to run %s (through reference run %s) -\
+                    are you sure you gave the corresponding trafo file with \
+                    the --in parameter?" % (orig_runid, target_runid, ref_id)
             print e
             raise e
 
