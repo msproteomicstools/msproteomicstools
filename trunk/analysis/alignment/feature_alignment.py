@@ -46,7 +46,7 @@ from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix, TreeConsensusAlignment
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, addDataToTrafo
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
@@ -365,19 +365,9 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fd
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     tr_data = LightTransformationData()
     for edge in tree:
-        id_0 = exp.runs[edge[0]].get_id()
-        id_1 = exp.runs[edge[1]].get_id()
-        # Data
-        data_0, data_1 = spl_aligner._getRTData(exp.runs[edge[0]], exp.runs[edge[1]], multipeptides)
-        tr_data.addData(id_0, data_0, exp.runs[edge[1]].get_id(), data_1)
-        # Smoothers
-        sm_0_1 = smoothing.getSmoothingObj(smoothing_method, topN=3, max_rt_diff=max_rt_diff, min_rt_diff=0.1, removeOutliers=False, tmpdir=None)
-        sm_1_0 = smoothing.getSmoothingObj(smoothing_method, topN=3, max_rt_diff=max_rt_diff, min_rt_diff=0.1, removeOutliers=False, tmpdir=None)
-        # Add data
-        sm_0_1.initialize(data_0, data_1)
-        sm_1_0.initialize(data_1, data_0)
-        tr_data.addTrafo(id_0, id_1, sm_0_1)
-        tr_data.addTrafo(id_1, id_0, sm_1_0)
+        addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
+                       spl_aligner, multipeptides, smoothing_method,
+                       max_rt_diff)
 
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 

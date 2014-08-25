@@ -142,10 +142,18 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, realign_me
                                        max_rt_diff=max_rt_diff,
                                        min_rt_diff=0.1, removeOutliers=False,
                                        tmpdir=None)
-
-    # Add data
+    # Initialize smoother
     sm_0_1.initialize(data_0, data_1)
     sm_1_0.initialize(data_1, data_0)
-    tr_data.addTrafo(id_0, id_1, sm_0_1)
-    tr_data.addTrafo(id_1, id_0, sm_1_0)
+
+    # Compute error for alignment (standard deviation)
+    data0_aligned = sm_0_1.predict(data_0)
+    stdev_0_1 = numpy.std(numpy.array(data_1) - numpy.array(data0_aligned))
+    data1_aligned = sm_1_0.predict(data_1)
+    stdev_1_0 = numpy.std(numpy.array(data_0) - numpy.array(data1_aligned))
+    print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0
+
+    # Add data
+    tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
+    tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
 
