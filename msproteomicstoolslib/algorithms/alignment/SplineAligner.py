@@ -58,11 +58,12 @@ class SplineAligner():
     >>> spl_aligner = SplineAligner()
     >>> transformations = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
     """
-    def __init__(self, alignment_fdr_threshold = 0.0001, smoother="lowess", external_r_tmpdir=None):
+    def __init__(self, alignment_fdr_threshold = 0.0001, smoother="lowess", external_r_tmpdir=None, maxdata=-1):
       self.transformation_collection = TransformationCollection()
       self.alignment_fdr_threshold_ = alignment_fdr_threshold
       self.smoother = smoother
       self.tmpdir_ = external_r_tmpdir
+      self.max_data_ = maxdata
 
     def _determine_best_run(self, experiment):
 
@@ -88,17 +89,51 @@ class SplineAligner():
         # data2 = data to be aligned (slave)
         data1 = []
         data2 = []
+
+        data_tmp = []
         for m in multipeptides:
+
             try: 
+                len_ali = len([pg for pg in m.get_peptide(run.get_id()).get_all_peakgroups() 
+                               if pg.get_fdr_score() < self.alignment_fdr_threshold_])
+                len_ref = len([pg for pg in m.get_peptide(bestrun.get_id()).get_all_peakgroups() 
+                               if pg.get_fdr_score() < self.alignment_fdr_threshold_])
+
+                # Do not consider peakgroups that are missing in one run
+                # Do not consider peakgroups that have more than one good peakgroup
+                if len_ali != 1 or len_ref != 1:
+                    continue
+
                 ref_pep = m.get_peptide(bestrun.get_id()).get_best_peakgroup()
                 align_pep = m.get_peptide(run.get_id()).get_best_peakgroup()
             except KeyError: 
                 # it is possible that for some, no peak group exists in this run
                 continue
-            if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): continue
-            if ref_pep.get_fdr_score() < self.alignment_fdr_threshold_ and align_pep.get_fdr_score() < self.alignment_fdr_threshold_:
-                data1.append(ref_pep.get_normalized_retentiontime())
-                data2.append(align_pep.get_normalized_retentiontime())
+
+            # Do not use decoy peptides
+            if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): 
+                continue
+
+            if ref_pep.get_fdr_score() < self.alignment_fdr_threshold_ and \
+               align_pep.get_fdr_score() < self.alignment_fdr_threshold_:
+
+                # data1.append(ref_pep.get_normalized_retentiontime())
+                # data2.append(align_pep.get_normalized_retentiontime())
+                data_tmp.append( (
+                    ref_pep.get_fdr_score(), 
+                    ref_pep.get_normalized_retentiontime(), 
+                    align_pep.get_normalized_retentiontime() 
+                ) )
+
+        maxdata = self.max_data_
+        if maxdata == -1:
+            # -1 means take all data
+            maxdata = len(data_tmp)
+
+        for fdr, d1, d2 in sorted(data_tmp)[:maxdata]:
+            data1.append(d1)
+            data2.append(d2)
+        print "get dtaa length", len(data1)
         return data1,data2
 
     def _spline_align_runs(self, bestrun, run, multipeptides):
