@@ -241,6 +241,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     assert len(swath_chromatograms.getRunIDs() ) == 1
     rid = swath_chromatograms.getRunIDs()[0]
 
+    start = time.time()
     initial_alignment_cutoff = 0.0001
     max_rt_diff = 30
     tr_data = transformations.LightTransformationData()
@@ -248,8 +249,10 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
 
     if method == "singleClosestRun":
         tree_mapped = None
-
         dist_matrix = getDistanceMatrix(new_exp, multipeptides, spl_aligner)
+        print("Distance matrix took %ss" % (time.time() - start) )
+
+        start = time.time()
         run_1 = [r for r in new_exp.runs if r.get_id() == rid][0]
         for run_0 in new_exp.runs:
             helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides, options.realign_method, max_rt_diff)
@@ -259,6 +262,9 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
 
         tree = MinimumSpanningTree(getDistanceMatrix(new_exp, multipeptides, spl_aligner))
         tree_mapped = [(new_exp.runs[a].get_id(), new_exp.runs[b].get_id()) for a,b in tree]
+        print("Distance matrix took %ss" % (time.time() - start) )
+
+        start = time.time()
         for edge in tree:
             helper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
                 new_exp.runs[edge[1]], spl_aligner, multipeptides, options.realign_method, max_rt_diff)
@@ -266,6 +272,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     else:
         raise Exception("Unknown method: " + method)
 
+    print("Alignment took %ss" % (time.time() - start) )
     start = time.time()
     multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
         tr_data, options.border_option, rid, tree=tree_mapped, mat=dist_matrix)
