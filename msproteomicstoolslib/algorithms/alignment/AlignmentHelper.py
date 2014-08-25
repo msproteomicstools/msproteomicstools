@@ -155,14 +155,17 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     sm_1_0.initialize(data_1, data_0)
 
     # Compute error for alignment (standard deviation)
-    sample_idx = random.sample( xrange(len(data_0)), min(sd_max_data_length, len(data_0))  )
-    data_0_s = [data_0[i] for i in sample_idx]
-    data_1_s = [data_1[i] for i in sample_idx]
-    data0_aligned = sm_0_1.predict(data_0_s)
-    stdev_0_1 = numpy.std(numpy.array(data_1_s) - numpy.array(data0_aligned))
-    data1_aligned = sm_1_0.predict(data_1_s)
-    stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
-    print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s)
+    stdev_0_1 = 0.0
+    stdev_1_0 = 0.0
+    if sd_max_data_length > 0:
+        sample_idx = random.sample( xrange(len(data_0)), min(sd_max_data_length, len(data_0))  )
+        data_0_s = [data_0[i] for i in sample_idx]
+        data_1_s = [data_1[i] for i in sample_idx]
+        data0_aligned = sm_0_1.predict(data_0_s)
+        stdev_0_1 = numpy.std(numpy.array(data_1_s) - numpy.array(data0_aligned))
+        data1_aligned = sm_1_0.predict(data_1_s)
+        stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
+        print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s)
 
     # Add data
     tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
