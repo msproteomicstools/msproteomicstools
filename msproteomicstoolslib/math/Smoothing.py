@@ -59,7 +59,7 @@ def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = F
     print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
   return None
 
-def getSmoothingObj(smoother, topN=3, max_rt_diff=30, min_rt_diff=0.1, removeOutliers=False, tmpdir=None):
+def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOutliers=False, tmpdir=None):
     if smoother == "diRT":
         return SmoothingNull()
     elif smoother == "linear":
@@ -78,6 +78,8 @@ def getSmoothingObj(smoother, topN=3, max_rt_diff=30, min_rt_diff=0.1, removeOut
         return UnivarSplineCV()
     elif smoother == "WeightedNearestNeighbour":
         return WeightedNearestNeighbour(topN, max_rt_diff, min_rt_diff, removeOutliers)
+    elif smoother == "SmoothLLDMedian":
+        return SmoothLLDMedian(topN, max_rt_diff, min_rt_diff, removeOutliers)
     elif smoother == "None":
         return SmoothingNull()
     else:
@@ -629,6 +631,50 @@ class WeightedNearestNeighbour(LocalKernel):
 
             # Compute a measurement of dispersion, standard deviation
             self.last_dispersion = numpy.std(target_data_transf)
+
+            res.append( expected_targ )
+
+        return res
+
+class SmoothLLDMedian(LocalKernel):
+    """Class for local median interpolation using local linear differences
+    """
+
+    def __init__(self, topN, max_diff, min_diff, removeOutliers):
+        assert topN is not None 
+
+        self.topN = topN
+        self.max_diff = max_diff
+        self.min_diff = min_diff
+        self.removeOutliers = removeOutliers
+
+    def predict(self, xhat):
+
+        from numpy import median, absolute
+
+        def mad(data, axis=None):
+            """Median absolute deviation (MAD) is a robust estimator of variation.
+
+            http://en.wikipedia.org/wiki/Robust_measures_of_scale#IQR_and_MAD
+            """
+            return median(absolute(data - median(data, axis)), axis)
+
+        res = []
+        for xhat_ in xhat:
+
+            source_d, target_d = self._getLocalDatapoints(self.data1, self.data2, self.topN, self.max_diff, xhat_)
+
+            # Transform target data:
+            #   Compute a difference array from the source and apply it to the target
+            #   (local linear differences)
+            source_d_diff = [s - xhat_ for s in source_d]
+            target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
+
+            # Use transformed target data to compute expected RT in target domain (weighted average)
+            expected_targ = numpy.median(target_data_transf)
+
+            # Compute a (robust) measurement of dispersion, median absolute deviation (MAD)
+            self.last_dispersion = mad(target_data_transf)
 
             res.append( expected_targ )
 
