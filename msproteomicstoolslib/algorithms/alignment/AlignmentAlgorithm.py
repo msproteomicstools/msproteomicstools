@@ -92,7 +92,7 @@ class AlignmentAlgorithm():
     def __init__(self): 
         self.verbose = False
 
-    def align_features(self, multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method="best_overall"):
+    def align_features(self, multipeptides, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method="best_overall", alignment_out=""):
         """ Perform the alignment on a set of multipeptides
 
         Args:
@@ -118,6 +118,12 @@ class AlignmentAlgorithm():
                 self.fdr_good_in_all = 0
         astas = AlignmentStatistics()
 
+        self.alignment_writeout = False
+        if alignment_out != "":
+            self.alignment_out_f = open(alignment_out, "w")
+            self.alignment_out_f.write("%s\t%s\t%s\t%s\n" % ("align_runid", "transition_group_id", "id", "cluster"))
+            self.alignment_writeout = True
+
         for mpep in multipeptides:
 
             if mpep.all_above_cutoff(fdr_cutoff) and method in ["best_cluster_score", "best_overall"]:
@@ -133,6 +139,10 @@ class AlignmentAlgorithm():
                 self.align_features_best_(mpep, astas, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
             else:
                 raise Exception("Method '%s' unknown" % method)
+
+        if self.alignment_writeout:
+            self.alignment_out_f.close()
+
         return astas
 
     def align_features_cluster_(self, m, a, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
@@ -164,11 +174,18 @@ class AlignmentAlgorithm():
 
         if verb: print "==== Clusters "
         # make sure only one is selected from each run...
-        for c in clusters_rt_obj: 
+        for i,c in enumerate(clusters_rt_obj): 
             c.select_one_per_run(self.verbose)
             if verb:
-                print " - Cluster with score", c.get_total_score(), "at", c.get_median_rt()
-                for pg in c.peakgroups: print pg.get_normalized_retentiontime(), pg.peptide.run.get_id()
+                print " - Cluster with score", c.getTotalScore(), "at", \
+                  c.getMedianRT(), "+/-", c.getRTstd() , "(norm_score %s)" %\
+                  (float(c.getTotalScore())/((aligned_fdr_cutoff/2)**len(c.peakgroups)))
+            for pg in c.peakgroups: 
+                if verb:
+                    print "   = Have member", pg.print_out()
+                if self.alignment_writeout:
+                    self.alignment_out_f.write("%s\t%s\t%s\t%s\n" % (
+                      pg.peptide.run.get_id(), pg.peptide.get_id(), pg.get_feature_id(),i) )
           
         if len(clusters_rt_obj) == 1 :
             # great, only one cluster
