@@ -35,8 +35,8 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-from sys import stdout
 import numpy
+import scipy.stats
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 import msproteomicstoolslib.data_structures.PeakGroup
@@ -46,8 +46,8 @@ def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
     """Compute distance matrix of all runs.
 
     Computes a n x n distance matrix between all runs of an experiment. The
-    reported distance is the standard deviation of the aligned values when
-    fitted using a linear regression fit.
+    reported distance is 1 minus the Rsquared value (1-R^2) from the linear
+    regression.
 
     Args:
         exp(MRExperiment): a collection of runs
@@ -78,14 +78,9 @@ def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
                 dist_matrix[i,j] = 0
                 continue
 
-            # Get linear alignment
-            smlin = smoothing.SmoothingLinear()
-            smlin.initialize(idata, jdata)
-            idata_lin_aligned = smlin.predict(idata)
-
-            # Use stdev to estimate distance between two runs
-            stdev_lin = numpy.std(numpy.array(jdata) - numpy.array(idata_lin_aligned))
-            dist_matrix[i,j] = stdev_lin
+            # Get linear alignment, the distance is 1-R^2
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(idata,jdata)
+            dist_matrix[i,j] = 1 - r_value*r_value
 
     return dist_matrix
 
