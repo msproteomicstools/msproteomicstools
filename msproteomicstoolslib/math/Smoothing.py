@@ -333,6 +333,28 @@ class SmoothingPy:
         yhat_new = s.predict(xhat)
         return yhat_new
 
+class LowessSmoothingPy:
+    """Smoothing using Lowess smoother and then interpolate on the result
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        from Bio.Statistics.lowess import lowess
+        import math
+
+        result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=10)
+        if all([math.isnan(it) for it in result]):
+            # Try standard paramters
+            result = lowess(numpy.array(data1), numpy.array(data2))
+
+        self.internal_interpolation = SmoothingInterpolation()
+        self.internal_interpolation.initialize(data1, result)
+
+    def predict(self, xhat):
+        return self.internal_interpolation.predict(xhat)
+
 class SmoothingPyUni:
     """Smoothing of 2D data using generalized crossvalidation
 
