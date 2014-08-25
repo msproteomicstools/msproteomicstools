@@ -146,7 +146,6 @@ class TestUnitSmoothing(unittest.TestCase):
         expected =  [4.1457135130652265, 7.442333705513172, 8.9177273726462474, 10.248891199849604, 11.414111021721407, 13.991054262042756, 7.5957445613093642, 5.8444243638522186]
         self.assertEqual(len(r), 8)
         for a,b in zip(expected,r):
-          #self.assertTrue( abs(1-a/b) < 0.05)
           self.assertAlmostEqual(a, b)
 
         r = sm.predict(self.data2)
@@ -156,6 +155,41 @@ class TestUnitSmoothing(unittest.TestCase):
         self.assertEqual(len(r), 8)
         for a,b in zip(expected,r):
           self.assertTrue( abs(1-a/b) < 0.05)
+
+    def test_smooth_spline_scipy_cv(self):
+        """Test the univariate spline using scipy"""
+        sm = smoothing.UnivarSplineCV()
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data1)
+        self.assertEqual(len(r), 8)
+
+        # This is slightly better than the NoCV variation
+        expected =  [4.1626385843797094, 7.3804099239612029, 8.9667396489152544, 10.384851777100122, 11.316311505414465, 13.994282700490476, 7.5367306411050095, 5.8580352186337672]
+        for a,b in zip(expected,r):
+            self.assertTrue( abs(1.0-a/b) < 0.1)
+
+    def test_smooth_spline_scipy_cv(self):
+        """Test the univariate spline using scipy"""
+        sm = smoothing.WeightedNearestNeighbour(3, 5, 0.5, False)
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data1)
+        self.assertEqual(len(r), 8)
+
+        # This is slightly better than the NoCV variation
+        expected = [5.2723735408560302, 7.5434782608695654, 8.6875, 9.5625, 10.75, 15.6, 7.6671586996151504, 6.2922201138519931]
+        print r
+        for a,b in zip(expected,r):
+            self.assertAlmostEqual(a, b)
+
+        sm = smoothing.WeightedNearestNeighbour(3, 5, 0.1, False)
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict(self.data1)
+        self.assertEqual(len(r), 8)
+
+        # This is slightly better than the NoCV variation
+        expected = [5.4637421665174575, 8.0223880597014929, 9.2750000000000004, 9.78125, 10.750000000000002, 15.6, 8.1320351120742185, 6.4280968201233994]
+        for a,b in zip(expected,r):
+            self.assertAlmostEqual(a, b)
 
     def test_smooth_spline_r(self):
         """Test the smoothing spline using R"""
