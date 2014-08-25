@@ -133,7 +133,7 @@ class SplineAligner():
         for fdr, d1, d2 in sorted(data_tmp)[:maxdata]:
             data1.append(d1)
             data2.append(d2)
-        print "get dtaa length", len(data1)
+
         return data1,data2
 
     def _spline_align_runs(self, bestrun, run, multipeptides):
