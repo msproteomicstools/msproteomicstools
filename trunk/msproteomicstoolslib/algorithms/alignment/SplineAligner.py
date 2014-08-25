@@ -58,13 +58,10 @@ class SplineAligner():
     >>> spl_aligner = SplineAligner()
     >>> transformations = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
     """
-    def __init__(self, alignment_fdr_threshold = 0.0001, use_scikit=False, 
-                 use_linear=False, use_external_r=False, external_r_tmpdir=None):
+    def __init__(self, alignment_fdr_threshold = 0.0001, smoother="lowess", external_r_tmpdir=None):
       self.transformation_collection = TransformationCollection()
       self.alignment_fdr_threshold_ = alignment_fdr_threshold
-      self.use_scikit_ = use_scikit
-      self.use_linear_ = use_linear
-      self.use_external_r_ = use_external_r
+      self.smoother = smoother
       self.tmpdir_ = external_r_tmpdir
 
     def _determine_best_run(self, experiment):
@@ -115,15 +112,14 @@ class SplineAligner():
 
         # Since we want to predict how to convert from slave to master, slave
         # is first and master is second.
-        sm = smoothing.get_smooting_operator(use_scikit = self.use_scikit_, 
-                                             use_linear = self.use_linear_,
-                                             use_external_r = self.use_external_r_,
-                                             tmpdir = self.tmpdir_)
+        sm = smoothing.getSmoothingObj(smoother = self.smoother, tmpdir = self.tmpdir_)
+
         if len(data2) < 2:
             print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
                 run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)
             print "If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)." 
             raise Exception("Not enough datapoints (less than 2 datapoints).")
+
         sm.initialize(data2, data1)
         aligned_result = sm.predict(rt_eval)
 

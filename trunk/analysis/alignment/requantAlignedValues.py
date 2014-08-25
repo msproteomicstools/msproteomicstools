@@ -225,7 +225,7 @@ def run_impute_values(options, peakgroups_file, trafo_fnames):
     # Read the datapoints and perform the smoothing
     print("Reading the trafo file took %ss" % (time.time() - start) )
     start = time.time()
-    transformation_collection_.initialize_from_data(reverse=True, use_scikit=options.use_scikit, use_linear=options.use_linear)
+    transformation_collection_.initialize_from_data(reverse=True, smoother=options.realign_method)
     print("Initializing the trafo file took %ss" % (time.time() - start) )
 
     if options.do_single_run and not options.dry_run:
@@ -512,8 +512,7 @@ def handle_args():
     parser.add_argument('--border_option', default='median', metavar="median", help="How to determine integration border (possible values: max_width, mean, median). Max width will use the maximal possible width (most conservative since it will overestimate the background signal).")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
-    parser.add_argument('--use_linear', action='store_true', default=False, help="Use linear run alignment")
-    parser.add_argument('--use_scikit', action='store_true', default=False, help="Use datasmooth from scikit instead of R to re-align runs (needs to be installed)")
+    parser.add_argument('--realign_runs', dest='realign_method', default="splineR", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line, 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother)")
     parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
 

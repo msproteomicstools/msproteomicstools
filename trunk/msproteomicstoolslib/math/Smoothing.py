@@ -58,6 +58,20 @@ def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = F
     print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
   return None
 
+def getSmoothingObj(smoother, tmpdir=None):
+    if smoother == "diRT":
+        return SmoothingNull()
+    elif smoother == "linear":
+        return SmoothingLinear()
+    elif smoother == "splineR":
+        return SmoothingR()
+    elif smoother == "splineR_external":
+        return SmoothingRExtern()
+    elif smoother == "splinePy":
+        return SmoothingPy()
+    elif smoother == "lowess":
+        return LowessSmoothingPy()
+
 class SmoothingR:
     """Class to smooth data using the smooth.spline function from R
 
