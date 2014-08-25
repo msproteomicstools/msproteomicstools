@@ -467,7 +467,7 @@ class ParamEst(object):
         decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
         return decoy_frac
 
-def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, aligned_fdr_cutoff, smoothing_method, method):
+def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutoff, fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method):
     tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff))
     
     print "Got Minimum Spanning Tree"
@@ -495,11 +495,11 @@ def computeOptimalOrder(exp, multipeptides, max_rt_diff, initial_alignment_cutof
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
-    al = TreeConsensusAlignment(max_rt_diff, aligned_fdr_cutoff)
+    al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff)
     if method == "LocalMST":
-        al.alignBestCluster(exp, multipeptides, tree_mapped, tr_data)
+        al.alignBestCluster(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
-        al.alignAllCluster(exp, multipeptides, tree_mapped, tr_data)
+        al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
@@ -624,7 +624,7 @@ def main(options):
     if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
         computeOptimalOrder(this_exp, multipeptides, float(options.rt_diff_cutoff), float(options.alignment_score) , 
-                    float(options.aligned_fdr_cutoff), options.realign_method, options.method)
+                    options.fdr_cutoff, float(options.aligned_fdr_cutoff), options.realign_method, options.method)
 
         print("Re-aligning peak groups took %ss" % (time.time() - start) )
 
