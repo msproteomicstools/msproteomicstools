@@ -39,9 +39,30 @@ from sys import stdout
 import numpy
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
+import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
 
 def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
+    """Compute distance matrix of all runs.
+
+    Computes a n x n distance matrix between all runs of an experiment. The
+    reported distance is the standard deviation of the aligned values when
+    fitted using a linear regression fit.
+
+    Args:
+        exp(MRExperiment): a collection of runs
+        multipeptides(list(Multipeptide)): a list of
+            multipeptides containing the matching of precursors across runs.
+        initial_alignment_cutoff(float): a filtering cutoff (in q-value) to
+            specify which points should be used for the calculation of the
+            distance. In general, only identification which are very certain
+            should be used for this and a q-value of 0.0001 is recommended --
+            given that there are enough points.
+
+    Returns:
+        None
+        numpy (n x n) matrix(float): distance matrix
+    """
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     dist_matrix = numpy.zeros(shape=(len(exp.runs),len(exp.runs)))
@@ -69,12 +90,113 @@ def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
     return dist_matrix
 
 class TreeConsensusAlignment():
+    """ Multiple run alignment using a minimum spanning tree (MST).
 
-    def __init__(self, max_rt_diff, aligned_fdr_cutoff):
+    This class will align features across multiple runs using a strictly local
+    approach. It uses a minimum spanning tree (MST) as input which is expected
+    to allow traversal of all runs, only connecting the most similar runs. This
+    should allow accurate local alignment between two very similar runs and
+    transfer of identification with high accuracy. Specifically, this should
+    for scalability to a large number of dissimilar runs where approaches that
+    rely on a single reference run for alignment might give less accurate
+    results.
+
+    Briefly, the algorithm will choose the best scoring peakgroup as a seed and
+    start to traverse the MST from this seed. At each node, it will add the
+    best matching peakgroup (by score, within a specified retention time
+    window) to the result. After traversing all nodes, a new seed can be chosen
+    among the peakgroups not yet belonging to a cluster and the process can be
+    repeated to produce multiple clusters.
+
+    For example, consider a case of 5 LC-MS/MS runs where 6 different feature
+    (peakgroups) were found in each run (not all peakgroups were found in all
+    runs):
+
+    Run 1:
+    ---------- pg1_1 ------- pg1_2 --- pg1_3 - pg1_4 --------- pg1_5 ------- pg1_6
+
+    Run 2:
+    ----------- pg2_1 ------- pg2_2 --- pg2_3 - pg2_4 --------- pg2_5 ------ pg2_6
+
+    Run 3:
+    ----- pg3_0 ---------- pg3_1 ---- pg3_2 - pg3_3 - pg3_4 ----- pg3_5 ---- pg3_6
+
+    Run 4:
+    ----------- pg4_0 ---------- pg4_1 ------- pg4_2 --- pg4_3 - pg4_4 --------- pg4_5
+
+    Run 5:
+    -- pg5_0 ---------- pg5_1 ------- pg5_2 --- pg5_3 - pg5_4 --------- pg5_5 
+
+
+    Assume that the corresponding MST looks like this:
+
+                               /-- Run4
+        Run1 -- Run2 -- Run3 --
+                               \-- Run5
+
+    This is a case where Run1 and Run2 are very similar and Run3 and Run4 are
+    rather similar and should be easy to align. The algorithm will start with
+    the "best" peakgroup overall (having the best probability score), assume
+    this peakgroups is pg1_1 from Run 1. The algorithm will then use the
+    alignment Run1-Run2 to infer that pg2_1 is the same signal as pg1_1 and add
+    it to the group. Specifically, it will select the highest-scoring peakgroup
+    within a narrow RT-window (max_rt_diff) in Run2 - note that if the
+    RT-window is too wide, there is a certain chance of mis-matching, e.g. pg_2
+    will be selected instead of pg2_1.  The alignment Run2-Run3 will be used to
+    add pg3_1. Then a bifurcation in the tree occurs and Run3-Run4 as well as
+    Run3-Run5 will be used to infer the identity of pg4_1 and pg5_1 and add
+    them to the cluster.  In the end, the algorithm will report (pg1_1, pg2_1,
+    pg3_1, pg4_1, pg5_1) as a consistent cluster across multiple runs. This
+    process can be repeated with the next best peakgroup that is not yet part
+    of a cluster (e.g. pg1_2) until no more peakgroups are left (no more
+    peakgroups having a score below fdr_cutoff).
+
+    Note how the algorithm only used binary alignments and purely local
+    alignments of the runs that are most close to each other. This stands in
+    contrast to approaches where a single reference is picked and then used for
+    alignment which might align runs that are substantially different. On the
+    other hand, a single error at one edge in the tree will propagate itself
+    and could lead to whole subtrees that are wrongly aligned.
+    """
+
+    def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff):
+        """ Initialization with parameters
+
+        Args:
+            max_rt_diff(float): maximal difference in retention time to be used
+                to look for a matching peakgroup in an adjacent run
+            fdr_cutoff(float): maximal FDR that at least one peakgroup needs to
+                reach (seed FDR)
+            aligned_fdr_cutoff(float): maximal FDR that a peakgroup needs to
+                reach to be considered for extension (extension FDR)
+        """
+
         self._max_rt_diff = max_rt_diff
         self._aligned_fdr_cutoff = aligned_fdr_cutoff
+        self._fdr_cutoff = fdr_cutoff
 
-    def alignBestCluster(self, exp, multipeptides, tree, tr_data):
+    def alignBestCluster(self, multipeptides, tree, tr_data):
+        """Use the MST to report the first cluster containing the best peptide (overall).
+
+        The algorithm will go through all multipeptides and mark those
+        peakgroups which it deems to belong to the best peakgroup cluster (only
+        the first cluster will be reported).
+
+        Args:
+            multipeptides(list(Multipeptide)): a list of
+                multipeptides on which the alignment should be performed. After
+                alignment, each peakgroup that should be quantified can be
+                retrieved by calling get_selected_peakgroups() on the multipeptide.
+            tree(list(tuple)): a minimum spanning tree (MST) represented as
+                list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+                need to correspond to run ids.
+            tr_data(format.TransformationCollection.LightTransformationData):
+                structure to hold binary transformations between two different
+                retention time spaces
+
+        Returns:
+            None
+        """
 
         verb = False
         for m in multipeptides:
@@ -86,10 +208,35 @@ class TreeConsensusAlignment():
                 print " Best", best.print_out(), "from run", best.peptide.run.get_id()
 
             # Use this peptide to generate a cluster
-            for pg_ in self._findPGCluster(tree, tr_data, m, best, {}):
+            for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
                 pg_.select_this_peakgroup()
 
-    def alignAllCluster(self, exp, multipeptides, tree, tr_data):
+    def alignAllCluster(self, multipeptides, tree, tr_data):
+        """Use the MST to report all cluster.
+
+        Briefly, the algorithm will choose the best scoring peakgroup as a seed and
+        start to traverse the MST from this seed. At each node, it will add the
+        best matching peakgroup (by score, within a specified retention time
+        window) to the result. After traversing all nodes, a new seed can be chosen
+        among the peakgroups not yet belonging to a cluster and the process can be
+        repeated to produce multiple clusters.  It will add clusters until no
+        more peptides with an fdr score better than self._fdr_cutoff are left.
+
+        Args:
+            multipeptides(list(Multipeptide)): a list of
+                multipeptides on which the alignment should be performed. After
+                alignment, each peakgroup that should be quantified can be
+                retrieved by calling get_selected_peakgroups() on the multipeptide.
+            tree(list(tuple)): a minimum spanning tree (MST) represented as
+                list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+                need to correspond to run ids.
+            tr_data(format.TransformationCollection.LightTransformationData):
+                structure to hold binary transformations between two different
+                retention time spaces
+
+        Returns:
+            None
+        """
 
         from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Cluster
         for m in multipeptides:
@@ -97,13 +244,18 @@ class TreeConsensusAlignment():
             verb = False
             last_cluster = []
             already_seen = set([])
-            stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
+            stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() 
+                         if b.get_feature_id() + b.peptide.get_id() not in already_seen 
+                         and b.get_fdr_score() < self._fdr_cutoff]
             clusters = []
             while len(stillLeft) > 0:
                 best = min(stillLeft, key=lambda x: float(x.get_fdr_score()))
-                last_cluster = self._findPGCluster(tree, tr_data, m, best, already_seen)
-                already_seen.update( set([ b.get_feature_id() + b.peptide.get_id() for b in last_cluster if b is not None]) )
-                stillLeft = [ b for a in m.get_peptides() for b in a.get_all_peakgroups() if b.get_feature_id() + b.peptide.get_id() not in already_seen and b.get_fdr_score() < 0.01]
+                last_cluster = self._findAllPGForSeed(tree, tr_data, m, best, already_seen)
+                already_seen.update( set([ b.get_feature_id() + b.peptide.get_id() 
+                                          for b in last_cluster if b is not None]) )
+                stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() 
+                             if b.get_feature_id() + b.peptide.get_id() not in already_seen 
+                             and b.get_fdr_score() < self._fdr_cutoff]
                 clusters.append(Cluster(last_cluster))
 
             # select the first cluster => same behavior as alignBestCluster
@@ -129,7 +281,28 @@ class TreeConsensusAlignment():
                     if False:
                         print "   = Have member", pg.print_out()
 
-    def _findPGCluster(self, tree, tr_data, m, seed, already_seen):
+    def _findAllPGForSeed(self, tree, tr_data, m, seed, already_seen):
+        """Align peakgroups against the given seed.
+
+        Using the given seed, the algorithm will traverse the MST tree and add
+        the best matching peakgroup of that node to the result.
+
+        Args:
+            tree(list(tuple)): a minimum spanning tree (MST) represented as
+                list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+                need to correspond to run ids.
+            tr_data(format.TransformationCollection.LightTransformationData):
+                structure to hold binary transformations between two different
+                retention time spaces
+            m(Multipeptide): one multipeptides on which the alignment should be performed
+            seed(PeakGroupBase): one peakgroup chosen as the seed
+            already_seen(dict): list of peakgroups already aligned (e.g. in a
+                previous cluster) and which should be ignored
+
+        Returns:
+            list(PeakGroupBase): List of peakgroups belonging to this cluster
+        """
+
         seed_rt = seed.get_normalized_retentiontime()
 
         # Keep track of which nodes we have already visited in the graph
@@ -152,7 +325,22 @@ class TreeConsensusAlignment():
         return [pg for pg in visited.values() if pg is not None]
 
     def _findBestPG(self, m,  source, target, tr_data, source_rt, already_seen):
+        """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
+        Args:
+            m(Multipeptide): one multipeptides on which the alignment should be performed
+            source(string): id of the source run (where RT is known)
+            target(string): id of the target run (in which the best peakgroup should be selected)
+            tr_data(format.TransformationCollection.LightTransformationData):
+                structure to hold binary transformations between two different
+                retention time spaces
+            source_rt(float): retention time of the correct peakgroup in the source run
+            already_seen(dict): list of peakgroups already aligned (e.g. in a
+                previous cluster) and which should be ignored
+
+        Returns:
+            list(PeakGroupBase): List of peakgroups belonging to this cluster
+        """
         # Get expected RT (transformation of source into target domain)
         expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
 
@@ -166,7 +354,7 @@ class TreeConsensusAlignment():
         matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
             if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < self._max_rt_diff) and
                 pg_.get_fdr_score() < self._aligned_fdr_cutoff and 
-                pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen ]
+                pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen]
 
         # If there are no peak groups present in the target run, we simply
         # return the expected retention time.
