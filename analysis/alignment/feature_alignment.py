@@ -159,9 +159,6 @@ class Experiment(MRExperiment):
             print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors))
 
 
-        if outlier_detection is not None:
-            print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
-
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
         input_basename = os.path.basename(current_run.orig_filename)
@@ -290,39 +287,6 @@ class Experiment(MRExperiment):
                 myYaml["RawData"].append(this)
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
-
-# Detect outliers in "good" groups
-def detect_outliers(multipeptides, aligned_fdr_cutoff, outlier_threshold_seconds):
-    class Outliers:
-        def __init__(self): pass
-    o = Outliers
-    o.outliers_changed = 0
-    o.outlier_pg = 0
-    outliers = 0
-    for m in multipeptides:
-      out = m.detect_outliers()
-      if len(out) == 0: continue
-      rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.get_peptides() if p.get_selected_peakgroup() is not None]
-      outlier_rts = [float(p.get_selected_peakgroup().get_normalized_retentiontime()) for p in m.get_peptides() if p.get_run_id() in out]
-      mean_wo_outliers = numpy.mean([r for r in rts if r not in outlier_rts])
-      for outlier_idx,outlier in enumerate(outlier_rts):
-        if abs(outlier - mean_wo_outliers) > outlier_threshold_seconds:
-            outliers += 1
-            o.outlier_pg += 1
-            thispep = [pep for pep in m.get_peptides() if pep.get_run_id() == out[outlier_idx]][0]
-            newpg = thispep.find_closest_in_iRT(mean_wo_outliers)
-            print "Bad", out, rts, "-> o", outlier_rts, "m", mean_wo_outliers, thispep.get_selected_peakgroup().get_normalized_retentiontime(), \
-                " => exch", newpg.get_normalized_retentiontime(), newpg.get_fdr_score(), "/", thispep.get_selected_peakgroup().get_fdr_score()
-            if( #abs(newpg.get_normalized_retentiontime() - best_rt_diff) < rt_diff_cutoff and
-                newpg.get_fdr_score() < aligned_fdr_cutoff):
-                  thispep.get_selected_peakgroup().unselect_this_peakgroup()
-                  newpg.select_this_peakgroup()
-                  o.outliers_changed += 1
-                  print "change!"
-        else: pass
-    o.nr_outliers = outliers
-    print "Changed %s outliers out of %s outliers (all pg %s)" % (o.outliers_changed, o.outlier_pg, 0)
-    return o
 
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
     print "Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100)
@@ -512,7 +476,6 @@ def handle_args():
     experimental_parser.add_argument("--nr_high_conf_exp", default=1, type=int, help="Number of experiments in which the peptide needs to be identified with high confidence (e.g. above fdr_curoff)", metavar='1')
     experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)")
     experimental_parser.add_argument("--outlier_thresh", dest="outlier_threshold_seconds", default=30, type=float, help="Everything below this threshold (in seconds), a peak will not be considered an outlier", metavar='30')
-    experimental_parser.add_argument('--remove_outliers', action='store_true', default=False)
     experimental_parser.add_argument("--tmpdir", dest="tmpdir", default="/tmp/", help="Temporary directory")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
@@ -633,14 +596,13 @@ def main(options):
         else:
             raise Exception("max_rt_diff either needs to be a value in seconds or one of ('auto_2medianstdev', 'auto_3medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
 
+
     print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
     start = time.time()
-    alignment = AlignmentAlgorithm().align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method, options.algo_outfile)
-
+    alignment = AlignmentAlgorithm().align_features(multipeptides, 
+                    options.rt_diff_cutoff, options.fdr_cutoff,
+                    options.aligned_fdr_cutoff, options.method, options.algo_outfile)
     print("Re-aligning peak groups took %ss" % (time.time() - start) )
-    if options.remove_outliers:
-      outlier_detection = detect_outliers(multipeptides, options.aligned_fdr_cutoff, options.outlier_threshold_seconds)
-    else: outlier_detection = None
 
     # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
     for mpep in multipeptides:
@@ -655,7 +617,7 @@ def main(options):
 
     # print statistics, write output
     start = time.time()
-    this_exp.print_stats(multipeptides, alignment, outlier_detection, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+    this_exp.print_stats(multipeptides, alignment, None, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
     this_exp.write_to_file(multipeptides, options)
     print("Writing output took %ss" % (time.time() - start) )
 
