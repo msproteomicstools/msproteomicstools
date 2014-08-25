@@ -53,6 +53,10 @@ def getDistanceMatrix(exp, multipeptides, initial_alignment_cutoff):
 
             idata, jdata = spl_aligner._getRTData(exp.runs[i], exp.runs[j], multipeptides)
 
+            if len(idata) == 0:
+                dist_matrix[i,j] = 0
+                continue
+
             # Get linear alignment
             smlin = smoothing.SmoothingLinear()
             smlin.initialize(idata, jdata)
