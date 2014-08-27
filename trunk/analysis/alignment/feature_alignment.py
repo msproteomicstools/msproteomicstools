@@ -80,16 +80,16 @@ class AlignmentStatistics():
             # Count how many precursors / peptides / proteins fall below the threshold
             if m.find_best_peptide_pg().get_fdr_score() < fdr_cutoff:
                 astats.nr_good_precursors += 1
-                astats.good_peptides.update([m.get_peptides()[0].sequence])
-                astats.good_proteins.update([m.get_peptides()[0].protein_name])
+                astats.good_peptides.update([m.getAllPeptides()[0].sequence])
+                astats.good_proteins.update([m.getAllPeptides()[0].protein_name])
 
             # Count how many precursors / peptides / proteins were quantified
             if len(m.get_selected_peakgroups()) > 0:
                 astats.nr_quant_precursors += 1
-                astats.quant_peptides.update([m.get_peptides()[0].sequence])
-                astats.quant_proteins.update([m.get_peptides()[0].protein_name])
+                astats.quant_peptides.update([m.getAllPeptides()[0].sequence])
+                astats.quant_proteins.update([m.getAllPeptides()[0].protein_name])
 
-            for p in m.get_peptides():
+            for p in m.getAllPeptides():
 
                 # Count how many peakgroups simply fall below the threshold
                 if p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
@@ -253,7 +253,7 @@ class Experiment(MRExperiment):
             if (len(selected_peakgroups)*1.0 / len(self.runs)) < fraction_needed_selected: 
                 continue
 
-            for p in m.get_peptides():
+            for p in m.getAllPeptides():
                 selected_pg = p.get_selected_peakgroup()
                 clustered_pg = p.getClusteredPeakgroups()
                 for pg in clustered_pg:
@@ -654,7 +654,7 @@ def main(options):
             if pg.get_fdr_score() < options.fdr_cutoff:
                 count += 1
         if count < options.nr_high_conf_exp:
-            for p in mpep.get_peptides():
+            for p in mpep.getAllPeptides():
                 p.unselect_all()
 
     # print statistics, write output
