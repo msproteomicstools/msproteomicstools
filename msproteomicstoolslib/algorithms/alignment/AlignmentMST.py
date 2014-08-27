@@ -184,6 +184,7 @@ class TreeConsensusAlignment():
         self._stdev_max_rt_per_run = stdev_max_rt_per_run
         self._use_local_stdev = use_local_stdev
         self.verbose = verbose
+        self.max_rt_diff_isotope = 11
 
         # Number of multiple possible alignments calls (more than one possibility)
         self.nr_multiple_align = 0
@@ -347,7 +348,33 @@ class TreeConsensusAlignment():
                     newPG, rt = self._findBestPG(m, e2, e1, tr_data, rt_map[e2], already_seen)
                     rt_map[e1] = rt
                     visited[e1] = newPG
-        return [pg for pg in visited.values() if pg is not None]
+
+        # Now in each run at most one (zero or one) peakgroup got selected for
+        # the current peptide label group. This means that for each run, either
+        # heavy or light was selected (but not both) and now we should align
+        # the other isotopic channels as well.
+        if self.verbose: 
+            print "Re-align isotopic channels:"
+
+        isotopically_added_pg = []
+        for pg in visited.values():
+            if pg is not None:
+
+                # Iterate through all sibling peptides (same peptide but
+                # different isotopic composition) and pick a peak using the
+                # already aligned channel as a reference.
+                ref_peptide = pg.peptide
+                for pep in ref_peptide.precursor_group:
+                    if ref_peptide != pep:
+                        if self.verbose: 
+                            print "  Using reference %s at RT %s to align peptide %s." % (ref_peptide, pg.get_normalized_retentiontime(), pep)
+                        newPG, rt = self._findBestPGFromTemplate(pg.get_normalized_retentiontime(), pep, self.max_rt_diff_isotope, already_seen)
+                        isotopically_added_pg.append(newPG)
+
+        if self.verbose: 
+            print "Done with re-alignment of isotopic channels"
+
+        return [pg for pg in visited.values() + isotopically_added_pg if pg is not None]
 
     def _findBestPG(self, m, source, target, tr_data, source_rt, already_seen):
         """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
