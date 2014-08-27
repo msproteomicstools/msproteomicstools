@@ -284,7 +284,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     print("Alignment took %ss" % (time.time() - start) )
     start = time.time()
     multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-        tr_data, options.border_option, rid, tree=tree_mapped, mat=dist_matrix)
+        tr_data, options.border_option, rid, tree=tree_mapped, mat=dist_matrix,
+        disable_isotopic_transfer=options.disable_isotopic_transfer)
     print("Analyzing the runs took %ss" % (time.time() - start) )
 
     return new_exp, multipeptides
@@ -345,7 +346,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
         start = time.time()
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
             transformation_collection_, options.border_option, 
-            onlyExtractFromRun=rid)
+            onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer)
         print("Analyzing the runs took %ss" % (time.time() - start) )
         return new_exp, multipeptides
 
@@ -367,15 +368,17 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
             swath_chromatograms.createRunCache(rid)
             multipeptides = analyze_multipeptides(new_exp, multipeptides, 
                 swath_chromatograms, transformation_collection_, options.border_option, 
-                onlyExtractFromRun=rid)
+                onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer)
     else:
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-            transformation_collection_, options.border_option)
+            transformation_collection_, options.border_option, disable_isotopic_transfer=options.disable_isotopic_transfer)
     print("Analyzing the runs took %ss" % (time.time() - start) )
     return new_exp, multipeptides
 
 def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, 
-                          transformation_collection_, border_option, onlyExtractFromRun=None, tree=None, mat=None):
+                          transformation_collection_, border_option,
+                          onlyExtractFromRun=None, tree=None, mat=None,
+                          disable_isotopic_transfer=False):
     """Analyze the multipeptides and impute missing values
 
     Args:
@@ -689,6 +692,7 @@ def handle_args():
 
     experimental_parser = parser.add_argument_group('experimental options')
     experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
+    experimental_parser.add_argument('--disable_isotopic_transfer', action='store_true', default=False, help="Disable the transfer of isotopic boundaries in all cases. If enabled (default), the best (best score) isotopic channel dictates the peak boundaries and all other channels use those boundaries.")
 
     args = parser.parse_args(sys.argv[1:])
     args.verbosity = int(args.verbosity)
