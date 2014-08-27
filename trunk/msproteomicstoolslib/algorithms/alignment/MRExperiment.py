@@ -44,10 +44,15 @@ from msproteomicstoolslib.format.SWATHScoringReader import Run
 
 class MRExperiment(object):
     """
-    An MR (multirun) Experiment is a container for multiple experimental runs -
-    some of which may contain the same precursors.
+    An MR (multirun) Experiment is a container for multiple experimental runs.
 
-    # Read the files
+    In some of the runs the same peptidde precursors may be identified and the
+    job of this object is to keep track of these experiments and the identified
+    precursors across multiple runs.
+
+    Example usage:
+
+    >>> # Read the files
     >>> fdr_cutoff = 0.01 # 1% FDR
     >>> reader = SWATHScoringReader.newReader(infiles, "openswath")
     >>> this_exp = Experiment()
@@ -64,7 +69,7 @@ class MRExperiment(object):
         """Initialize with a set of runs.
 
         Args:
-            runs(list(SWATHScoringReader.Run))
+            runs(list of :class:`.Run`) : A set of runs
         """
         self.runs = runs
 
@@ -74,6 +79,17 @@ class MRExperiment(object):
         Find all precursors that are above the fdr cutoff in each run and build
         a union of those precursors. Then search for each of those precursors
         in all the other runs and build a multipeptide / multiprecursor.
+
+        Parameters
+        ----------
+        fdr_cutoff : float
+            A cutoff in fdr (between 0 and 1) to use for the alignment. Each
+            generated Multipeptide needs to have at least one member who is below
+            the cutoff.
+        verbose : bool
+            Whether to be verbose or not
+        verbosity : int
+            How verbose to be
         """
         union_transition_groups = []
         union_proteins = []

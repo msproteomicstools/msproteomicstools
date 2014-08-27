@@ -107,25 +107,25 @@ class TreeConsensusAlignment():
 
     For example, consider a case of 5 LC-MS/MS runs where 6 different feature
     (peakgroups) were found in each run (not all peakgroups were found in all
-    runs):
+    runs)::
 
-    Run 1:
-    ---------- pg1_1 ------- pg1_2 --- pg1_3 - pg1_4 --------- pg1_5 ------- pg1_6
+        Run 1:
+        ---------- pg1_1 ------- pg1_2 --- pg1_3 - pg1_4 --------- pg1_5 ------- pg1_6
 
-    Run 2:
-    ----------- pg2_1 ------- pg2_2 --- pg2_3 - pg2_4 --------- pg2_5 ------ pg2_6
+        Run 2:
+        ----------- pg2_1 ------- pg2_2 --- pg2_3 - pg2_4 --------- pg2_5 ------ pg2_6
 
-    Run 3:
-    ----- pg3_0 ---------- pg3_1 ---- pg3_2 - pg3_3 - pg3_4 ----- pg3_5 ---- pg3_6
+        Run 3:
+        ----- pg3_0 ---------- pg3_1 ---- pg3_2 - pg3_3 - pg3_4 ----- pg3_5 ---- pg3_6
 
-    Run 4:
-    ----------- pg4_0 ---------- pg4_1 ------- pg4_2 --- pg4_3 - pg4_4 --------- pg4_5
+        Run 4:
+        ----------- pg4_0 ---------- pg4_1 ------- pg4_2 --- pg4_3 - pg4_4 --------- pg4_5
 
-    Run 5:
-    -- pg5_0 ---------- pg5_1 ------- pg5_2 --- pg5_3 - pg5_4 --------- pg5_5 
+        Run 5:
+        -- pg5_0 ---------- pg5_1 ------- pg5_2 --- pg5_3 - pg5_4 --------- pg5_5 
 
 
-    Assume that the corresponding MST looks like this:
+    Assume that the corresponding MST looks like this::
 
                                /-- Run4
         Run1 -- Run2 -- Run3 --
@@ -134,19 +134,20 @@ class TreeConsensusAlignment():
     This is a case where Run1 and Run2 are very similar and Run3 and Run4 are
     rather similar and should be easy to align. The algorithm will start with
     the "best" peakgroup overall (having the best probability score), assume
-    this peakgroups is pg1_1 from Run 1. The algorithm will then use the
-    alignment Run1-Run2 to infer that pg2_1 is the same signal as pg1_1 and add
-    it to the group. Specifically, it will select the highest-scoring peakgroup
-    within a narrow RT-window (max_rt_diff) in Run2 - note that if the
-    RT-window is too wide, there is a certain chance of mis-matching, e.g. pg_2
-    will be selected instead of pg2_1.  The alignment Run2-Run3 will be used to
-    add pg3_1. Then a bifurcation in the tree occurs and Run3-Run4 as well as
-    Run3-Run5 will be used to infer the identity of pg4_1 and pg5_1 and add
-    them to the cluster.  In the end, the algorithm will report (pg1_1, pg2_1,
-    pg3_1, pg4_1, pg5_1) as a consistent cluster across multiple runs. This
-    process can be repeated with the next best peakgroup that is not yet part
-    of a cluster (e.g. pg1_2) until no more peakgroups are left (no more
-    peakgroups having a score below fdr_cutoff).
+    this peakgroups is ``pg1_1`` from Run 1. The algorithm will then use the
+    alignment Run1-Run2 to infer that ``pg2_1`` is the same signal as ``pg1_1``
+    and add it to the group. Specifically, it will select the highest-scoring
+    peakgroup within a narrow RT-window (max_rt_diff) in Run2 - note that if
+    the RT-window is too wide, there is a certain chance of mis-matching, e.g.
+    ``pg_2`` will be selected instead of ``pg2_1``.  The alignment Run2-Run3
+    will be used to add ``pg3_1``. Then a bifurcation in the tree occurs and
+    Run3-Run4 as well as Run3-Run5 will be used to infer the identity of
+    ``pg4_1`` and ``pg5_1`` and add them to the cluster.  In the end, the
+    algorithm will report (pg1_1, pg2_1, ``pg3_1``, ``pg4_1``, ``pg5_1``) as a
+    consistent cluster across multiple runs. This process can be repeated with
+    the next best peakgroup that is not yet part of a cluster (e.g. ``pg1_2``)
+    until no more peakgroups are left (no more peakgroups having a score below
+    fdr_cutoff).
 
     Note how the algorithm only used binary alignments and purely local
     alignments of the runs that are most close to each other. This stands in
@@ -199,11 +200,11 @@ class TreeConsensusAlignment():
         the first cluster will be reported).
 
         Args:
-            multipeptides(list(Multipeptide)): a list of
+            multipeptides(list of :class:`.Multipeptide`): a list of
                 multipeptides on which the alignment should be performed. After
                 alignment, each peakgroup that should be quantified can be
                 retrieved by calling get_selected_peakgroups() on the multipeptide.
-            tree(list(tuple)): a minimum spanning tree (MST) represented as
+            tree(list of tuple): a minimum spanning tree (MST) represented as
                 list of edges (for example [('0', '1'), ('1', '2')] ). Node names
                 need to correspond to run ids.
             tr_data(format.TransformationCollection.LightTransformationData):
@@ -245,9 +246,8 @@ class TreeConsensusAlignment():
             tree(list(tuple)): a minimum spanning tree (MST) represented as
                 list of edges (for example [('0', '1'), ('1', '2')] ). Node names
                 need to correspond to run ids.
-            tr_data(format.TransformationCollection.LightTransformationData):
-                structure to hold binary transformations between two different
-                retention time spaces
+            tr_data(:class:`.LightTransformationData`): structure to hold
+                binary transformations between two different retention time spaces
 
         Returns:
             None
@@ -312,9 +312,8 @@ class TreeConsensusAlignment():
             tree(list(tuple)): a minimum spanning tree (MST) represented as
                 list of edges (for example [('0', '1'), ('1', '2')] ). Node names
                 need to correspond to run ids.
-            tr_data(format.TransformationCollection.LightTransformationData):
-                structure to hold binary transformations between two different
-                retention time spaces
+            tr_data(:class:`.LightTransformationData`): structure to hold
+                binary transformations between two different retention time spaces
             m(Multipeptide): one multipeptides on which the alignment should be performed
             seed(PeakGroupBase): one peakgroup chosen as the seed
             already_seen(dict): list of peakgroups already aligned (e.g. in a

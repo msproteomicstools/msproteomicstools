@@ -82,7 +82,12 @@ class SWATHScoringReader:
     @staticmethod
     def newReader(infiles, filetype, readmethod="minimal",
                   readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
-        """Factory to create a new reader"""
+        """
+        newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False)
+
+        Factory to create a new reader
+        
+        """
         if filetype  == "openswath": 
             return OpenSWATH_SWATHScoringReader(infiles, readmethod,
                                                 readfilter, errorHandling,
@@ -175,6 +180,9 @@ class SWATHScoringReader:
       return runs
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
+    """
+    Parser for OpenSWATH output
+    """
 
     def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
         self.infiles = infiles
@@ -198,7 +206,6 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             self.peptide_group_label_name = "peptide_group_label"
         else:
             self.peptide_group_label_name = "transition_group_id"
-
 
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
@@ -284,6 +291,9 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
+    """
+    Parser for mProphet output
+    """
 
     def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), enable_isotopic_grouping=False):
         self.infiles = infiles
@@ -358,6 +368,9 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
+    """
+    Parser for Peakview output
+    """
 
     def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), enable_isotopic_grouping=False):
         self.infiles = infiles

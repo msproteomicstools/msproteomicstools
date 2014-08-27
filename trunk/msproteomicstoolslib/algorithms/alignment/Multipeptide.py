@@ -74,13 +74,41 @@ class Multipeptide():
         return self._peptides.values()
 
     def getPrecursorGroup(self, runid):
-      return self._peptides[runid]
+        """
+        Get precursor group for the given run
+
+        Args:
+            runid (str): Run id of the group
+
+        Returns:
+            precursor_group (:class:`.PrecursorGroup`): Precursor group from the corresponding run
+        """
+        return self._peptides[runid]
 
     def getPrecursorGroups(self):
-      return self._peptides.values()
+        """
+        Get all precursor groups
+
+        Returns
+        -------
+        precursor_group: list of :class:`.PrecursorGroup`
+            All Precursor group from the corresponding run
+        """
+        return self._peptides.values()
 
     def hasPrecursorGroup(self, runid):
-      return self._peptides.has_key(runid)
+        """
+        Checks whether a given run has a precursor group
+
+        Args:
+            runid (str): Run id to check
+
+        Returns
+        -------
+        check : bool
+            Whether the given run has a precursor group
+        """
+        return self._peptides.has_key(runid)
 
     def getAllPeptides(self):
       return [p for prgr in self.getPrecursorGroups() for p in prgr]
@@ -99,15 +127,37 @@ class Multipeptide():
       return True
 
     def get_decoy(self):
+        """
+        Whether the current peptide is a decoy or not
+
+        Returns:
+            decoy(bool): Whether the peptide is decoy or not
+        """
         if len(self.getAllPeptides()) == 0:
             return False
 
         return self.getAllPeptides()[0].get_decoy() 
 
     def has_null_peptides(self):
-      return self._has_null
+        """
+        Whether there are runs in which no peptide was detected (peptide is Null)
+
+        Returns:
+            has_null(bool): Whether there are Null peptides in this object (not detected in some runs)
+        """
+        return self._has_null
 
     def insert(self, runid, precursor_group):
+        """
+        Insert a :class:`.PrecursorGroup` into the Multipeptide
+
+        Args:
+            runid(str): Run id of the group
+            precursor_group(:class:`.PrecursorGroup`): Precursor group to be inserted
+
+        Raises:
+            Exception: If self.hasPrecursorGroup(runid) is true
+        """
 
         # Deal with None (store that we have a None precursor)
         if precursor_group is None: 
@@ -120,10 +170,15 @@ class Multipeptide():
         self._peptides[runid] = precursor_group
 
     def get_selected_peakgroups(self):
-      return [precursor.get_selected_peakgroup() for prgr in self.getPrecursorGroups() for precursor in prgr if precursor.get_selected_peakgroup() is not None]
+        """
+        Get all peakgroups that were selected across all runs and precursor groups
+        """
+        return [precursor.get_selected_peakgroup() for prgr in self.getPrecursorGroups() for precursor in prgr if precursor.get_selected_peakgroup() is not None]
 
     def find_best_peptide_pg(self):
-      # Find best peakgroup across all peptides
+      """
+      Find best peakgroup across all peptides
+      """
       best_fdr = 1.0
       result = None
       for p in self.getAllPeptides():
@@ -148,12 +203,15 @@ class Multipeptide():
       return True
   
     def all_selected(self):
-      assert self._nr_runs >= 0
-      if len(self.getAllPeptides()) < self._nr_runs:
-          return False
+        """
+        Returns True if all peakgroups are selected
+        """
+        assert self._nr_runs >= 0
+        if len(self.getAllPeptides()) < self._nr_runs:
+            return False
 
-      for p in self.getAllPeptides():
-          if p.get_selected_peakgroup() is None:
-              return False
-      return True
+        for p in self.getAllPeptides():
+            if p.get_selected_peakgroup() is None:
+                return False
+        return True
 
