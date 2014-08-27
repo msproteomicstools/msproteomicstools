@@ -46,6 +46,9 @@ import re
 import sys
 
 class Modifications:
+    """
+    A collection of modifications
+    """
     
     def __init__(self):
         self.list= []
@@ -187,7 +190,11 @@ class Modifications:
         return Peptide(sequence_no_mods, mods_peptide, aminoacidLib = aaLib)
         
 class Modification:
+    """
+    A modification on an Aminoacid
+    """
     
+    #: Available modification formats
     codes = ['TPP', 'unimod', 'ProteinPilot']
     
     def __init__(self, aminoacid, tpp_Mod, unimodAccession, peakViewAccession, is_labeling, composition):

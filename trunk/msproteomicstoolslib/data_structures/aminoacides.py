@@ -98,13 +98,21 @@ class Aminoacides:
         raise Exception('Element %s is not implemented' % code)
             
 class Aminoacid:
+    """
+    Class to hold information about a single Amino Acid (AA)
+    """
     
     def __init__(self,name, code, code3,composition):
+        #: Full name of the AA
         self.name = name
+        #: One letter code
         self.code = code
+        #: Three letter code
         self.code3 = code3
+        #: Elemental composition
         self.composition = {}
         self.composition = composition
+        #: Library of elements
         self.elementsLib = Elements()
         self.deltaMass = Formulas.mass(self.composition, elementsLib = self.elementsLib) #self.calDeltaMass()
     

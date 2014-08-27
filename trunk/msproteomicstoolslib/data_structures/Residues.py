@@ -43,31 +43,30 @@ import string
 NOISOTOPEMODIFICATION = 0
 N15_ISOTOPEMODIFICATION = 1
 
-"""
-Doc :
+class Residues:
+    """
     A class that contains information elements, amino acids and modifications.
     It stores mainly masse of these but also chemical formulas.
 
-    The most commonly used properties are: 
-        - Residues.average_elments : element weights 
-        - Residues.monoisotopic_elments : element weights 
-        - Residues.aa_codes : Three and One letter amino acid codes
-        - Residues.aa_names : English names of the amino acids
-        - Residues.aa_sum_formulas_text : Chemical formulas of all amino acids
-        - Residues.aa_sum_formulas: Chemical formulas of all amino acids as hash
-        - Residues.mass_xxx: monoisotopic masses of different compounds (NH3, H2O, CO, HPO4 etc)
-        - Residues.average_data: average weight of amino acids
-        - Residues.monoisotopic_data: monoisotopic weight of amino acids
-        - Residues.monoisotopic_mod: monoisotopic modification data
-        - Residues.mod_mapping: mapping of + notation to absolute weight notation (K[+8] to K[136])
-        - Residues.Hydropathy: Hydropathy of amino acids (gravy scores)
-        - TODO hydrophobicity of amino acids 
-        - TODO basicity of amino acids 
-        - TODO helicity of amino acids 
-        - Residues.pI: pI of amino acids 
-"""
+        The most commonly used properties are: 
+            - Residues.average_elments : element weights 
+            - Residues.monoisotopic_elments : element weights 
+            - Residues.aa_codes : Three and One letter amino acid codes
+            - Residues.aa_names : English names of the amino acids
+            - Residues.aa_sum_formulas_text : Chemical formulas of all amino acids
+            - Residues.aa_sum_formulas: Chemical formulas of all amino acids as hash
+            - Residues.mass_xxx: monoisotopic masses of different compounds (NH3, H2O, CO, HPO4 etc)
+            - Residues.average_data: average weight of amino acids
+            - Residues.monoisotopic_data: monoisotopic weight of amino acids
+            - Residues.monoisotopic_mod: monoisotopic modification data
+            - Residues.mod_mapping: mapping of + notation to absolute weight notation (K[+8] to K[136])
+            - Residues.Hydropathy: Hydropathy of amino acids (gravy scores)
+            - TODO hydrophobicity of amino acids 
+            - TODO basicity of amino acids 
+            - TODO helicity of amino acids 
+            - Residues.pI: pI of amino acids 
+    """
 
-class Residues:
 
     # http://www.sisweb.com/referenc/source/exactmaa.htm
     # http://physics.nist.gov/cgi-bin/Compositions/stand_alone.pl
@@ -222,6 +221,7 @@ class Residues:
     mass_diffC13 = mass_C13 - mass_C
     mass_diffN15 = mass_N15 - mass_N
 
+    #: average weight of amino acids
     average_data = { 
         'A': ('Alanine', 71.0788),
         'B': ('Aspartic Acid or Asparagine', 114.5962), 

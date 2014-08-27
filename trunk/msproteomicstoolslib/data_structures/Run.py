@@ -97,6 +97,9 @@ class Run():
                 not self.getPrecursorGroup(peptide_group_label).getPrecursor(trgr_id) is None
 
     def getPrecursor(self, peptide_group_label, trgr_id):
+        """
+        Return precursor corresponding to the given peptide label group and the transition group id
+        """
         if self.hasPrecursor(peptide_group_label, trgr_id):
             return self.getPrecursorGroup(peptide_group_label).getPrecursor(trgr_id)
         return None
@@ -110,6 +113,9 @@ class Run():
             self.all_precursor_groups_[peptide_group_label] = prec_gr
 
     def __iter__(self):
+        """
+        Iterate through all precursor groups identified in this run.
+        """
         for precursor in self.all_precursor_groups_.values():
             yield precursor
 
