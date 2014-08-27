@@ -448,6 +448,40 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                                           transformation_collection_, border_option, selected_pg, cl,
                                           onlyExtractFromRun, tree, mat)
 
+
+            # Ensure consistency in peak picking between isotopic channels by
+            # looking at the best channel for each run and then forcing the
+            # peak boundaries of this channel unto the other channels. This is
+            # done even if a very good peak was found in the other channels,
+            # but ensuring that the peak boundaries are the same is more
+            # important here.
+            # disable_isotopic_transfer turns this feature off
+            if disable_isotopic_transfer:
+                continue
+
+            for rid in [r.get_id() for r in new_exp.runs]:
+                if m.hasPrecursorGroup(rid):
+                    prgr = m.getPrecursorGroup(rid)
+                    pgs = [(pg_.get_fdr_score(), pg_) for prec_ in prgr for pg_ in prec_.peakgroups if pg_.get_cluster_id() == cl] 
+                    if len(pgs) > 0:
+                        best_pg = min(pgs)[1]
+                        border_l = float(best_pg.get_value("leftWidth"))
+                        border_r = float(best_pg.get_value("rightWidth"))
+                        for prec in m.getPrecursorGroup(rid):
+                            currpg = [pg for pg in prec.get_all_peakgroups() if pg.get_cluster_id() == cl]
+                            if len(currpg) == 1 and currpg[0].get_feature_id() != best_pg.get_feature_id():
+                                pg = currpg[0]
+                                # Propagate peak boundaries of the best peakgroup to the current one
+                                current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
+                                newpg = integrate_chromatogram(pg, current_run, swath_chromatograms,
+                                                             border_l, border_r, cnt)
+                                pg.set_value("Intensity", newpg.get_value("Intensity"))
+                                pg.set_value("leftWidth", newpg.get_value("leftWidth"))
+                                pg.set_value("rightWidth", newpg.get_value("rightWidth"))
+                                pg.set_value("RT", newpg.get_value("RT"))
+                                pg.set_value("m_score", 1.5)
+
+
         if all ([pg.get_cluster_id() == -1 for p in m.getAllPeptides() for pg in p.get_all_peakgroups()]):
             # no cluster info was read in -> select all
             for p in m.getAllPeptides():
