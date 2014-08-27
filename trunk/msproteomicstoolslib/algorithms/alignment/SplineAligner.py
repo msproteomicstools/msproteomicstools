@@ -94,9 +94,9 @@ class SplineAligner():
         for m in multipeptides:
 
             try: 
-                len_ali = len([pg for pg in m.get_peptide(run.get_id()).get_all_peakgroups() 
+                len_ali = len([pg for pg in m.getPrecursorGroup(run.get_id()).getAllPeakgroups() 
                                if pg.get_fdr_score() < self.alignment_fdr_threshold_])
-                len_ref = len([pg for pg in m.get_peptide(bestrun.get_id()).get_all_peakgroups() 
+                len_ref = len([pg for pg in m.getPrecursorGroup(bestrun.get_id()).getAllPeakgroups() 
                                if pg.get_fdr_score() < self.alignment_fdr_threshold_])
 
                 # Do not consider peakgroups that are missing in one run
@@ -104,8 +104,8 @@ class SplineAligner():
                 if len_ali != 1 or len_ref != 1:
                     continue
 
-                ref_pep = m.get_peptide(bestrun.get_id()).get_best_peakgroup()
-                align_pep = m.get_peptide(run.get_id()).get_best_peakgroup()
+                ref_pep = m.getPrecursorGroup(bestrun.get_id()).getOverallBestPeakgroup()
+                align_pep = m.getPrecursorGroup(run.get_id()).getOverallBestPeakgroup()
             except KeyError: 
                 # it is possible that for some, no peak group exists in this run
                 continue
