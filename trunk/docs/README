@@ -1,0 +1,11 @@
+
+Example how to document:
+
+- http://sphinxcontrib-napoleon.readthedocs.org/en/latest/example_google.html
+- http://sphinxcontrib-napoleon.readthedocs.org/en/latest/example_numpy.html
+- https://pythonhosted.org/an_example_pypi_project/sphinx.html
+
+Build documentation:
+
+$ make html
+
