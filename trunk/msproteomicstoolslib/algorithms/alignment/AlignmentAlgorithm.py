@@ -122,8 +122,9 @@ class AlignmentAlgorithm():
 
             if mpep.all_above_cutoff(fdr_cutoff) and method in ["best_cluster_score", "best_overall"]:
                 # In non-global algorithms, do not re-align if the fdr is above the threshold in all runs
-                for p in mpep.get_peptides():
-                    p.get_best_peakgroup().select_this_peakgroup()
+                for prgr in mpep.getPrecursorGroups():
+                    for p in prgr:
+                        p.get_best_peakgroup().select_this_peakgroup()
                 continue
 
             if method == "global_best_cluster_score" or method == "best_cluster_score":
@@ -134,17 +135,25 @@ class AlignmentAlgorithm():
                 raise Exception("Method '%s' unknown" % method)
 
     def _align_features_cluster(self, m, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
+        """ Align features by clustering all peakgroups 
+
+        This algorithm will find the best peakgroup cluster over all runs and
+        then select all peakgroups belonging to the cluster.
+
+        It does not treat heavy/light specially (they are treated like two independent runs).
+        """
+
         verb = self.verbose
 
-        if verb: print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
+        if verb: print "00000000000000000000000000000000000 new peptide (cluster)", m.getAllPeptides()[0].get_id()
 
         # i) get all RTs above the cutoff
-        for p in m.get_peptides(): # loop over runs
+        for p in m.getAllPeptides(): # loop over all peptides
             pg = p.get_best_peakgroup()
             if verb: print "best rt", pg.get_normalized_retentiontime(), pg.peptide.run.get_id(), pg.get_fdr_score()
         
         groups = [ pg 
-            for p in m.get_peptides() # loop over all peptides
+            for p in m.getAllPeptides() # loop over all peptides
                 for pg in p.get_all_peakgroups() # loop over all peakgroups
                     if pg.get_fdr_score() < aligned_fdr_cutoff
         ]
@@ -188,16 +197,24 @@ class AlignmentAlgorithm():
                 pg.setClusterID(i+1)
 
     def _align_features_best(self, m, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
-        verb = self.verbose
+        """ Align features using best overall peakgroup
 
-        if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.get_peptides()[0].get_id()
+        This algorithm will find the best peakgroup over all runs and then try
+        to align all other peakgroups according to this.
+
+        It does not treat heavy/light specially (they are treated like two independent runs).
+        """
+        verb = self.verbose
+        verb = True
+
+        if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.getAllPeptides()[0].get_id()
 
         # If we just choose the cluster with the "best" peptide, we find find the best peptide over all runs
         best = m.find_best_peptide_pg()
         best_rt_diff = best.get_normalized_retentiontime()
         if verb: print "=====\nFDR best", best.print_out()
 
-        for p in m.get_peptides(): # loop over runs
+        for p in m.getAllPeptides(): # loop over runs
             current_best_pg = p.get_best_peakgroup()
 
             if current_best_pg.get_fdr_score() < fdr_cutoff and method == "best_overall":
