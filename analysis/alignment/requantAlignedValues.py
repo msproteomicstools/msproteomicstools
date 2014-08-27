@@ -221,7 +221,10 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     fdr_cutoff_all_pg = 1.0
 
     start = time.time()
-    reader = SWATHScoringReader.newReader([peakgroups_file], options.file_format, readmethod="complete")
+    reader = SWATHScoringReader.newReader([peakgroups_file],
+                                          options.file_format,
+                                          readmethod="complete",
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
     new_exp = Experiment()
     new_exp.runs = reader.parse_files()
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
@@ -310,7 +313,10 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
     fdr_cutoff_all_pg = 1.0
 
     start = time.time()
-    reader = SWATHScoringReader.newReader([peakgroups_file], options.file_format, readmethod="complete")
+    reader = SWATHScoringReader.newReader([peakgroups_file],
+                                          options.file_format,
+                                          readmethod="complete",
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
     new_exp = Experiment()
     new_exp.runs = reader.parse_files()
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
@@ -682,6 +688,7 @@ def handle_args():
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
 
     experimental_parser = parser.add_argument_group('experimental options')
+    experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
 
     args = parser.parse_args(sys.argv[1:])
     args.verbosity = int(args.verbosity)
