@@ -42,15 +42,15 @@ class SingleChromatogramFile():
 
     One run may contain multiple mzML files
 
-    Public Attributes:
-        runid:          Current run id
+    Attributes:
+        runid: Current run id
 
     Private Attributes:
-        _run:        A pymzml.run.Reader object
-        _filename:   Original filename
-        _basename:   Original filename basename
-        _precursor_mapping:   Dictionary { FullPrecursorName : [transition_id, transition_id] }
-        _sequences_mapping:   Dictionary { StrippedSequence : [FullPrecursorName, FullPrecursorName]}
+       - _run:        A pymzml.run.Reader object
+       - _filename:   Original filename
+       - _basename:   Original filename basename
+       - _precursor_mapping:   Dictionary { FullPrecursorName : [transition_id, transition_id] }
+       - _sequences_mapping:   Dictionary { StrippedSequence : [FullPrecursorName, FullPrecursorName]}
 
     """
 
@@ -294,6 +294,9 @@ class SingleChromatogramFile():
     #
 
     def getTransitionCount(self):
+        """
+        Get total number of transitions 
+        """
         if self._in_memory:
             return len(self._run)
         else:
@@ -343,11 +346,20 @@ class SingleChromatogramFile():
         return transitions
 
     def get_precursors_for_sequence(self, sequence):
+        """
+        Get all precursors mapping to one stripped sequence
+        """
         return self._sequences_mapping.get(sequence, [])
 
     def get_all_precursor_ids(self):
+        """
+        Get all precursor ids (full sequence + charge)
+        """
         return self._precursor_mapping.keys()
 
     def get_all_peptide_sequences(self):
+        """
+        Get all (stripped) sequences
+        """
         return self._sequences_mapping.keys()
 

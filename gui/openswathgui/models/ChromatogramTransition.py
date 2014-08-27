@@ -49,11 +49,11 @@ class ChromatogramTransition(object):
 
     This is the bridge between the view and the data model
 
-    Pointers to objects of ChromatogramTransition are passed to callback
-    functions when the selection of the left side tree changes. The object
-    needs to have store information about all the column present in the rows
-    (PeptideSequence, Charge, Name) which are requested by the PeptideTree
-    model.
+    Pointers to objects of :class:`.ChromatogramTransition` are passed to
+    callback functions when the selection of the left side tree changes. The
+    object needs to have store information about all the column present in the
+    rows (PeptideSequence, Charge, Name) which are requested by the
+    :class:`.PeptideTree` model.
 
     Also it needs to know how to access the raw data as well as meta-data for a
     certain transition.  This is done through getData, getLabel etc.
@@ -76,9 +76,25 @@ class ChromatogramTransition(object):
         return self._peptideSequence
 
     def getName(self):
+        """
+        Get name of precursor
+
+        Returns
+        -------
+        str:
+            Name of precursor
+        """
         return self._name
 
     def getCharge(self):
+        """
+        Get charge of precursor
+
+        Returns
+        -------
+        int:
+            Charge
+        """
         return self._charge
 
     def getType(self):
@@ -92,6 +108,18 @@ class ChromatogramTransition(object):
         show the same data as for the precursor itself. For a peptide with
         multiple precursors, we show all precursors as individual curves. For a
         single transition, we simply plot that transition.
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        list of pairs (timearray, intensityarray): 
+            Returns the raw data of the chromatograms for a given run. The
+            dataformat is a list of transitions and each transition is a pair
+            of (timearray,intensityarray)
         """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_data_for_precursor(self.getName()) 
@@ -120,15 +148,41 @@ class ChromatogramTransition(object):
         return [ [ [0], [0] ] ]
 
     def getRange(self, run):
+        """
+        Get the data range (leftWidth/rightWidh) for a specific run
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        list of float:
+            A pair of floats representing the data range (leftWidth/rightWidh) for a specific run
+        """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_range_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_range_data(prec[0]) 
-        return [ 0,0]
+        return [0,0]
 
     def getProbScore(self, run):
+        """
+        Get the probabilistic score for a specific run and current precursor
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        float:
+            The probabilistic score for a specific run and current precursor
+        """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_score_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
@@ -139,6 +193,19 @@ class ChromatogramTransition(object):
         return 1.0
 
     def getIntensity(self, run):
+        """
+        Get the intensity for a specific run and current precursor
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        float:
+            The intensity for a specific run and current precursor
+        """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_intensity_data(self.getName()) 
         elif CHROMTYPES[self.mytype] == "Peptide" :
@@ -157,6 +224,16 @@ class ChromatogramTransition(object):
         show the same data as for the precursor itself. For a peptide with
         multiple precusors, we show all precursors as individual curves. For a
         single transition, we simply plot that transition.
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        list of str:
+            The labels to display for each line in the graph
         """
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_transitions_for_precursor_display(self.getName())

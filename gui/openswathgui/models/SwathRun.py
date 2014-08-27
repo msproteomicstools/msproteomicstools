@@ -40,7 +40,7 @@ import pymzml
 from SingleChromatogramFile import SingleChromatogramFile
 
 class SwathRun(object):
-    """Data model for an individual SWATH injection, may contain multiple mzML files.
+    """Data model for an individual SWATH injection (may contain multiple mzML files).
 
     This contains the model for all data from a single run (e.g. one panel in
     the viewer - in reality this could be multiple actual MS runs since in SRM
@@ -50,17 +50,22 @@ class SwathRun(object):
     It abstracts all the interfaces of SingleChromatogramFile, usually all
     other classes directly communicate with this class.
 
-    Public Attributes:
-        runid:          Current run id
+    Attributes:
+        runid: Current run id
 
     Private Attributes:
         _all_swathes:        Dictionary of { mz : SingleChromatogramFile }
+
         _files:              List of files that are containing data for this run
+
         _in_memory:          Whether data should be held in memory
 
-          (TODO the following three attributes are set by _read_peakgroup_files violating encapsulation)
+        TODO: the following three attributes are set by _read_peakgroup_files violating encapsulation)
+
         _range_mapping:      Dictionary of { precursor_id : [leftWidth, rightWidth] }
+
         _score_mapping:      Dictionary of { precursor_id : FDR_score }
+
         _intensity_mapping:  Dictionary of { precursor_id : Intensity }
 
     """
@@ -146,6 +151,9 @@ class SwathRun(object):
     # getting the raw data from it or summing over all runs).
     #
     def getTransitionCount(self):
+        """
+        Aggregate transition count over all files
+        """
         return sum([r.getTransitionCount() for r in self._all_swathes.values()] )
 
     def get_data_for_precursor(self, precursor):
