@@ -84,10 +84,10 @@ class TestAlignment(unittest.TestCase):
 
         # Select two interesting peptides
         pepname = "21517_C[160]NVVISGGTGSGK/2_run0 0 0"
-        self.current_mpep1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == pepname][0]
+        self.current_mpep1 = [m for m in self.multipeptides if m.getAllPeptides()[0].get_id() == pepname][0]
 
         pepname = "26471_GYEDPPAALFR/2_run0 0 0"
-        self.current_mpep2 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == pepname][0]
+        self.current_mpep2 = [m for m in self.multipeptides if m.getAllPeptides()[0].get_id() == pepname][0]
 
     def test_shortestDistance_1(self):
 
@@ -96,7 +96,7 @@ class TestAlignment(unittest.TestCase):
         dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner)
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         rmap = dict([(r.get_id(),i) for i,r in enumerate(self.new_exp.runs) ])
         border_l, border_r = integrationBorderShortestDistance(selected_pg, 
             rid, self.tr_data, dist_matrix, rmap)
@@ -116,7 +116,7 @@ class TestAlignment(unittest.TestCase):
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         border_l, border_r = integrationBorderShortestPath(selected_pg, 
             rid, self.tr_data, tree_mapped)
 
@@ -137,7 +137,7 @@ class TestAlignment(unittest.TestCase):
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         border_l, border_r = integrationBorderReference(self.new_exp, selected_pg, 
             rid, self.tr_data, "median")
 
@@ -167,7 +167,7 @@ class TestAlignment(unittest.TestCase):
         dist_matrix = getDistanceMatrix(self.new_exp, self.multipeptides, spl_aligner)
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         rmap = dict([(r.get_id(),i) for i,r in enumerate(self.new_exp.runs) ])
         border_l, border_r = integrationBorderShortestDistance(selected_pg, 
             rid, self.tr_data, dist_matrix, rmap)
@@ -187,7 +187,7 @@ class TestAlignment(unittest.TestCase):
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         border_l, border_r = integrationBorderShortestPath(selected_pg, 
             rid, self.tr_data, tree_mapped)
 
@@ -206,7 +206,7 @@ class TestAlignment(unittest.TestCase):
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep2.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep2.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         border_l, border_r = integrationBorderShortestPath(selected_pg, 
             rid, self.tr_data, tree_mapped)
 
@@ -233,7 +233,7 @@ class TestAlignment(unittest.TestCase):
         tree_mapped = [(self.new_exp.runs[a].get_id(), self.new_exp.runs[b].get_id()) for a,b in tree]
 
         # Select peakgroups, compute left/right border
-        selected_pg = [pg for p in self.current_mpep1.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        selected_pg = [pg for p in self.current_mpep1.getAllPeptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == 1]
         border_l, border_r = integrationBorderReference(self.new_exp, selected_pg, 
             rid, self.tr_data, "median")
 
@@ -262,8 +262,6 @@ class MatrixOutputWriters(unittest.TestCase):
 
         # Set up files
         peakgroups_file = os.path.join(self.datadir, "imputeValues/imputeValues_5_input.csv")
-        mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.mzML")
-
         fdr_cutoff_all_pg = 1.0
 
         # Read input
@@ -272,7 +270,22 @@ class MatrixOutputWriters(unittest.TestCase):
         self.exp.runs = reader.parse_files()
         self.multipeptides = self.exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
 
-    def test_matrix_out(self):
+        # Set up files nr2 
+        peakgroups_file = os.path.join(self.datadir, "feature_alignment_7_openswath_input.csv")
+        reader = SWATHScoringReader.newReader([peakgroups_file], "openswath", readmethod="complete")
+        self.exp2 = MRExperiment()
+        self.exp2.runs = reader.parse_files()
+        self.multipeptides2 = self.exp2.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
+
+        # Select the best peakgroup per peptide and select it for writing out
+        fdr_cutoff = 0.01
+        for mpep in self.multipeptides2:
+            for prgr in mpep.getAllPeptides():
+                minpg = min( [(pg.get_fdr_score(), pg) for pg in prgr.peakgroups] )
+                if minpg[0] < fdr_cutoff:
+                    minpg[1].select_this_peakgroup()
+
+    def test_matrix_out_1(self):
         """Test the output matrix writers"""
 
         import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
@@ -293,6 +306,33 @@ class MatrixOutputWriters(unittest.TestCase):
         os.remove(tmpfile)
         tmpfile = "tmp.output.xlsx"
         helper.write_out_matrix_file(tmpfile, self.exp.runs, self.multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
+    def test_matrix_out_2(self):
+        """Test the output matrix writers"""
+
+        import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
+
+        runs = self.exp2.runs
+        multipeptides = self.multipeptides2
+
+        tmpfile = "tmp.output.csv"
+        helper.write_out_matrix_file(tmpfile, runs, multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
+        tmpfile = "tmp.output.tsv"
+        helper.write_out_matrix_file(tmpfile, runs, multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
+        tmpfile = "tmp.output.xls"
+        helper.write_out_matrix_file(tmpfile, runs, multipeptides, 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+        tmpfile = "tmp.output.xlsx"
+        helper.write_out_matrix_file(tmpfile, runs, multipeptides, 0.0, 
                                      style="full", write_requant=False)
         os.remove(tmpfile)
 
