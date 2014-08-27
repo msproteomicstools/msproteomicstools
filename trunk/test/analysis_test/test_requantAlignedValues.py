@@ -214,7 +214,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_8.out.tmp"
         tmpfilename_matrix = "imputeValues_8.out.tmp_matrix.tsv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT --disable_isotopic_transfer" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
