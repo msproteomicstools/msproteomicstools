@@ -62,6 +62,7 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
     def setUp(self):
 
         import msproteomicstoolslib.data_structures.Precursor as precursor
+        import msproteomicstoolslib.data_structures.PrecursorGroup as precursor_group
         import msproteomicstoolslib.format.TransformationCollection as transformations
         from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
         import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
@@ -85,20 +86,26 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
             p = precursor.Precursor("anchorpeptide_1", runs[i] )
             pg_tuple = ("id_%s" % ids, 0.0001, 100 + i*10, 10000)
             p.add_peakgroup_tpl(pg_tuple, "anchorpeptide_1", -1)
-            mpeps[0].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(p.get_id(), runs[i])
+            prgr.addPrecursor(p)
+            mpeps[0].insert(runs[i].get_id(), prgr)
             ids += 1
 
             p = precursor.Precursor("anchorpeptide_2", runs[i] )
             pg_tuple = ("id_%s" % ids, 0.0001, 1000 + i*100, 10000)
             p.add_peakgroup_tpl(pg_tuple, "anchorpeptide_2", -1)
-            mpeps[1].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(p.get_id(), runs[i])
+            prgr.addPrecursor(p)
+            mpeps[1].insert(runs[i].get_id(), prgr)
             ids += 1
 
             # The noise peptide
             p = precursor.Precursor("anchorpeptide_3", runs[i] )
             pg_tuple = ("id_%s" % ids, 0.0001, 500 + i*40, 10000)
             p.add_peakgroup_tpl(pg_tuple, "anchorpeptide_3", -1)
-            mpeps[2].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(p.get_id(), runs[i])
+            prgr.addPrecursor(p)
+            mpeps[2].insert(runs[i].get_id(), prgr)
             ids += 1
 
         m = Multipeptide()
@@ -109,7 +116,9 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         p = precursor.Precursor("precursor_1", runs[0])
         pg_tuple = ("peakgroup1", 0.01, 100, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
-        m.insert(runs[0].get_id(), p)
+        prgr = precursor_group.PrecursorGroup(p.get_id(), runs[0])
+        prgr.addPrecursor(p)
+        m.insert(runs[0].get_id(), prgr)
 
         # Run 2:
         #  - peakgroup 2 : RT = 115 seconds [correct]
@@ -119,7 +128,9 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
         pg_tuple = ("peakgroup3", 0.18, 130, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
-        m.insert(runs[1].get_id(), p)
+        prgr = precursor_group.PrecursorGroup(p.get_id(), runs[1])
+        prgr.addPrecursor(p)
+        m.insert(runs[1].get_id(), prgr)
 
         # Run 3:
         #  - peakgroup 4 : RT = 120 seconds [correct]
@@ -129,7 +140,9 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
         pg_tuple = ("peakgroup5", 0.17, 130, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
-        m.insert(runs[2].get_id(), p)
+        prgr = precursor_group.PrecursorGroup(p.get_id(), runs[2])
+        prgr.addPrecursor(p)
+        m.insert(runs[2].get_id(), prgr)
 
         # Run 4:
         #  - peakgroup 6 : missing          [correct]
@@ -137,7 +150,9 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         p = precursor.Precursor("precursor_1", runs[3])
         pg_tuple = ("peakgroup7", 0.18, 145, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
-        m.insert(runs[3].get_id(), p)
+        prgr = precursor_group.PrecursorGroup(p.get_id(), runs[3])
+        prgr.addPrecursor(p)
+        m.insert(runs[3].get_id(), prgr)
 
         # Run 5:
         #  - peakgroup 8 : RT = 140 seconds [correct]
@@ -145,7 +160,9 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         p = precursor.Precursor("precursor_1", runs[4])
         pg_tuple = ("peakgroup8", 0.1, 139, 10000)
         p.add_peakgroup_tpl(pg_tuple, "precursor_1", -1)
-        m.insert(runs[4].get_id(), p)
+        prgr = precursor_group.PrecursorGroup(p.get_id(), runs[4])
+        prgr.addPrecursor(p)
+        m.insert(runs[4].get_id(), prgr)
 
         self.mpep = m
         self.exp = Dummy()
@@ -185,9 +202,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
         alignment.alignBestCluster(self.multipeptides, tree_mapped, self.tr_data)
 
-        prec1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == "precursor_1"][0]
-
         # We should have 4 peakgroups
+        prec1 = self.mpep
         self.assertEqual(len(prec1.get_selected_peakgroups()), 4)
 
         # Check that we have all the correct ones (1,2,4,8)
@@ -211,9 +227,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=False)
         alignment.alignBestCluster(self.multipeptides, tree_mapped, self.tr_data)
 
-        prec1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == "precursor_1"][0]
-
         # Now only 2 peakgroups should be selected
+        prec1 = self.mpep
         self.assertEqual(len(prec1.get_selected_peakgroups()), 2)
 
         # Check that we have all the correct ones (only 1,2)
@@ -242,9 +257,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 15, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=False)
         alignment.alignBestCluster(self.multipeptides, tree_mapped, self.tr_data)
 
-        prec1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == "precursor_1"][0]
-
         # Now only 2 peakgroups should be selected
+        prec1 = self.mpep
         self.assertEqual(len(prec1.get_selected_peakgroups()), 4)
 
         # Check that we have all the correct ones (1,2,4,8)
@@ -270,9 +284,8 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 6, fdr_cutoff = 0.1, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
         alignment.alignAllCluster(self.multipeptides, tree_mapped, self.tr_data)
 
-        prec1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == "precursor_1"][0]
-
         # We should have 4 peakgroups
+        prec1 = self.mpep
         self.assertEqual(len(prec1.get_selected_peakgroups()), 4)
 
         # Check that we have all the correct ones (1,2,4,8)
@@ -306,18 +319,17 @@ class TestUnitAlignmentAlgo(unittest.TestCase):
         alignment = algo.TreeConsensusAlignment(max_rt_diff = 9, fdr_cutoff = 0.2, aligned_fdr_cutoff = 0.25, correctRT_using_pg=True, verbose=True)
         alignment.alignAllCluster(self.multipeptides, tree_mapped, self.tr_data)
 
-        prec1 = [m for m in self.multipeptides if m.get_peptides()[0].get_id() == "precursor_1"][0]
-
         # We should have 4 peakgroups selected and 7 peakgroups in clusters
+        prec1 = self.mpep
         self.assertEqual(len(prec1.get_selected_peakgroups()), 4)
-        self.assertEqual(len([pg for pep in prec1.get_peptides() for pg in pep.get_all_peakgroups()]), 7)
+        self.assertEqual(len([pg for pep in prec1.getAllPeptides() for pg in pep.get_all_peakgroups()]), 7)
 
         # Check that we have all the correct ones (1,2,4,8)
         self.assertEqual(set(['peakgroup8', 'peakgroup2', 'peakgroup4', 'peakgroup1']), 
                          set([p.get_feature_id() for p in prec1.get_selected_peakgroups()]))
 
-        pg_cluster1 = [pg for pep in prec1.get_peptides() for pg in pep.get_all_peakgroups() if pg.get_cluster_id() == 1]
-        pg_cluster2 = [pg for pep in prec1.get_peptides() for pg in pep.get_all_peakgroups() if pg.get_cluster_id() == 2]
+        pg_cluster1 = [pg for pep in prec1.getAllPeptides() for pg in pep.get_all_peakgroups() if pg.get_cluster_id() == 1]
+        pg_cluster2 = [pg for pep in prec1.getAllPeptides() for pg in pep.get_all_peakgroups() if pg.get_cluster_id() == 2]
 
         # Check the two individual clusters
         self.assertEqual(len(pg_cluster1), 4)
