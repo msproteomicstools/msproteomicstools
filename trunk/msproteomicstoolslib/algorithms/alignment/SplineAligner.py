@@ -71,11 +71,12 @@ class SplineAligner():
         bestrun = -1
         for run in experiment.runs:
             cnt = 0
-            for peptide in run:
-                if peptide.get_decoy(): continue
-                pg = peptide.get_best_peakgroup()
-                if pg.get_fdr_score() < self.alignment_fdr_threshold_:
-                    cnt += 1
+            for prgroup in run:
+                for peptide in prgroup:
+                    if peptide.get_decoy(): continue
+                    pg = peptide.get_best_peakgroup()
+                    if pg.get_fdr_score() < self.alignment_fdr_threshold_:
+                        cnt += 1
             if cnt > maxcount:
                 maxcount = cnt
                 bestrun = run.get_id()
@@ -174,16 +175,19 @@ class SplineAligner():
         # Now predict on _all_ data and write this back to the data
         i = 0
         all_pg = []
-        for pep in run:
-            all_pg.extend( [ (pg.get_normalized_retentiontime(), pg.get_feature_id()) for pg in pep.get_all_peakgroups()] )
+        for prgr in run:
+            for pep in prgr:
+                all_pg.extend( [ (pg.get_normalized_retentiontime(), pg.get_feature_id()) for pg in pep.get_all_peakgroups()] )
         rt_eval = [ pg[0] for pg in all_pg]
         aligned_result = sm.predict(rt_eval)
-        for pep in run:
-            mutable = [list(pg) for pg in pep.peakgroups_]
-            for k in range(len(mutable)):
-                mutable[k][2] = aligned_result[i]
-                i += 1
-            pep.peakgroups_ = [ tuple(m) for m in mutable]
+        for prgr in run:
+            for pep in prgr:
+                # TODO hack -> direct access to the internal peakgroups object
+                mutable = [list(pg) for pg in pep.peakgroups_]
+                for k in range(len(mutable)):
+                    mutable[k][2] = aligned_result[i]
+                    i += 1
+                pep.peakgroups_ = [ tuple(m) for m in mutable]
 
     def rt_align_all_runs(self, experiment, multipeptides):
         """ Align all runs contained in an MRExperiment
