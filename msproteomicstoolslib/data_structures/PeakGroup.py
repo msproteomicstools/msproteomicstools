@@ -147,6 +147,9 @@ class MinimalPeakGroup(PeakGroupBase):
     def get_cluster_id(self):
         return self.cluster_id_
 
+    def __str__(self):
+        return "PeakGroup %s at %s s with score %s" % (self.get_feature_id(), self.get_normalized_retentiontime(), self.get_fdr_score())
+
 class GuiPeakGroup(PeakGroupBase):
     """
     A single peakgroup that is defined by a retention time in a chromatogram

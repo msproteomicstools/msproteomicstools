@@ -196,6 +196,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score_name = "m_score"
         dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
+        peptide_group_label_name = "peptide_group_label"
         diff_from_assay_in_sec_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "ProteinName"
@@ -219,6 +220,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
         sequence = this_row[run.header_dict[self.sequence_col]]
+        peptide_group_label = trgr_id
+
+        if peptide_group_label_name in run.header_dict: 
+            peptide_group_label = this_row[run.header_dict[peptide_group_label_name]]
 
         # Attributes that only need to be present in strict mode
         diff_from_assay_seconds = -1
@@ -227,10 +232,12 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         thisid = -1
         try:
             fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+            #fdr_score = 0.0001
             protein_name = this_row[run.header_dict[protein_id_col]]
             thisid = this_row[run.header_dict[unique_feature_id_name]]
             diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
             d_score = float(this_row[run.header_dict[dscore_name]])
+            #d_score = 2
         except KeyError:
             if self.errorHandling == "strict": 
                 raise Exception("Did not find essential column.")
@@ -242,17 +249,17 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
 
-        # If the peptide does not yet exist
-        if not run.all_peptides.has_key(trgr_id):
+        # If the peptide does not yet exist, generate it
+        if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.set_decoy(decoy)
-          run.all_peptides[trgr_id] = p
+          run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
-          run.get_peptide(trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
           rightWidth = this_row[run.header_dict[right_width_name]]
@@ -260,13 +267,13 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
-          peakgroup = self.PeakGroup(this_row, run, run.get_peptide(trgr_id))
+          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
           peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
-          run.get_peptide(trgr_id).add_peakgroup(peakgroup)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
 
@@ -320,12 +327,14 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
             decoy = this_row[run.header_dict[decoy_name]]
         run_id = this_row[run.header_dict[run_id_name]]
 
-        if not run.all_peptides.has_key(trgr_id):
+        # If the peptide does not yet exist, generate it
+        peptide_group_label = trgr_id
+        if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.set_decoy(decoy)
-          run.all_peptides[trgr_id] = p
+          run.addPrecursor(p, peptide_group_label)
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
@@ -398,12 +407,14 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
             decoy = this_row[run.header_dict[decoy_name]]
         run_id = this_row[run.header_dict[run_id_name]]
 
-        if not run.all_peptides.has_key(trgr_id):
+        # If the peptide does not yet exist, generate it
+        peptide_group_label = trgr_id
+        if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
           p.protein_name = protein_name
           p.sequence = sequence
           p.set_decoy(decoy)
-          run.all_peptides[trgr_id] = p
+          run.addPrecursor(p, peptide_group_label)
           if verb: print "add peptide", trgr_id
 
         # Only minimal reading is implemented
