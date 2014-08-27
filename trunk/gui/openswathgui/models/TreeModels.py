@@ -7,21 +7,43 @@ from PyQt4.QtCore import Qt, QModelIndex
 ## Generic tree models
 # from http://www.hardcoded.net/articles/using_qtreeview_with_qabstractitemmodel.htm
 class TreeNode(object):
+    """
+    Generic model of a tree node
+
+    Adopted from http://www.hardcoded.net/articles/using_qtreeview_with_qabstractitemmodel.htm
+
+    See :class:`.PeptideTreeNode` for implementation.
+    """
     def __init__(self, parent, row):
         self.parent = parent
         self.row = row
         self.subnodes = self._getChildren()
 
     def _getChildren(self):
+        """
+        Get children of current node
+        """
         raise NotImplementedError()
 
 
 class TreeModel(QtCore.QAbstractItemModel):
+    """
+    Generic tree model
+
+    Adopted from http://www.hardcoded.net/articles/using_qtreeview_with_qabstractitemmodel.htm
+
+    See parent class http://qt-project.org/doc/qt-5/QAbstractItemModel.html
+
+    See :class:`.PeptideTree` for implementation.
+    """
     def __init__(self):
         QtCore.QAbstractItemModel.__init__(self)
         self.rootNodes = self._getRootNodes()
 
     def initialize(self):
+        """
+        Initialize tree
+        """
         self.rootNodes = self._getRootNodes()
 
     def _getRootNodes(self):

@@ -55,8 +55,10 @@ except ImportError:
 
 USE_ANTIALIASING = True
 
-# A single curve
 class CurveItemModel(CurveItem):
+    """
+    A single curve
+    """
 
     def __init__(self, *args, **kwargs):
         super(CurveItemModel, self).__init__(*args, **kwargs)
@@ -65,7 +67,10 @@ class CurveItemModel(CurveItem):
 ## The widget for a single plot on the right
 #
 class GuiQwtMultiLinePlot(CurveDialog):
-    """For the Curve window we could use a CurveDialog or a CurvePlot. 
+    """
+    Widget for an individual plot of transitions
+
+    For the Curve window we could use a CurveDialog or a CurvePlot. 
 
     CurveDialog has more features and seems more advanced.
     """
@@ -211,7 +216,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
 ## The widget for a single plot on the right using Qwt only
 #
 class QwtMultiLinePlot(Qwt.QwtPlot):
-    """Use Qwt Plot
+    """Widget for an individual plot of transitions (using Qwt Plot)
 
     Implements the same interface as the GuiQwtMultiLinePlot, but performs faster.
     """

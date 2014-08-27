@@ -79,24 +79,11 @@ class PrecursorModel():
 class DataModel(object):
     """The main data model
 
-    It stores the SwathRun objects and can be initialized from a list of files. 
+    It stores the references to individual :class:`.SwathRun` objects and can
+    be initialized from a list of files. 
 
     Attributes:
-        runs:     A list of SwathRun objects
-
-    Methods:
-        get_precursors_tree:  Returns a list of ChromatogramTransition root elements (rows) to display in the left side tree
-                              view. Each element may contain nested ChromatogramTransition elements (tree elements).
-
-        get_runs:             Returns the list of SwathRun objects of this
-                              current data model
-
-        loadFiles:            Load a set of chromatogram files (no peakgroup information).
-
-        loadMixedFiles:       Load a set of chromatogram files (flat file list) and aligned peakgroup files. 
-
-        load_from_yaml:       Load a yaml file containing a mapping of chromatogram files and aligned peakgroup files.
-
+        runs(list of :class:`.SwathRun`): The MS runs which are handled by this class
     """
 
     def __init__(self):
@@ -106,6 +93,9 @@ class DataModel(object):
     ## Getters
     #
     def getStatus(self):
+        """
+        Returns its own status (number of transitions etc.) for the status bar.
+        """
         if len(self.get_runs()) == 0:
             return "Ready"
 
@@ -117,15 +107,37 @@ class DataModel(object):
             self.get_runs()[0].getTransitionCount(), len(self.get_runs()[0]._sequences_mapping), tr_cnt )
 
     def get_precursor_tree(self):
+        """
+        Returns the data models precursor tree structure
+
+        Returns a list of :class:`.ChromatogramTransition` root elements (rows)
+        to display in the left side tree view. Each element may contain nested
+        :class:`.ChromatogramTransition` elements (tree elements).
+
+        """
         return self._build_tree()
 
     def get_runs(self):
+        """
+        Returns the list of :class:`.SwathRun` objects of this current data model
+
+        Returns
+        -----------
+        list of :class:`.SwathRun`
+            The main content of the class is returned, its list of :class:`.SwathRun`
+        """
         return self.runs
 
     #
     ## Data loading
     #
     def loadFiles(self, filenames):
+        """
+        Load a set of chromatogram files (no peakgroup information).
+
+        Args:
+            filenames(list of str): List of filepaths containing the chromatograms
+        """
 
         swathfiles = SwathRunCollection()
         swathfiles.initialize_from_files(filenames)
@@ -137,6 +149,14 @@ class DataModel(object):
         Since no mapping is present here, we need to infer it from the data.
         Basically, we try to map the column align_runid to the filenames of the
         input .chrom.mzML hoping that the user did not change the filenames.
+
+        Parameters
+        ----------
+        rawdata_files : list of str
+            List of paths to chrom.mzML files
+        aligned_pg_files : list of str
+            List of paths to output files of the FeatureAligner
+
         """
 
         print "Input contained no mapping of run_id to the chromatograms."
@@ -156,6 +176,14 @@ class DataModel(object):
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
                     
     def load_from_yaml(self, yamlfile):
+        """
+        Load a yaml file containing a mapping of chromatogram files and aligned peakgroup files.
+
+        Parameters
+        ----------
+        yamlfile : str
+            Filepath to the yaml file for loading
+        """
 
         import yaml
         data = yaml.load(open(yamlfile) )["AlignedSwathRuns"]
@@ -236,6 +264,9 @@ class DataModel(object):
         transformation_collection_.initialize_from_data(reverse=True)
 
     def _build_tree(self):
+        """
+        Build tree of :class:`.ChromatogramTransition` objects for display
+        """
 
         peptide_sequences = set([])
         for r in self.get_runs():

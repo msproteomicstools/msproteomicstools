@@ -45,6 +45,10 @@ from TreeModels import TreeModel
 
 # A TreeNode element
 class PeptideTreeNode(TreeNode):
+    """
+    Implementation of a node in the right-hand peptide tree in the GUI
+    """
+
     def __init__(self, ref, parent, row):
         self.ref = ref
         TreeNode.__init__(self, parent, row)
@@ -54,11 +58,18 @@ class PeptideTreeNode(TreeNode):
             for index, elem in enumerate(self.ref.getSubelements())]
 
 class PeptideTree(TreeModel):
+    """
+    Implementation of a tree in the right-hand peptide tree in the GUI
+    """
+
     def __init__(self, rootElements):
         self.rootElements = rootElements
         TreeModel.__init__(self)
 
     def _getRootNodes(self):
+        """
+        Return root nodes (top-level nodes)
+        """
         return [PeptideTreeNode(elem, None, index)
             for index, elem in enumerate(self.rootElements)]
 
@@ -66,8 +77,17 @@ class PeptideTree(TreeModel):
         return 3
 
     def data(self, index, role):
+        """
+        Get data for a specific index (and role)
+
+        Currently supported role is only Qt.DisplayRole (for displaying the tree). The three columns are:
+            - Peptide Sequence
+            - Charge
+            - Name
+        """
         if not index.isValid():
             return None
+
         node = index.internalPointer()
         if role == Qt.DisplayRole and index.column() == 0:
             return QtCore.QVariant( node.ref.getPeptideSequence() )
@@ -75,9 +95,18 @@ class PeptideTree(TreeModel):
             return QtCore.QVariant( node.ref.getCharge() )
         if role == Qt.DisplayRole and index.column() == 2:
             return QtCore.QVariant( node.ref.getName() )
+
         return None
 
     def headerData(self, section, orientation, role):
+        """
+        Get header data (column header) for a specific index (and role)
+
+        The three columns are:
+            - Peptide Sequence
+            - Charge
+            - Name
+        """
         if section == 0:
             return 'Peptide Sequence'
         if section == 1:
@@ -88,6 +117,14 @@ class PeptideTree(TreeModel):
         return None
 
     def set_precursor_tree_structure(self, data, sortData = True):
+        """
+        Initialize tree structure
+
+        The three columns are:
+            - Peptide Sequence
+            - Charge
+            - Name
+        """
 
         if sortData:
             data.sort(lambda x,y: cmp(x.getName(), y.getName() ))

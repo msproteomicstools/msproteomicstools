@@ -49,13 +49,7 @@ class SwathRunCollection(object):
     a simple flat list of chromatogram files.
     
     Attributes:
-        swath_chromatograms     Dictionary mapping of the form { run_id : SwathRun}
-
-    Methods:
-        getSwathFiles:      Returns a list of SwathRun objects
-        getSwathFile:       Returns a SwathRun specified by the run id
-        getRunIds:          Returns all available run ids
-
+        swath_chromatograms: Dictionary mapping of the form { run_id : :class:`.SwathRun`}
     """
 
     def __init__(self):
@@ -68,8 +62,10 @@ class SwathRunCollection(object):
         same run. There may be multiple chromatogram (chrom.mzML) files mapped
         to one run id.
 
-        Args:
-            runid_mapping(dict): a dictionary of form { run_id : directory }
+        Parameters
+        ----------
+        runid_mapping : (dict)
+            A mapping dictionary of form { run_id : directory }
         """
         self.swath_chromatograms = {}
         for runid, dname in runid_mapping.iteritems():
@@ -81,8 +77,14 @@ class SwathRunCollection(object):
         """Initialize from a set of mapped chromatogram files. There may be
         multiple chromatogram (chrom.mzML) files mapped to one run id.
 
-        Args:
-            runid_mapping(dict): a dictionary of form { run_id : [chromatogram_files] }
+        Parameters
+        ----------
+        runid_mapping : dict
+            A mapping dictionary of form { run_id : [filename, filename, ...] }
+        precursor_mapping : dict
+            An optional mapping of the form { FullPrecursorName : [transition_id, transition_id, ...] }
+        sequences_mapping : dict
+            An optional mapping of the form { StrippedSequence : [FullPrecursorName, FullPrecursorName, ...]}
         """
         self.swath_chromatograms = {}
         for runid, chromfiles in runid_mapping.iteritems():
@@ -95,7 +97,7 @@ class SwathRunCollection(object):
         This assumes that each .mzML file is from a separate run.
 
         Args:
-            filenames(list): a list of filenames
+            filenames(list of str): A list of filenames
         """
         self.swath_chromatograms = {}
         for i,f in enumerate(filenames):
@@ -103,12 +105,35 @@ class SwathRunCollection(object):
             self.swath_chromatograms[ runid ] = SwathRun([f], str(runid) )
 
     def getSwathFiles(self):
+        """
+        Returns
+        -------
+        runs : list of :class:`.SwathRun`
+            All runs found in this collection
+        """
         return self.swath_chromatograms.values()
 
     def getSwathFile(self, key):
+        """
+        Args:
+            key(str): The requested run
+
+        Returns
+        -------
+        run : :class:`.SwathRun`
+            The run corresponding to the requested run
+        """
         return self.swath_chromatograms[key]
 
     def getRunIds(self):
+        """
+        Returns all available run ids
+
+        Returns
+        -------
+        runlist : list of str
+            A list of all available runs
+        """
         return self.swath_chromatograms.keys()
 
 
