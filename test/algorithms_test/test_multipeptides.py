@@ -51,9 +51,10 @@ class MockPeakGroup():
 
 class MockPeptide():
 
-    def __init__(self, peakgroups):
+    def __init__(self, peakgroups, sequence):
         self.peakgroups = peakgroups
         self.id = -1
+        self.sequence = sequence
 
     def get_all_peakgroups(self):
         return self.peakgroups
@@ -73,19 +74,37 @@ class MockPeptide():
     def get_id(self):
         return "144"
 
+class MockPrecursorGroup():
+
+    def __init__(self, peptides, id_="dummy"):
+        self.peptides = peptides
+        self.id_ = id_
+
+    def getPeptideGroupLabel(self):
+        return self.id_
+
+    def __iter__(self):
+        for p in self.peptides:
+            yield p
+
 def help_insert(m):
     peakgroup = MockPeakGroup(0.2)
-    mockPeptide2 = MockPeptide([ peakgroup ])
+    mockPeptide2 = MockPeptide([ peakgroup ], "PEPTIDE_seq2")
+    mockPrecursorGroup2 = MockPrecursorGroup([ mockPeptide2 ])
+
     peakgroup = MockPeakGroup(0.1)
-    mockPeptide3 = MockPeptide([peakgroup])
-    m.insert("42_0", mockPeptide2)
-    m.insert("43_0", mockPeptide3)
+    mockPeptide3 = MockPeptide([peakgroup], "PEPTIDE_seq2")
+    mockPrecursorGroup3 = MockPrecursorGroup([ mockPeptide3 ])
+
+    m.insert("42_0", mockPrecursorGroup2)
+    m.insert("43_0", mockPrecursorGroup3)
 
 class TestMultiPeptide(unittest.TestCase):
 
     def setUp(self):
         peakgroups = [MockPeakGroup() for i in range(2)]
-        self.mockPeptide = MockPeptide(peakgroups)
+        self.mockPeptide = MockPeptide(peakgroups, "PEPTIDESEQ")
+        self.mockPrecursorGroup = MockPrecursorGroup([self.mockPeptide], "gr1")
 
     def testNrRuns(self):
         m = Multipeptide()
@@ -97,46 +116,47 @@ class TestMultiPeptide(unittest.TestCase):
         myS = str(m)
         self.assertTrue(True)
 
-    def test_getPeptides(self):
+    def test_getPrecursorGroups(self):
         m = Multipeptide()
-        self.assertEqual(len(m.get_peptides()), 0)
+        self.assertEqual(len(m.getPrecursorGroups()), 0)
 
     def test_insert(self):
         m = Multipeptide()
-        self.assertEqual(len(m.get_peptides()), 0)
+        self.assertEqual(len(m.getPrecursorGroups()), 0)
 
-        m.insert("42_0", self.mockPeptide)
-        self.assertEqual(m.get_peptide("42_0"), self.mockPeptide)
-        self.assertEqual(len(m.get_peptide("42_0").get_all_peakgroups()), 2)
-        self.assertEqual(len(m.get_peptides()), 1)
-        self.assertTrue(m.has_peptide("42_0"))
+        m.insert("42_0", self.mockPrecursorGroup)
+        self.assertEqual(m.getPrecursorGroup("42_0"), self.mockPrecursorGroup)
+        self.assertEqual(len(list(m.getPrecursorGroup("42_0"))), 1)
+        self.assertEqual(len( list(m.getPrecursorGroup("42_0"))[0].get_all_peakgroups() ), 2)
+        self.assertEqual(len(m.getPrecursorGroups()), 1)
+        self.assertTrue(m.hasPrecursorGroup("42_0"))
 
+        # try to add more peakgroups to an already existing run
         peakgroups = [MockPeakGroup() for i in range(3)]
-        mockPeptide2 = MockPeptide(peakgroups)
-        m.insert("42_0", mockPeptide2)
-        self.assertEqual(len(m.get_peptide("42_0").get_all_peakgroups()), 5)
+        mockPeptide2 = MockPeptide(peakgroups, "pepseq2")
+        mockPrecursorGroup2 = MockPrecursorGroup([mockPeptide2], "gr2")
 
         myS = str(m)
         self.assertTrue(True)
 
     def test_insert_None(self):
         m = Multipeptide()
-        self.assertEqual(len(m.get_peptides()), 0)
+        self.assertEqual(len(m.getPrecursorGroups()), 0)
 
         m.insert("42_0", None)
         self.assertTrue(m.has_null_peptides())
-        self.assertFalse(m.has_peptide("42_0"))
+        self.assertFalse(m.hasPrecursorGroup("42_0"))
 
     def test_getId(self):
         m = Multipeptide()
         self.assertIsNone(m.get_id())
-        m.insert("42_0", self.mockPeptide)
+        m.insert("42_0", self.mockPrecursorGroup)
         self.assertEqual(m.get_id(), "144")
 
     def test_more_than_fraction_selected(self):
         m = Multipeptide()
         self.assertIsNone(m.get_id())
-        m.insert("42_0", self.mockPeptide)
+        m.insert("42_0", self.mockPrecursorGroup)
         m.set_nr_runs(1)
         self.assertTrue(m.more_than_fraction_selected(0.1))
         self.assertTrue(m.more_than_fraction_selected(0.6))
@@ -147,7 +167,7 @@ class TestMultiPeptide(unittest.TestCase):
     def test_get_decoy(self):
         m = Multipeptide()
         self.assertFalse(m.get_decoy())
-        m.insert("42_0", self.mockPeptide)
+        m.insert("42_0", self.mockPrecursorGroup)
         self.assertFalse(m.get_decoy())
 
     def test_all_above_cutoff(self):

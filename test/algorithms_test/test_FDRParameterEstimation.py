@@ -58,6 +58,7 @@ def prepareData(nr_peps=15, nr_targ=None):
         nr_targ = nr_peps
 
     import msproteomicstoolslib.data_structures.Precursor as precursor
+    import msproteomicstoolslib.data_structures.PrecursorGroup as precursor_group
     import msproteomicstoolslib.format.TransformationCollection as transformations
     from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
     import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
@@ -80,19 +81,25 @@ def prepareData(nr_peps=15, nr_targ=None):
         # Iterate over all runs
         for i in range(nr_runs):
             # A target peptide
-            p = precursor.Precursor("target_pep_%s" % j, runs[i] )
+            label = "target_pep_%s" % j
+            p = precursor.Precursor(label, runs[i] )
             p.set_decoy("FALSE")
             pg_tuple = ("id_%s" % ids, 1.0/j, 100, 10000)
             p.add_peakgroup_tpl(pg_tuple, "target_pep_%s" % j, -1)
-            mpeps[0].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(label, runs[i])
+            prgr.addPrecursor(p)
+            mpeps[0].insert(runs[i].get_id(), prgr)
             ids += 1
 
             # A decoy peptide
-            p = precursor.Precursor("decoy_pep_%s" % j, runs[i] )
+            label = "decoy_pep_%s" % j
+            p = precursor.Precursor(label, runs[i] )
             p.set_decoy("TRUE")
             pg_tuple = ("id_%s" % ids, 1.0/j, 100, 10000)
             p.add_peakgroup_tpl(pg_tuple, "decoy_pep_%s" % j, -1)
-            mpeps[1].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(label, runs[i])
+            prgr.addPrecursor(p)
+            mpeps[1].insert(runs[i].get_id(), prgr)
             ids += 1
         multipeptides.extend(mpeps)
 
@@ -104,11 +111,14 @@ def prepareData(nr_peps=15, nr_targ=None):
         [m.set_nr_runs(nr_runs) for m in mpeps]
         # Iterate over all runs
         for i in range(nr_runs):
-            p = precursor.Precursor("target_pep_good_%s" % j, runs[i] )
+            label = "target_pep_good_%s" % j
+            p = precursor.Precursor(label, runs[i] )
             p.set_decoy("FALSE")
             pg_tuple = ("id_%s" % ids, 0.01/j, 100, 10000)
             p.add_peakgroup_tpl(pg_tuple, "target_pep_good_%s" % j, -1)
-            mpeps[0].insert(runs[i].get_id(), p)
+            prgr = precursor_group.PrecursorGroup(label, runs[i])
+            prgr.addPrecursor(p)
+            mpeps[0].insert(runs[i].get_id(), prgr)
             ids += 1
         multipeptides.extend(mpeps)
     return multipeptides
