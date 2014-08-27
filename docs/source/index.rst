@@ -31,6 +31,13 @@ Contents of the GUI code:
     openswathgui.models
     openswathgui.views
 
+Contents of the executables:
+
+.. toctree::
+    :maxdepth: 2
+
+    analysis.alignment
+
 Indices and tables
 ==================
 
