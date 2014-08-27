@@ -98,6 +98,9 @@ class GeneralPrecursor(PrecursorBase):
         self.sequence = ""
         self.precursor_group = None
   
+    def __str__(self):
+        return "%s (run %s)" % (self.id, self.run)
+
     def add_peakgroup(self, peakgroup):
         self.peakgroups.append(peakgroup)
   

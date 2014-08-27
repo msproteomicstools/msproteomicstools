@@ -60,6 +60,7 @@ class PrecursorGroup():
             yield precursor
 
     def __classInvariant__(self):
+        # for precursor in self.precursors_: print precursor.sequence
         if len(self.precursors_) > 0:
             # All precursor sequences should all be equal to the first sequence
             assert(all( [precursor.sequence == self.precursors_[0].sequence for precursor in self.precursors_] )) 
@@ -82,6 +83,10 @@ class PrecursorGroup():
         return None
 
     @class_invariant(__classInvariant__)
+    def getAllPrecursors(self):
+        return list(self)
+
+    @class_invariant(__classInvariant__)
     def getAllPeakgroups(self):
         for pr in self.precursors_:
             for pg in pr.get_all_peakgroups():
@@ -95,8 +100,4 @@ class PrecursorGroup():
 
         minscore = min([pg.get_fdr_score() for pg in allpg])
         return [pg for pg in allpg if pg.get_fdr_score() <= minscore][0]
-
-
-
-
 
