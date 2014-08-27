@@ -252,21 +252,21 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
-          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+          run.get_peptide(trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
           rightWidth = this_row[run.header_dict[right_width_name]]
           charge = this_row[run.header_dict[charge_name]]
-          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.all_peptides[trgr_id])
-          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
+          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
-          peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          peakgroup = self.PeakGroup(this_row, run, run.get_peptide(trgr_id))
           peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
-          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
+          run.get_peptide(trgr_id).add_peakgroup(peakgroup)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
 
@@ -328,14 +328,14 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
           run.all_peptides[trgr_id] = p
         if self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
-          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
-          peakgroup = self.PeakGroup(this_row, run, run.all_peptides[trgr_id])
+          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
           peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
-          run.all_peptides[trgr_id].add_peakgroup(peakgroup)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
 
@@ -410,7 +410,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         if self.readmethod == "minimal":
           if verb: print "append tuple", peakgroup_tuple
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
-          run.all_peptides[trgr_id].add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
             raise NotImplemented
 

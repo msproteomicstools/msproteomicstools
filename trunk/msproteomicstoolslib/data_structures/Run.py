@@ -73,9 +73,9 @@ class Run():
     def get_best_peaks_with_cutoff(self, cutoff):
         return [p for p in self.get_best_peaks() if p.get_fdr_score() < cutoff]
   
-    def get_peptide(self, id):
+    def get_peptide(self, curr_id):
         try:
-          return self.all_peptides[id]
+          return self.all_peptides[curr_id]
         except KeyError:
           # this run has no peakgroup for that peptide
           return None
