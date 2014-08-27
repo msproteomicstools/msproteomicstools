@@ -70,6 +70,14 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
         trgr_ids = set([ trgr.get_id() for prgr in multipep.getPrecursorGroups() for trgr in prgr ])
         for trgr_id in trgr_ids:
 
+            # Get all selected peakgroups that correspond to the current
+            # transition group id and ensure we do not have any twice.
+            allruns = [pg.peptide.run.get_id() for pg in multipep.get_selected_peakgroups() 
+                       if pg.peptide.get_id() == trgr_id]
+            if len(allruns) != len(set(allruns)):
+                # TODO test this as well .... 
+                raise Exception("Error when writing out matrix, found more than one peakgroup for a run %s" % allruns)
+
             # Get all selected peakgroups that correspond to the current transition group id 
             selected_peakgroups = dict([(pg.peptide.run.get_id(), pg) 
                 for pg in multipep.get_selected_peakgroups() if pg.peptide.get_id() == trgr_id])
