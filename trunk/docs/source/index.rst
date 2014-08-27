@@ -6,16 +6,30 @@
 Welcome to msproteomicstools's documentation!
 =============================================
 
-Contents:
+`msproteomicstools` is a Python library that can be used in LC-MS/MS based
+proteomics. It features a core library called `msproteomicstoolslib` and several
+associated executable scripts that use the library as well as a GUI for
+visualizing chromatograms, specifically output from `OpenSWATH
+<http://openswath.org/>`_.
+
+Contents of the library:
 
 .. toctree::
     :maxdepth: 2
 
     msproteomicstoolslib.algorithms
+    msproteomicstoolslib.math
     msproteomicstoolslib.data_structures
     msproteomicstoolslib.format
     msproteomicstoolslib.util
 
+Contents of the GUI code:
+
+.. toctree::
+    :maxdepth: 2
+
+    openswathgui.models
+    openswathgui.views
 
 Indices and tables
 ==================

@@ -19,6 +19,7 @@ import sys, os
 sys.path.insert(0, os.path.abspath('../msproteomicstoolslib'))
 sys.path.insert(0, os.path.abspath('../../msproteomicstoolslib'))
 sys.path.insert(0, os.path.abspath('../../analysis/alignment/'))
+sys.path.insert(0, os.path.abspath('../../gui/'))
 sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration -----------------------------------------------------
