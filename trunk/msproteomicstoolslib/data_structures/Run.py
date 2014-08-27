@@ -35,15 +35,23 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
+
 class Run():
     """
-    One single SWATH run that contains peptides (chromatograms) 
+    A run contains references to identified precursor groups and precursors. 
+    
+    The run stores a reference to precursor groups (heavy/light pairs) identified in the run.
     It has a unique id and stores the headers from the csv
 
     A run has the following attributes: 
         - an identifier that is unique to this run
         - a filename where it originally came from
-        - a dictionary of precursors, accessible through a dictionary
+        - a dictionary of precursor groups which are accessible through the following functions
+          - getPrecursorGroup 
+          - hasPrecursor
+          - getPrecursor
+          - addPrecursor
     """
 
     def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None):
@@ -53,8 +61,11 @@ class Run():
         self.orig_filename = orig_input_filename # the original input filename
         self.openswath_filename = filename # the original OpenSWATH filename
         self.aligned_filename = aligned_filename # the aligned filename
-        self.all_peptides = {}
+        self.all_precursor_groups_ = {}
   
+    def __str__(self):
+        return "Run %s" % (self.get_id())
+
     def get_id(self):
         return self.runid
 
@@ -66,21 +77,39 @@ class Run():
   
     def get_best_peaks(self):
         result = []
-        for k, peptide in self.all_peptides.iteritems():
-          result.append(peptide.get_best_peakgroup())
+        for k, precursor_group in self.all_precursor_groups_.iteritems():
+            for peptide in precursor_group:
+                result.append(peptide.get_best_peakgroup())
         return result
   
     def get_best_peaks_with_cutoff(self, cutoff):
         return [p for p in self.get_best_peaks() if p.get_fdr_score() < cutoff]
   
-    def get_peptide(self, curr_id):
+    def getPrecursorGroup(self, curr_id):
         try:
-          return self.all_peptides[curr_id]
+          return self.all_precursor_groups_[curr_id]
         except KeyError:
           # this run has no peakgroup for that peptide
           return None
 
+    def hasPrecursor(self, peptide_group_label, trgr_id):
+        return self.all_precursor_groups_.has_key(peptide_group_label) and \
+                not self.getPrecursorGroup(peptide_group_label).getPrecursor(trgr_id) is None
+
+    def getPrecursor(self, peptide_group_label, trgr_id):
+        if self.hasPrecursor(peptide_group_label, trgr_id):
+            return self.getPrecursorGroup(peptide_group_label).getPrecursor(trgr_id)
+        return None
+
+    def addPrecursor(self, precursor, peptide_group_label):
+        if self.all_precursor_groups_.has_key(peptide_group_label):
+            self.getPrecursorGroup(peptide_group_label).addPrecursor(precursor)
+        else:
+            prec_gr = PrecursorGroup(peptide_group_label, self)
+            prec_gr.addPrecursor(precursor)
+            self.all_precursor_groups_[peptide_group_label] = prec_gr
+
     def __iter__(self):
-        for peptide in self.all_peptides.values():
-            yield peptide
+        for precursor in self.all_precursor_groups_.values():
+            yield precursor
 
