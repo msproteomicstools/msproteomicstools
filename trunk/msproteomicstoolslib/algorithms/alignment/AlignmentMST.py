@@ -259,7 +259,7 @@ class TreeConsensusAlignment():
 
             last_cluster = []
             already_seen = set([])
-            stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() 
+            stillLeft = [b for a in m.getPrecursorGroups() for b in a.getAllPeakgroups() 
                          if b.get_feature_id() + b.peptide.get_id() not in already_seen 
                          and b.get_fdr_score() < self._fdr_cutoff]
             clusters = []
@@ -272,7 +272,7 @@ class TreeConsensusAlignment():
                 last_cluster = self._findAllPGForSeed(tree, tr_data, m, best, already_seen)
                 already_seen.update( set([ b.get_feature_id() + b.peptide.get_id() 
                                           for b in last_cluster if b is not None]) )
-                stillLeft = [b for a in m.get_peptides() for b in a.get_all_peakgroups() 
+                stillLeft = [b for a in m.getPrecursorGroups() for b in a.getAllPeakgroups() 
                              if b.get_feature_id() + b.peptide.get_id() not in already_seen 
                              and b.get_fdr_score() < self._fdr_cutoff]
                 clusters.append(Cluster(last_cluster))
@@ -348,7 +348,7 @@ class TreeConsensusAlignment():
                     visited[e1] = newPG
         return [pg for pg in visited.values() if pg is not None]
 
-    def _findBestPG(self, m,  source, target, tr_data, source_rt, already_seen):
+    def _findBestPG(self, m, source, target, tr_data, source_rt, already_seen):
         """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
         Args:
@@ -373,7 +373,7 @@ class TreeConsensusAlignment():
 
         # If there is no peptide present in the target run, we simply return
         # the expected retention time.
-        if not m.has_peptide(target):
+        if not m.hasPrecursorGroup(target):
             return None, expected_rt
 
         max_rt_diff = self._max_rt_diff
@@ -388,11 +388,16 @@ class TreeConsensusAlignment():
             max_rt_diff = max(self._max_rt_diff, max_rt_diff)
 
         if self.verbose:
-            print "Used rt diff:", max_rt_diff
+            print "  Used rt diff:", max_rt_diff
 
+        return self. _findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen)
+
+    def _findBestPGFromTemplate(self, expected_rt, target_peptide, max_rt_diff, already_seen):
+        """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
+
+        """
         # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
-        target_p = m.get_peptide(target)
-        matching_peakgroups = [pg_ for pg_ in target_p.get_all_peakgroups() 
+        matching_peakgroups = [pg_ for pg_ in target_peptide.getAllPeakgroups() 
             if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < max_rt_diff) and
                 pg_.get_fdr_score() < self._aligned_fdr_cutoff and 
                 pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen]
