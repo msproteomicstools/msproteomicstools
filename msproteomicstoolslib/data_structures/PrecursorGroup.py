@@ -68,15 +68,27 @@ class PrecursorGroup():
 
     @class_invariant(__classInvariant__)
     def getPeptideGroupLabel(self):
+        """
+        getPeptideGroupLabel(self)
+        Get peptide group label
+        """
         return self.peptide_group_label_
   
     @class_invariant(__classInvariant__)
     def addPrecursor(self, precursor):
+        """
+        addPrecursor(self, precursor)
+        Add precursor to peptide group
+        """
         precursor.precursor_group = self
         self.precursors_.append(precursor)
 
     @class_invariant(__classInvariant__)
     def getPrecursor(self, curr_id):
+        """
+        getPrecursor(self, curr_id)
+        Get the precursor for the given transition group id
+        """
         for precursor in self:
             if precursor.get_id() == curr_id:
                 return precursor
@@ -84,16 +96,28 @@ class PrecursorGroup():
 
     @class_invariant(__classInvariant__)
     def getAllPrecursors(self):
+        """
+        getAllPrecursors(self)
+        Return a list of all precursors in this precursor group
+        """
         return list(self)
 
     @class_invariant(__classInvariant__)
     def getAllPeakgroups(self):
+        """
+        getAllPeakgroups(self)
+        Generator of all peakgroups attached to the precursors in this group
+        """
         for pr in self.precursors_:
             for pg in pr.get_all_peakgroups():
                 yield pg
 
     @class_invariant(__classInvariant__)
     def getOverallBestPeakgroup(self):
+        """
+        getOverallBestPeakgroup(self)
+        Get the best peakgroup (by fdr score) of all precursors contained in this precursor group
+        """
         allpg = list(self.getAllPeakgroups())
         if len(allpg) == 0:
             return None

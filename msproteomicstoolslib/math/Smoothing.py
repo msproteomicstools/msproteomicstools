@@ -87,33 +87,36 @@ def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOut
 
 class SmoothingR:
     """Class to smooth data using the smooth.spline function from R
+    
+    This is equivalent to the following code::
 
-     data1 = c(5,7,8,9,10,15,7.1,6)
-     data2 = c(4,7,9,11,11,14,7.1,6.5)
-     data1 = sort(data1)
-     data2 = sort(data2)
-     smooth.model = smooth.spline(data1,data2,cv=T)
-     data2_pred = predict(smooth.model,data2)$y 
-     [1]  2.342662  6.615797  7.292613  7.441842 10.489440 11.858406 11.858406
-     [8] 13.482255
-     plot(data1, data2)
-     lines(data1, data2_pred, col="blue")
+         data1 = c(5,7,8,9,10,15,7.1,6)
+         data2 = c(4,7,9,11,11,14,7.1,6.5)
+         data1 = sort(data1)
+         data2 = sort(data2)
+         smooth.model = smooth.spline(data1,data2,cv=T)
+         data2_pred = predict(smooth.model,data2)$y 
+         [1]  2.342662  6.615797  7.292613  7.441842 10.489440 11.858406 11.858406
+         [8] 13.482255
+         plot(data1, data2)
+         lines(data1, data2_pred, col="blue")
 
 
-    # In python ...
-    import rpy2.robjects as robjects
-    # uses python-rpy2
-    data1 = [5,7,8,9,10,15,7.1,6]
-    data2 = [4,7,9,11,11,14,7.1,6.5]
-    rdata1 = robjects.FloatVector(data1)
-    rdata2 = robjects.FloatVector(data2)
-    spline = robjects.r["smooth.spline"]
-    sm = spline(data1,data2,cv=T)
-    predict = robjects.r["predict"]
-    predicted_data = predict(sm, rdata2)
-    numpy.array(predicted_data[1])
-    array([  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
-            11.85840597,  13.48225519,   7.44184246,   6.61579704])
+    Doing the same thing in Python ::
+
+        import rpy2.robjects as robjects
+        # uses python-rpy2
+        data1 = [5,7,8,9,10,15,7.1,6]
+        data2 = [4,7,9,11,11,14,7.1,6.5]
+        rdata1 = robjects.FloatVector(data1)
+        rdata2 = robjects.FloatVector(data2)
+        spline = robjects.r["smooth.spline"]
+        sm = spline(data1,data2,cv=T)
+        predict = robjects.r["predict"]
+        predicted_data = predict(sm, rdata2)
+        numpy.array(predicted_data[1])
+        array([  2.34266247,   7.2926131 ,  10.48943975,  11.85840597,
+                11.85840597,  13.48225519,   7.44184246,   6.61579704])
 
     """
 
