@@ -107,18 +107,18 @@ class Multipeptide():
     def has_null_peptides(self):
       return self._has_null
 
-    def insert(self, runid, peptide):
-        if self.hasPrecursorGroup(runid):
-            # Add all peakgroups to this peptide
-            for pg in peptide.get_all_peakgroups():
-                self._peptides[runid].add_peakgroup(pg)
-            return
+    def insert(self, runid, precursor_group):
 
-        if peptide is None: 
+        # Deal with None (store that we have a None precursor)
+        if precursor_group is None: 
             self._has_null = True 
             return
-        self._peptides[runid] = peptide
-    
+
+        if self.hasPrecursorGroup(runid):
+            raise Exception("A precursor for run %s already exists, cannot add another one.")
+
+        self._peptides[runid] = precursor_group
+
     def get_selected_peakgroups(self):
       return [precursor.get_selected_peakgroup() for prgr in self.getPrecursorGroups() for precursor in prgr if precursor.get_selected_peakgroup() is not None]
 
