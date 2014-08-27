@@ -40,13 +40,17 @@ import os
 
 from msproteomicstoolslib.data_structures.Run import Run
 
-class MockPeptide():
+class MockPrecursorGroup():
 
     def __init__(self, id_):
         self.id_ = id_
 
     def get_best_peakgroup(self):
         return "42"
+
+    # Dummy function - instead of yielding a second level Peptide, it simply yields itself
+    def __iter__(self):
+        yield self
 
 class TestUnitRun(unittest.TestCase):
 
@@ -62,16 +66,16 @@ class TestUnitRun(unittest.TestCase):
 
     def test_get_peptide(self):
         r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")
-        r.all_peptides = dict( [ (str(i), MockPeptide(i)) for i in range(5) ]  )
-        self.assertEqual( r.get_peptide("2").id_, 2) 
-        self.assertIsNone( r.get_peptide("9_dummy"))
+        r.all_precursor_groups_ = dict( [ (str(i), MockPrecursorGroup(i)) for i in range(5) ]  )
+        self.assertEqual( r.getPrecursorGroup("2").id_, 2) 
+        self.assertIsNone( r.getPrecursorGroup("9_dummy"))
 
         ids = sorted([p.id_ for p in r])
         self.assertEqual( ids, range(5))
 
     def test_get_best_peaks(self):
         r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")
-        r.all_peptides = dict( [ (str(i), MockPeptide(i)) for i in range(5) ]  )
+        r.all_precursor_groups_ = dict( [ (str(i), MockPrecursorGroup(i)) for i in range(5) ]  )
         self.assertEqual( r.get_best_peaks(), ["42" for i in range(5)] )
 
 if __name__ == '__main__':
