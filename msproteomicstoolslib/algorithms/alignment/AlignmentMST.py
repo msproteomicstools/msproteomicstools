@@ -254,8 +254,9 @@ class TreeConsensusAlignment():
 
         from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import Cluster
         for m in multipeptides:
+
             if self.verbose: 
-                print "00000000000000000000000000000000000 new peptide (cluster)", m.get_peptides()[0].get_id()
+                print "00000000000000000000000000000000000 new peptide (cluster)", m.getPrecursorGroups()[0].getPeptideGroupLabel()
 
             last_cluster = []
             already_seen = set([])
@@ -266,8 +267,8 @@ class TreeConsensusAlignment():
             while len(stillLeft) > 0:
                 best = min(stillLeft, key=lambda x: float(x.get_fdr_score()))
                 if self.verbose: 
-                    print "111111111111111111111111 new cluster"
-                    print " Best", best.print_out(), "from run", best.peptide.run.get_id()
+                    print " == alignAllCluster: new cluster initialized"
+                    print " == Best", best.print_out(), "from run", best.peptide.run.get_id()
 
                 last_cluster = self._findAllPGForSeed(tree, tr_data, m, best, already_seen)
                 already_seen.update( set([ b.get_feature_id() + b.peptide.get_id() 
@@ -322,8 +323,8 @@ class TreeConsensusAlignment():
             list(PeakGroupBase): List of peakgroups belonging to this cluster
         """
         if self.verbose: 
-            print "111111111111111111111111 new cluster"
-            print " Seed", seed.print_out(), "from run", seed.peptide.run.get_id()
+            print "111111111111111111111111 findAllPGForSeed started"
+            print "  Seed", seed.print_out(), "from run", seed.peptide.run.get_id()
 
         seed_rt = seed.get_normalized_retentiontime()
 
@@ -336,13 +337,13 @@ class TreeConsensusAlignment():
             for e1, e2 in tree:
                 if e1 in visited.keys() and not e2 in visited.keys():
                     if self.verbose:
-                        print "try to align", e2, "from", e1
+                        print "  try to align", e2, "from already known node", e1
                     newPG, rt = self._findBestPG(m, e1, e2, tr_data, rt_map[e1], already_seen)
                     rt_map[e2] = rt
                     visited[e2] = newPG
                 if e2 in visited.keys() and not e1 in visited.keys():
                     if self.verbose: 
-                        print "try to align", e1, "from", e2
+                        print "  try to align", e1, "from", e2
                     newPG, rt = self._findBestPG(m, e2, e1, tr_data, rt_map[e2], already_seen)
                     rt_map[e1] = rt
                     visited[e1] = newPG
@@ -368,8 +369,8 @@ class TreeConsensusAlignment():
         # Get expected RT (transformation of source into target domain)
         expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
         if self.verbose:
-            print "Expected RT", expected_rt, " (source RT)", source_rt
-            print " --- and back again :::  ", tr_data.getTrafo(target, source).predict([expected_rt])[0]
+            print "  Expected RT", expected_rt, " (source RT)", source_rt
+            print "  --- and back again :::  ", tr_data.getTrafo(target, source).predict([expected_rt])[0]
 
         # If there is no peptide present in the target run, we simply return
         # the expected retention time.
@@ -413,8 +414,8 @@ class TreeConsensusAlignment():
         # Printing for debug mode
         if self.verbose:
             closestPG = min(matching_peakgroups, key=lambda x: abs(float(x.get_normalized_retentiontime()) - expected_rt))
-            print "  closest:", closestPG.print_out(), "diff", abs(closestPG.get_normalized_retentiontime() - expected_rt)
-            print "  bestScoring:", bestScoringPG.print_out(), "diff", abs(bestScoringPG.get_normalized_retentiontime() - expected_rt)
+            print "    closest:", closestPG.print_out(), "diff", abs(closestPG.get_normalized_retentiontime() - expected_rt)
+            print "    bestScoring:", bestScoringPG.print_out(), "diff", abs(bestScoringPG.get_normalized_retentiontime() - expected_rt)
             print
 
         if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._aligned_fdr_cutoff]) > 1:
