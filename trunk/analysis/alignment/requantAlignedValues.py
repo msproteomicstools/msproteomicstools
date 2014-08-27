@@ -39,6 +39,8 @@ import os, sys, csv, time
 import numpy
 import argparse
 from msproteomicstoolslib.format.SWATHScoringReader import *
+from msproteomicstoolslib.data_structures.Precursor import GeneralPrecursor, Precursor
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
 import msproteomicstoolslib.format.TransformationCollection as transformations
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
@@ -336,7 +338,8 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
         # 
         start = time.time()
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-            transformation_collection_, options.border_option, rid)
+            transformation_collection_, options.border_option, 
+            onlyExtractFromRun=rid)
         print("Analyzing the runs took %ss" % (time.time() - start) )
         return new_exp, multipeptides
 
@@ -357,7 +360,8 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
             # Create the cache for run "rid" and then only extract peakgroups from this run
             swath_chromatograms.createRunCache(rid)
             multipeptides = analyze_multipeptides(new_exp, multipeptides, 
-                swath_chromatograms, transformation_collection_, options.border_option, rid)
+                swath_chromatograms, transformation_collection_, options.border_option, 
+                onlyExtractFromRun=rid)
     else:
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
             transformation_collection_, options.border_option)
@@ -393,25 +397,51 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
         if i % 500 == 0: 
             print "Done with %s out of %s" % (i, len(multipeptides))
         if VERBOSE:
-            print "do", m.get_peptides()[0].get_id()
+            print "Do group of peptides", m.getPrecursorGroups()[0].getPeptideGroupLabel()
 
-        # Ensure that each run has either exactly one peakgroup (or zero)
-        if all ([pg.get_cluster_id() == -1 for p in m.get_peptides() for pg in p.get_all_peakgroups()]) and \
-           any([len(p.peakgroups) > 1 for p in m.get_peptides()] ):
-            raise Exception("Found more than one peakgroup for peptide %s - \
-                \n is this after alignment or did you forget to run feature_alignment.py beforehand?" % (
-                m.get_id() ))
 
-        clusters = set( [pg.get_cluster_id() for p in m.get_peptides() for pg in p.get_all_peakgroups()])
+        # Ensure that each run has either exactly one peakgroup (or zero):
+        # If all peakgroups are old-style peakgroups (only single cluster) then
+        # all peptides can only have a single peakgroup.
+        if all([pg.get_cluster_id() == -1 for p in m.getAllPeptides() for pg in p.get_all_peakgroups()]):
+            if any([len(p.peakgroups) > 1 for p in m.getAllPeptides()] ):
+                raise Exception("Found more than one peakgroup for peptide %s - \
+                    \n is this after alignment or did you forget to run feature_alignment.py beforehand?" % (
+                    m.get_id() ))
+
+        clusters = set( [pg.get_cluster_id() for p in m.getAllPeptides() for pg in p.get_all_peakgroups()])
+        if VERBOSE: print "Shall work on clusters ", clusters
         for cl in clusters:
-            selected_pg = [pg for p in m.get_peptides() for pg in p.get_all_peakgroups() if pg.get_cluster_id() == cl]
-            analyze_multipeptide_cluster(m, cnt, new_exp, swath_chromatograms, 
-                                      transformation_collection_, border_option, selected_pg, cl,
-                                      onlyExtractFromRun, tree, mat)
 
-        if all ([pg.get_cluster_id() == -1 for p in m.get_peptides() for pg in p.get_all_peakgroups()]):
+            # Retrieve all transition group ids available for this precursor group
+            # Iterate through all ids (in order of ascending FDR since we
+            # believe transferring borders between runs is most efficient when
+            # first using the group with the best overall score).
+            trgr_ids = set([ trgr.get_id() for prgr in m.getPrecursorGroups() for trgr in prgr ])
+            fdr_trgr_mapping = []
+            for trgr_id in trgr_ids:
+                selected_pg = [pg.get_fdr_score() for p in m.getAllPeptides() for pg in p.get_all_peakgroups()
+                    if pg.peptide.get_id() == trgr_id and pg.get_cluster_id() == cl]
+
+                # In some cases there is no peakgroup for the current cluster available
+                if len(selected_pg) > 0:
+                    fdr_trgr_mapping.append( (min(selected_pg), trgr_id) )
+
+            if VERBOSE: print "mapping", sorted(fdr_trgr_mapping), "vs", trgr_ids
+            for fdr, trgr_id in sorted(fdr_trgr_mapping):
+                if VERBOSE: print "================================================"
+                if VERBOSE: print "Shall work on transition group", trgr_id, "with cluster", cl
+
+                # Get all selected peakgroups that correspond to the current transition group id 
+                selected_pg = [pg for p in m.getAllPeptides() for pg in p.get_all_peakgroups()
+                    if pg.peptide.get_id() == trgr_id and pg.get_cluster_id() == cl]
+                analyze_multipeptide_cluster(m, cnt, new_exp, swath_chromatograms, 
+                                          transformation_collection_, border_option, selected_pg, cl,
+                                          onlyExtractFromRun, tree, mat)
+
+        if all ([pg.get_cluster_id() == -1 for p in m.getAllPeptides() for pg in p.get_all_peakgroups()]):
             # no cluster info was read in -> select all
-            for p in m.get_peptides():
+            for p in m.getAllPeptides():
                 for pg in p.get_all_peakgroups():
                     pg.select_this_peakgroup()
 
@@ -425,6 +455,7 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                           onlyExtractFromRun=None, tree=None, mat=None):
 
         for rid in [r.get_id() for r in new_exp.runs]:
+            if VERBOSE: print "Shall work on run ", rid
             cnt.peakgroups += 1
 
             # Check whether we have a peakgroup for this run id, if yes we mark
@@ -442,9 +473,38 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
                 rmap = dict([(r.get_id(),i) for i,r in enumerate(new_exp.runs) ])
 
-                if VERBOSE: 
-                    print "Will try to fill NA in run", current_run.get_id(), "for peptide", current_mpep.get_peptides()[0].get_id()
-                if tree is not None:
+                if VERBOSE:
+                    print "Will try to fill NA in run", current_run.get_id(), "for peptide", selected_pg[0].peptide.get_id()
+                    print tree, mat
+
+                inferred_from_isotope = False
+                if current_mpep.hasPrecursorGroup(current_run.get_id()):
+                    # If another precursor was already picked for this run,
+                    # check if any peakgroups of the same cluster exist and if
+                    # so, try to use the one with the minimal FDR score to
+                    # infer the boundaries.
+                    prgr = current_mpep.getPrecursorGroup(current_run.get_id())
+                    pgs = [(pg_.get_fdr_score(), pg_) for prec_ in prgr for pg_ in prec_.peakgroups if pg_.get_cluster_id() == cluster_id] 
+                    if len(pgs) > 0:
+                        # TODO if the boundaries were inferred (e.g. fdr score > 1.0), should we not use them? 
+                        best_pg = min(pgs)[1]
+                        border_l = float(best_pg.get_value("leftWidth"))
+                        border_r = float(best_pg.get_value("rightWidth"))
+                        inferred_from_isotope = True
+
+                        if VERBOSE:
+                            print "Will try to infer from isotopically modified version of the same run!"
+                            print "Precursor is", prgr
+                            for prec in prgr:
+                                print " --", prec
+                                for pg in prec.peakgroups:
+                                    print "  * ", pg
+                            print "Min fdr pg", best_pg, " border %s / %s" % (border_l, border_r)
+
+                if inferred_from_isotope:
+                    # All good
+                    pass
+                elif tree is not None:
                     border_l, border_r = integrationBorderShortestPath(selected_pg, 
                         rid, transformation_collection_, tree)
                 elif mat is not None:
@@ -457,13 +517,39 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 if newpg != "NA": 
                     if VERBOSE: 
                         print "Managed to fill NA in run", current_run.get_id(), \
-                          "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r
+                          "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r #, "for cluster", newpg.get_value("align_clusterid")
                     cnt.imputation_succ += 1
-                    precursor = GeneralPrecursor(newpg.get_value("transition_group_id"), current_run)
-                    # Select for output, add to precursor
+                    transition_group_id = newpg.get_value("transition_group_id")
+                    try:
+                        peptide_label = newpg.get_value("peptide_group_label")
+                    except KeyError:
+                        peptide_label = transition_group_id
+
+                    # Create new precursor
+                    precursor = GeneralPrecursor(transition_group_id, current_run)
                     newpg.setClusterID(cluster_id)
+                    newpg.peptide = precursor
                     precursor.add_peakgroup(newpg)
-                    current_mpep.insert(rid, precursor)
+                    precursor.sequence = selected_pg[0].peptide.sequence
+                    precursor.protein_name = selected_pg[0].peptide.protein_name
+
+                    if current_mpep.hasPrecursorGroup(current_run.get_id()):
+                        prec_group = current_mpep.getPrecursorGroup(current_run.get_id())
+                        if prec_group.getPrecursor(transition_group_id) is None:
+                            # No precursors exists yet for this transition_group_id - this
+                            # means that we have a new run for which a precursor group already
+                            # exists (e.g. we have found a light version already) and are now
+                            # dealing with the heavy ...
+                            prec_group.addPrecursor(precursor)
+                        else:
+                            # Likely, another peakgroup from the same run and peptide was
+                            # picked already but not from the same cluster
+                            prec_group.getPrecursor(transition_group_id).add_peakgroup(newpg)
+                    else:
+                        # Create new precursor group and insert
+                        precursor_group = PrecursorGroup(peptide_label, current_run)
+                        precursor_group.addPrecursor(precursor)
+                        current_mpep.insert(rid, precursor_group)
 
 def integrate_chromatogram(template_pg, current_run, swath_chromatograms, 
                            left_start, right_end, cnt):
@@ -488,10 +574,10 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
     # Create new peakgroup by copying the old one
     newrow = ["NA" for ele in template_pg.row]
-    newpg = GeneralPeakGroup(newrow, current_run, template_pg.peptide)
+    newpg = GeneralPeakGroup(newrow, current_run, None)
     for element in ["transition_group_id"]:
         newpg.set_value(element, template_pg.get_value(element))
-    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z", "align_clusterid"]:
+    for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", "nr_peaks", "m.z", "m/z", "align_clusterid", "peptide_group_label"]:
         try:
             newpg.set_value(element, template_pg.get_value(element))
         except KeyError:
@@ -512,7 +598,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     import uuid 
     thisid = str(uuid.uuid1() )
     newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
-    newpg.set_fdr_score(1.0)
+    newpg.set_fdr_score(2.0)
     newpg.set_feature_id(thisid)
 
     integrated_sum = 0
@@ -562,7 +648,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
     for m in multipeptides:
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
-        for p in m.get_peptides():
+        for p in m.getAllPeptides():
             for selected_pg in p.peakgroups:
                 if single_outfile:
                     # Only write the newly imputed ones ... 
