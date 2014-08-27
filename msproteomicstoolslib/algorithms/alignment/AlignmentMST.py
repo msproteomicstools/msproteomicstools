@@ -156,7 +156,7 @@ class TreeConsensusAlignment():
     and could lead to whole subtrees that are wrongly aligned.
     """
 
-    def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff,
+    def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff, rt_diff_isotope=-1,
                  correctRT_using_pg=False, stdev_max_rt_per_run=None,
                  use_local_stdev=False, verbose=False):
         """ Initialization with parameters
@@ -184,7 +184,7 @@ class TreeConsensusAlignment():
         self._stdev_max_rt_per_run = stdev_max_rt_per_run
         self._use_local_stdev = use_local_stdev
         self.verbose = verbose
-        self.max_rt_diff_isotope = 11
+        self.max_rt_diff_isotope = rt_diff_isotope
 
         # Number of multiple possible alignments calls (more than one possibility)
         self.nr_multiple_align = 0
