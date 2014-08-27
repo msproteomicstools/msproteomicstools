@@ -336,5 +336,28 @@ class MatrixOutputWriters(unittest.TestCase):
                                      style="full", write_requant=False)
         os.remove(tmpfile)
 
+    def test_matrix_out_3(self):
+        """Test the output matrix writers"""
+
+        import msproteomicstoolslib.algorithms.alignment.AlignmentHelper as helper
+
+        runs = self.exp2.runs
+        multipeptides = self.multipeptides2[0]  
+
+        # Try to mess up the assumption of one selected peakgroup per run
+        pep1 = multipeptides.getAllPeptides()[0]
+        pep2 = multipeptides.getAllPeptides()[0]
+        for pg in pep1.peakgroups:
+            pg.select_this_peakgroup()
+        for pg in pep2.peakgroups:
+            pg.peptide = pep1
+            pg.select_this_peakgroup()
+
+        tmpfile = "tmp.output.csv"
+        self.assertRaises(Exception, helper.write_out_matrix_file, tmpfile, runs, [ multipeptides ] , 0.0, 
+                                     style="full", write_requant=False)
+        os.remove(tmpfile)
+
 if __name__ == '__main__':
     unittest.main()
+
