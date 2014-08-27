@@ -41,19 +41,24 @@ from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
 
 class TransformationError():
+    """
+    Class to store the error of a given transformation
+    """
     def __init__(self):
         self.transformations = {}
 
     def getStdev(self):
+        """
+        Retrieve the standard deviation as a measurement of the error of a transformation
+        """
         for tr1 in self.transformations.values():
             for tr2 in tr1.values():
                 yield tr2[0]
 
 class SplineAligner():
     """
-    Use the datasmoothing part of msproteomicstoolslib to align 2 runs in
+    Use the datasmoothing part of msproteomicstoolslib to align two runs in
     retention times using splines.
-
 
     >>> spl_aligner = SplineAligner()
     >>> transformations = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
@@ -214,5 +219,11 @@ class SplineAligner():
         return self.transformation_collection
 
     def getTransformationError(self):
+        """
+        Get the error of the transformation
+
+        Returns:
+            transformation_error(:class:`.TransformationError`) : the error of the transformation
+        """
         return self.transformation_error
 

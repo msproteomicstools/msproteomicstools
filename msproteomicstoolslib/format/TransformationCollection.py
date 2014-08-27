@@ -39,6 +39,9 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 import numpy
 
 class LightTransformationData:
+    """
+    A lightweight data structure to store a transformation between retention times of multiple runs.
+    """
 
     def __init__(self, ref=None):
         self.data = {} 
@@ -47,6 +50,9 @@ class LightTransformationData:
         self.reference = ref
 
     def addTrafo(self, run1, run2, trafo, stdev=None):
+      """
+      Add transformation between two runs
+      """
       d = self.trafo.get(run1, {})
       d[run2] = trafo
       self.trafo[run1] = d
@@ -56,6 +62,9 @@ class LightTransformationData:
       self.stdevs[run1] = d
 
     def addData(self, run1, data1, run2, data2, doSort=True):
+      """
+      Add raw data for the transformation between two runs
+      """
       # Add data from run1 -> run2 and also run2 -> run1
       assert len(data1) == len(data2)
       self._doAddData(run1, data1, run2, data2, doSort)
@@ -89,7 +98,7 @@ class LightTransformationData:
         return self.reference
 
 class TransformationCollection():
-    """A class to store information about transformations between multiple runs.
+    """A class to store a transformation between retention times of multiple runs.
     
     It allows to add transformation data (e.g. a pair of arrays which map
     coordinates from one RT space to the other). Once all data is added, one

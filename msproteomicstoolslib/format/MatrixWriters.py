@@ -42,6 +42,12 @@ import xlsxwriter
 
 
 def getwriter(matrix_outfile):
+    """
+    Factory function to get the correct writer depending on the file ending
+
+    Args:
+        matrix_outfile(str): Filename of output - used to determine output format. Valid formats are .xlsx .xls .csv or .tsv
+    """
     if matrix_outfile.endswith("xls"):
         matrix_writer = XlsWriter(matrix_outfile)
     elif matrix_outfile.endswith("xlsx"):
@@ -54,7 +60,6 @@ def getwriter(matrix_outfile):
         raise Exception("Unknown matrix extension, must be .xlsx .xls .csv or .tsv")
 
     return matrix_writer
-
 
 class IWriter():
     """

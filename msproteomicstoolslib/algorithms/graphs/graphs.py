@@ -36,6 +36,12 @@ $Authors: Hannes Roest$
 """
 
 def getAdjacencyList(tree):
+    """
+    Convert a tree into a adjacency list
+
+    Args:
+        tree(list(tuple)): a tree represented as list of edges (for example [('0', '1'), ('1', '2')] ).
+    """
     adj_list = {}
     for e1, e2 in tree:
         e1l = adj_list.get(e1, [])
@@ -47,6 +53,16 @@ def getAdjacencyList(tree):
     return adj_list
 
 def doBFS(tree, start_node):
+    """
+    Perform breadth-first-search (BFS) on a given tree
+
+    Args:
+        tree(list(tuple)): a tree represented as list of edges (for example [('0', '1'), ('1', '2')] ).
+        start_node(str): starting node
+
+    Yields:
+        node(str): current node during search
+    """
 
     adj_list = getAdjacencyList(tree)
 
@@ -93,6 +109,14 @@ def findShortestMSTPath(graph, start, end):
     equal distance, whichever comes first in the BFS will be chosen.
 
     It will then return the path between this element and the start element. 
+
+    Args:
+        graph(list(tuple)): a graph represented as list of edges (for example [('0', '1'), ('1', '2')] ).
+        start(str): Starting node
+        end(list(str)): List of possible end nodes (closest will be chosen)
+
+    Returns:
+        path (list(str)) : A path represented as list of nodes to be visited in that order
 
     """
     assert isinstance(end, list)

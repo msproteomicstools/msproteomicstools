@@ -44,7 +44,7 @@ def integrationBorderShortestPath(selected_pg, target_run, transformation_collec
     Args:
         selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
         target_run(String): run id of the target run (where value is missing)
-        transformation_collection_(format.TransformationCollection.LightTransformationData): structure to hold binary transformations between two different retention time spaces
+        transformation_collection_(:class:`.LightTransformationData`): structure to hold binary transformations between two different retention time spaces
         tree(list(tuple)): a minimum spanning tree (MST) represented as list of edges (for example [('0', '1'), ('1', '2')] ). Node names need to correspond to run ids.
 
     Returns:
@@ -80,7 +80,7 @@ def integrationBorderShortestDistance(selected_pg, target_run, transformation_co
     Args:
         selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
         target_run(String): run id of the target run (where value is missing)
-        transformation_collection_(format.TransformationCollection.LightTransformationData): structure to hold binary transformations between two different retention time spaces
+        transformation_collection_(:class:`.LightTransformationData`): structure to hold binary transformations between two different retention time spaces
         mat(numpy matrix): distance matrix for all runs (as returned by algorithms.alignment.AlignmentMST.getDistanceMatrix)
         rmap(dict): mapping run ids to matrix columns (e.g. {"run_0" : 0, "run_1" : 1})
 
@@ -91,7 +91,7 @@ def integrationBorderShortestDistance(selected_pg, target_run, transformation_co
     # Available runs which have a reliable RT value (no noise integration values ... )
     available_runs = [pg.peptide.run.get_id() for pg in selected_pg if pg.get_fdr_score() < 1.0]
 
-    # Select current row from the matrix, reduce to columns of runs for which
+    # Select curaent row from the matrix, reduce to columns of runs for which
     # we actually have a value and select closest among these
     current_matrix_row = mat[rmap[target_run],]
     current_matrix_row = [ (current_matrix_row[ rmap[curr] ], curr) for curr in available_runs]
@@ -112,7 +112,7 @@ def integrationBorderReference(new_exp, selected_pg, rid, transformation_collect
         new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
         selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
         rid(String): current run id
-        transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
+        transformation_collection_(:class:`.TransformationCollection`): specifying how to transform between retention times of different runs
 
     Returns:
         A tuple of (left_integration_border, right_integration_border) in the retention time space of the _reference_ run

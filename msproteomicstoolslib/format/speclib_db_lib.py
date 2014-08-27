@@ -89,6 +89,9 @@ class Library:
                 del self.seqHandler_hash[ s.sequence ]
 
     def get_spectra_by_sequence(self, sequence):
+        """
+        Get all spectra that match a specific sequence
+        """
         result = []
         handler = self.seqHandler_hash[ sequence ]
         for spectra in handler.spectras:
@@ -103,11 +106,20 @@ class Library:
         return result
 
     def all_spectra(self):
+        """
+        Iterate over all specra in the library
+
+        Yield:
+            spectrum(:class:`.Spectra`): current spectrum
+        """
         for handler in self.seqHandler_hash.values():
             for spectra in handler.spectras:
                 yield spectra
 
     def annotate_with_libkey(self):
+        """
+        Annotate spectra with the key of the current library
+        """
         for handler in self.seqHandler_hash.values():
             for s in handler.spectras:
                 prot = s.comment.find( ' Protein=')
@@ -157,11 +169,17 @@ class Library:
     #DB Functions
 
     def write_toDB(self, db, cursor):
+        """
+        Write all spectra into a SQL database
+        """
         for handler in self.seqHandler_hash.values():
             for spectra in handler.spectras:
                 spectra.save( db, cursor)
 
     def delete_library_from_DB( self, library_key, db):
+        """
+        Delete current library from SQL database
+        """
         c = db.cursor()
         c.execute( "delete from hroest.specLibSpectra\
                   where id in (select id from \
@@ -294,6 +312,7 @@ class Library:
 
     @staticmethod
     def _write_to_file(spectra_iterator, filePrefix, append):
+        """Write a library to a file."""
         splibFile = filePrefix + '.splib'
         pepIdxFile = filePrefix + '.pepidx'
         if append: mode = 'a'
@@ -376,7 +395,6 @@ class Library:
         
         return stack
     
-    
     def get_rawspectrum_with_offset(self, splibFileName, offset) :
         """Get a raw spectrum as it is from a spectrast file by using an offset to locate it."""
         
@@ -406,7 +424,6 @@ class Library:
         
         return stack
         
-
     def read_sptxt_with_offset(self, splibFileName, offset) :
         """Read a sptxt spectra library file by using an offset to keep memory free"""
 
@@ -622,7 +639,7 @@ class Library:
         for handler in self.seqHandler_hash.values():
             #for meta in handler.metas:
             for meta in handler.spectras:
-                spl =  meta.ptm_string.split("|")
+                spl = meta.ptm_string.split("|")
                 mod = spl[1].split( "/" )
                 nr_mod = int(mod[0])
                 assert nr_mod == len( mod ) -1
@@ -633,6 +650,12 @@ class Library:
                     myhash[ values[2] ] = 0
 
 class SequenceHandler:
+    """
+    Container class of spectra with the same sequence in a spectral library
+
+    Acts as a container of all spectra mapping to the same sequence inside a spectral library
+    """
+
     def __init__(self):
         self.spectras = []
         self.metas = []
@@ -677,10 +700,18 @@ class SequenceHandler:
         return len(self.spectras) == 0
 
 class Spectra:
-    """Contains the spectrum itself."""
+    """
+    A single spectrum inside a spectral library
+    
+    """
+
     def __init__(self):
         self.initialize()
+
     def initialize(self):
+        """
+        Initialize spectrum
+        """
         self.compress_spectra = ''
         self.meta = None
         self.phosphos = []
@@ -762,6 +793,9 @@ class Spectra:
             exec("self.%s = t.row( row, '%s')" % (attr, attr))
 
     def to_pepidx_str(self):
+        """
+        Convert spectrum object to pepidx format
+        """
         s = ''
         s += self.sequence + '\t'
         s += self.ptm_string + '\t'
@@ -769,6 +803,9 @@ class Spectra:
         return s
 
     def to_splib_str(self):
+        """
+        Convert spectrum object to splib format
+        """
         s = ''
         s += 'Name: '+              self.name + '\n'
         s += 'LibID: '+        str( self.LibID ) + '\n'
@@ -872,6 +909,9 @@ class Spectra:
         #assert S.peptide_mass / S.ion_charge - self.MW < 1e-2
 
     def parse_sptxt(self, stack):
+        """
+        Parse an sptxt entry and initialize spectrum
+        """
 
         def median(y):
             z = len(y)
@@ -927,7 +967,6 @@ class Spectra:
         except : pass
         if 'Se' in self.comment_parsed :
             self.searchEngineInfo = self.parse_SearchEngineInfo(self.comment_parsed['Se'])
-
 
     def add_meta(self, sequence, modifications, library_key):
         if self.sequence: assert sequence == self.sequence
@@ -1071,8 +1110,6 @@ class Spectra:
 
         return searchEngineInfo_parsed
 
-
-
 class Peak_old:
     """DEPRECATED: Represents one peak of a spectrum."""
     def __init__(self, str=None):
@@ -1137,3 +1174,4 @@ class Peak_old:
          self.nr_replicates, self.mzStdDev, self.intensityStdDevOverMean)
 
         cursor.execute(query)
+
