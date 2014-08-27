@@ -553,6 +553,7 @@ def handle_args():
 
     experimental_parser = parser.add_argument_group('experimental options')
 
+    experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
     experimental_parser.add_argument('--use_dscore_filter', action='store_true', default=False)
     experimental_parser.add_argument("--dscore_cutoff", default=1.96, type=float, help="Quality cutoff to still consider a feature for alignment using the d_score: everything below this d-score is discarded", metavar='1.96')
     experimental_parser.add_argument("--nr_high_conf_exp", default=1, type=int, help="Number of experiments in which the peptide needs to be identified with high confidence (e.g. above fdr_curoff)", metavar='1')
@@ -613,7 +614,9 @@ def main(options):
 
     # Read the files
     start = time.time()
-    reader = SWATHScoringReader.newReader(options.infiles, options.file_format, options.readmethod, readfilter)
+    reader = SWATHScoringReader.newReader(options.infiles, options.file_format,
+                                          options.readmethod, readfilter,
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
     runs = reader.parse_files(options.realign_method != "diRT", options.verbosity)
 
     # Create experiment

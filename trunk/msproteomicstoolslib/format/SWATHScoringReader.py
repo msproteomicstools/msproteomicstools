@@ -80,10 +80,13 @@ class SWATHScoringReader:
         raise Exception("Abstract method")
 
     @staticmethod
-    def newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict"):
+    def newReader(infiles, filetype, readmethod="minimal",
+                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
         """Factory to create a new reader"""
         if filetype  == "openswath": 
-            return OpenSWATH_SWATHScoringReader(infiles, readmethod, readfilter, errorHandling)
+            return OpenSWATH_SWATHScoringReader(infiles, readmethod,
+                                                readfilter, errorHandling,
+                                                enable_isotopic_grouping=enable_isotopic_grouping)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -173,7 +176,7 @@ class SWATHScoringReader:
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict"):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
@@ -191,12 +194,17 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
+        if enable_isotopic_grouping:
+            self.peptide_group_label_name = "peptide_group_label"
+        else:
+            self.peptide_group_label_name = "transition_group_id"
+
+
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
         dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
-        peptide_group_label_name = "peptide_group_label"
         diff_from_assay_in_sec_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "ProteinName"
@@ -222,8 +230,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         sequence = this_row[run.header_dict[self.sequence_col]]
         peptide_group_label = trgr_id
 
-        if peptide_group_label_name in run.header_dict: 
-            peptide_group_label = this_row[run.header_dict[peptide_group_label_name]]
+        if self.peptide_group_label_name in run.header_dict: 
+            peptide_group_label = this_row[run.header_dict[self.peptide_group_label_name]]
 
         # Attributes that only need to be present in strict mode
         diff_from_assay_seconds = -1
@@ -277,7 +285,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), enable_isotopic_grouping=False):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
@@ -288,6 +296,9 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
         else:
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
+
+        if enable_isotopic_grouping:
+            raise Exception("Cannot use isotopic grouping with mProphet data.")
 
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
@@ -348,7 +359,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter()):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), enable_isotopic_grouping=False):
         self.infiles = infiles
         self.run_id_name = "Sample"
         self.aligned_run_id_name = "align_runid"
@@ -358,6 +369,12 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         # Only minimal reading is implemented
         if readmethod == "minimal":
             self.Precursor = Precursor
+        else:
+            raise Exception("Cannot only use readmethod minimal Peakview data.")
+
+        if enable_isotopic_grouping:
+            raise Exception("Cannot use isotopic grouping with Peakview data.")
+
 
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "Decoy"
