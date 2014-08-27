@@ -111,7 +111,6 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_3.out.tmp"
         tmpfilename_matrix = "imputeValues_3.out.tmp_matrix.tsv"
 
-        # We should get the same results if we cache the chromatograms in memory
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
                 --realign_runs None --method singleShortestPath --matrix_output_method RT" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
@@ -132,7 +131,6 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_4.out.tmp"
         tmpfilename_matrix = "imputeValues_4.out.tmp_matrix.tsv"
 
-        # We should get the same results if we cache the chromatograms in memory
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
                 --realign_runs None --method singleClosestRun --matrix_output_method RT" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
@@ -153,7 +151,6 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_5.out.tmp"
         tmpfilename_matrix = "imputeValues_5.out.tmp_matrix.tsv"
 
-        # We should get the same results if we cache the chromatograms in memory
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
                 --realign_runs linear --method singleClosestRun --matrix_output_method RT" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
@@ -174,10 +171,30 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_6.out.tmp"
         tmpfilename_matrix = "imputeValues_6.out.tmp_matrix.tsv"
 
-        # We should get the same results if we cache the chromatograms in memory
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
                 --realign_runs linear --method singleShortestPath --matrix_output_method RT" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
+        self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
+
+        os.remove(tmpfilename_matrix)
+
+    @attr('slow')
+    def test_7_requantAlignedValues(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
+        filename = os.path.join(self.datadir, "imputeValues/imputeValues_7_input.csv")
+        tr_f1 = os.path.join(self.datadir, "imputeValues/r003_small/transformation-0_0-0_0.tr")
+        tr_f2 = os.path.join(self.datadir, "imputeValues/r004_small/transformation-0_1-0_0.tr")
+        expected_outcome = os.path.join(self.datadir, "imputeValues_7_output.csv")
+        expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_7_output_matrix.csv")
+        tmpfilename = "imputeValues_7.out.tmp"
+        tmpfilename_matrix = "imputeValues_7.out.tmp_matrix.tsv"
+
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT" % (
+            tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
