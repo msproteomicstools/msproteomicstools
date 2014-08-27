@@ -55,8 +55,8 @@ def doTest(self, runs):
     self.assertEqual(len(list(runs[2])), 1)
     self.assertEqual(len(list(runs[3])), 1)
 
-    self.assertIsNotNone(runs[0].get_peptide("17365_TLDTAAEKIVETATR/3_run0"))
-    self.assertIsNone(runs[0].get_peptide("19365_TLDTAAEKIVETATR/3_run0"))
+    self.assertIsNotNone(runs[0].getPrecursorGroup("17365_TLDTAAEKIVETATR/3_run0"))
+    self.assertIsNone(runs[0].getPrecursorGroup("19365_TLDTAAEKIVETATR/3_run0"))
 
 class TestUnitScoringReaderOpenSWATH(unittest.TestCase):
 
@@ -103,8 +103,12 @@ class TestUnitScoringReaderOpenSWATH(unittest.TestCase):
         r = reader.SWATHScoringReader.newReader([filename], "openswath", "minimal")
         runs = r.parse_files(False)
 
-        p = runs[2].get_peptide("21517_C[160]NVVISGGTGSGK/2_run0 0 0")
-        all_pg = list(p.get_all_peakgroups())
+        prgroup = runs[2].getPrecursorGroup("21517_C[160]NVVISGGTGSGK/2_run0 0 0")
+        # The precursor is now the one and only precursor present
+        self.assertEqual(len(prgroup.getAllPrecursors()), 1)
+        p = prgroup.getAllPrecursors()[0]
+
+        all_pg = list(p.getAllPeakgroups())
         cl_pg = list(p.getClusteredPeakgroups())
 
         self.assertEqual(len(cl_pg), 2)
@@ -141,9 +145,9 @@ class TestUnitScoringReaderPeakView(unittest.TestCase):
         self.assertEqual(len(list(runs[3])), 2)
         self.assertEqual(len(list(runs[4])), 2)
 
-        self.assertIsNotNone(runs[0].get_peptide('LIGNMALLPLR+2'))
-        self.assertIsNotNone(runs[0].get_peptide('LIGNMALLPLR+3'))
-        self.assertIsNone(runs[0].get_peptide('LIGNMALLPLR+4'))
+        self.assertIsNotNone(runs[0].getPrecursorGroup('LIGNMALLPLR+2'))
+        self.assertIsNotNone(runs[0].getPrecursorGroup('LIGNMALLPLR+3'))
+        self.assertIsNone(runs[0].getPrecursorGroup('LIGNMALLPLR+4'))
 
 class TestUnitScoringReadermProphet(unittest.TestCase):
 
