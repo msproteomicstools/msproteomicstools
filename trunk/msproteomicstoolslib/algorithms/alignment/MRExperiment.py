@@ -82,8 +82,8 @@ class MRExperiment(object):
             if verbose or verbosity >= 10: 
                 stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
                 stdout.flush()
-            union_target_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
-            union_transition_groups.append( [peak.peptide.get_id() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
+            union_target_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
             union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
         if verbose or verbosity >= 10: stdout.write("\r\r\n") # clean up
 
@@ -119,8 +119,8 @@ class MRExperiment(object):
         for peptide_id in self.union_transition_groups_set:
             m = Multipeptide()
             for r in self.runs:
-                peptide = r.get_peptide(peptide_id)
-                m.insert(r.get_id(), peptide)
+                precursor_group = r.getPrecursorGroup(peptide_id)
+                m.insert(r.get_id(), precursor_group)
             m.set_nr_runs(len(self.runs))
             multipeptides.append(m)
         return multipeptides
