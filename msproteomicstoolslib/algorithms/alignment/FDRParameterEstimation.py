@@ -178,11 +178,12 @@ class ParamEst(object):
         for mpep in multipeptides:
             count = 0
             decoy = False
-            for pep in mpep.get_peptides():
-                if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
-                    count += 1
-                if pep.get_decoy():
-                    decoy = True
+            for prgr in mpep.getPrecursorGroups():
+                for pep in prgr:
+                  if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
+                      count += 1
+                  if pep.get_decoy():
+                      decoy = True
             if count >= min_runs:
                 allpg_cnt += 1
             if decoy and count >= min_runs:
@@ -200,11 +201,12 @@ class ParamEst(object):
         allpg_cnt = 0
         alldecoypg_cnt = 0
         for mpep in multipeptides:
-            for pep in mpep.get_peptides():
-                if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
-                    allpg_cnt += 1
-                    if pep.get_decoy():
-                        alldecoypg_cnt += 1
+            for prgr in mpep.getPrecursorGroups():
+                for pep in prgr:
+                    if pep.get_best_peakgroup().get_fdr_score() < target_fdr:
+                        allpg_cnt += 1
+                        if pep.get_decoy():
+                            alldecoypg_cnt += 1
 
         decoy_frac = alldecoypg_cnt *1.0 / allpg_cnt
         return decoy_frac
