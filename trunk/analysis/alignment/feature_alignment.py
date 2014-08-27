@@ -402,7 +402,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
                     p.unselect_all()
             return aligned_fdr_cutoff
 
-def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
+def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_alignment_cutoff,
                    fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
                    use_RT_correction, stdev_max_rt_per_run, use_local_stdev):
     """
@@ -423,7 +423,8 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, initial_alignment_cutoff,
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
     # Perform work
-    al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff,
+    al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff, 
+                                rt_diff_isotope=rt_diff_isotope,
                                 correctRT_using_pg=use_RT_correction,
                                 stdev_max_rt_per_run=stdev_max_rt_per_run,
                                 use_local_stdev=use_local_stdev)
@@ -542,6 +543,7 @@ def handle_args():
     parser.add_argument("--out_meta", dest="yaml_outfile", default="", help="Outfile containing meta information, e.g. mapping of runs to original directories")
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="FDR cutoff to use, default 0.01", metavar='0.01')
     parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30')
+    parser.add_argument("--iso_max_rt_diff", dest="rt_diff_isotope", default=10, help="Maximal difference in RT for two isotopic channels in the same run", metavar='30')
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1.0, help="Quality cutoff to still consider a feature for alignment (in FDR) - it is possible to give a range in the format lower,higher+stepsize,stepsize - e.g. 0,0.31,0.01 (-1 will set it to fdr_cutoff)", metavar='-1')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall, LocalMST, LocalMSTAllCluster). Note that the MST options will perform a local, MST guided alignment while the other options will use a reference-guided alignment. The global option will also move peaks which are below the selected FDR threshold.")
@@ -635,7 +637,8 @@ def main(options):
         else:
             stdev_max_rt_per_run = None
             
-        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff),
+        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff), 
+                       float(options.rt_diff_isotope),
                        float(options.alignment_score), options.fdr_cutoff,
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
