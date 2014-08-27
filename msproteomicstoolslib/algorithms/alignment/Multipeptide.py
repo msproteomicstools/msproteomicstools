@@ -47,8 +47,8 @@ class Multipeptide():
         self._nr_runs = -1
 
     def __str__(self):
-        if len(self.get_peptides()) > 0:
-            return "Precursors of %s runs, identified by %s." % (self._nr_runs, self.get_peptides()[0].id)
+        if len(self.getPrecursorGroups()) > 0:
+            return "Precursors of %s runs, identified by %s." % (self._nr_runs, self.getPrecursorGroups()[0].getPeptideGroupLabel())
         else:
             return "Empty set of precursors."
   
@@ -62,19 +62,34 @@ class Multipeptide():
         return self._nr_runs
 
     def has_peptide(self, runid):
+        raise Exception("This doesnt do what you want")
         return self._peptides.has_key(runid)
 
     def get_peptide(self, runid):
+        raise Exception("This doesnt do what you want")
         return self._peptides[runid]
 
     def get_peptides(self):
+        raise Exception("This doesnt do what you want")
+        return self._peptides.values()
+
+    def getPrecursorGroup(self, runid):
+      return self._peptides[runid]
+
+    def getPrecursorGroups(self):
       return self._peptides.values()
 
+    def hasPrecursorGroup(self, runid):
+      return self._peptides.has_key(runid)
+
+    def getAllPeptides(self):
+      return [p for prgr in self.getPrecursorGroups() for p in prgr]
+
     def get_id(self):
-      if len(self.get_peptides()) == 0:
+      if len(self.getAllPeptides()) == 0:
            return None
 
-      return self.get_peptides()[0].get_id()
+      return self.getAllPeptides()[0].get_id()
 
     def more_than_fraction_selected(self, fraction):
       assert self._nr_runs >= 0
@@ -84,16 +99,16 @@ class Multipeptide():
       return True
 
     def get_decoy(self):
-        if len(self.get_peptides()) == 0: 
+        if len(self.getAllPeptides()) == 0:
             return False
 
-        return self.get_peptides()[0].get_decoy() 
+        return self.getAllPeptides()[0].get_decoy() 
 
     def has_null_peptides(self):
       return self._has_null
 
     def insert(self, runid, peptide):
-        if self.has_peptide(runid):
+        if self.hasPrecursorGroup(runid):
             # Add all peakgroups to this peptide
             for pg in peptide.get_all_peakgroups():
                 self._peptides[runid].add_peakgroup(pg)
@@ -105,13 +120,13 @@ class Multipeptide():
         self._peptides[runid] = peptide
     
     def get_selected_peakgroups(self):
-      return [p.get_selected_peakgroup() for p in self.get_peptides() if p.get_selected_peakgroup() is not None]
+      return [precursor.get_selected_peakgroup() for prgr in self.getPrecursorGroups() for precursor in prgr if precursor.get_selected_peakgroup() is not None]
 
     def find_best_peptide_pg(self):
       # Find best peakgroup across all peptides
       best_fdr = 1.0
       result = None
-      for p in self.get_peptides():
+      for p in self.getAllPeptides():
         if p.get_best_peakgroup().get_fdr_score() < best_fdr: 
             result = p.get_best_peakgroup()
             best_fdr = p.get_best_peakgroup().get_fdr_score() 
@@ -123,20 +138,22 @@ class Multipeptide():
 
     def all_above_cutoff(self, cutoff):
       assert self._nr_runs >= 0
-      if len(self.get_peptides()) < self._nr_runs:
+      if len(self.getPrecursorGroups()) < self._nr_runs:
           return False
 
-      for p in self.get_peptides():
-        if p.get_best_peakgroup().get_fdr_score() > cutoff: 
-            return False
+      for prgr in self.getPrecursorGroups():
+          for p in prgr:
+              if p.get_best_peakgroup().get_fdr_score() > cutoff: 
+                  return False
       return True
   
     def all_selected(self):
       assert self._nr_runs >= 0
-      if len(self.get_peptides()) < self._nr_runs:
+      if len(self.getAllPeptides()) < self._nr_runs:
           return False
 
-      for p in self.get_peptides():
-          if p.get_selected_peakgroup() is None: return False
+      for p in self.getAllPeptides():
+          if p.get_selected_peakgroup() is None:
+              return False
       return True
 
