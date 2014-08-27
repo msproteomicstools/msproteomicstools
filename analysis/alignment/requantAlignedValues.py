@@ -476,6 +476,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                                 newpg = integrate_chromatogram(pg, current_run, swath_chromatograms,
                                                              border_l, border_r, cnt)
                                 pg.set_value("Intensity", newpg.get_value("Intensity"))
+                                pg.set_intensity(newpg.get_intensity())
                                 pg.set_value("leftWidth", newpg.get_value("leftWidth"))
                                 pg.set_value("rightWidth", newpg.get_value("rightWidth"))
                                 pg.set_value("RT", newpg.get_value("RT"))
