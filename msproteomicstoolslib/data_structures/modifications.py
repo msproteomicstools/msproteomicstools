@@ -75,6 +75,14 @@ class Modifications:
         NDea            = Modification('N'      ,   'N[115]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
         QDea            = Modification('Q'      ,   'Q[129]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
         C149            = Modification('C'      ,   'C[149]',  39,  '[XXX]',    False,  {'H' : 2, 'C' : 1, "S" : 1})
+        D131            = Modification('D'      ,   'D[131]',  35,  '[Oxi]',    False,    {'O': 1 })
+        K144            = Modification('K'      ,   'K[144]',  35,  '[Oxi]',    False,    {'O': 1 })
+        Y179            = Modification('Y'      ,   'Y[179]',  35,  '[Oxi]',    False,    {'O': 1 })
+        R172            = Modification('R'      ,   'R[172]',  35,  '[Oxi]',    False,    {'O': 1 })
+        N130            = Modification('N'      ,   'N[130]',  35,  '[Oxi]',    False,    {'O': 1 })
+        P113            = Modification('P'      ,   'P[113]',  35,  '[Oxi]',    False,    {'O': 1 })
+        C119            = Modification('C'      ,   'C[119]',  35,  '[Oxi]',    False,    {'O': 1 })
+
 
         self.appendModification(CAM)
         self.appendModification(Ox)
@@ -92,6 +100,13 @@ class Modifications:
         self.appendModification(NDea)
         self.appendModification(QDea)
         self.appendModification(C149)
+        self.appendModification(D131)
+        self.appendModification(K144)
+        self.appendModification(Y179)
+        self.appendModification(R172)
+        self.appendModification(N130)
+        self.appendModification(P113)
+        self.appendModification(C119)
     
     def appendModification(self, modification) :
         self.list.append(modification)
