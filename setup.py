@@ -11,7 +11,7 @@ for root, dirnames, filenames in os.walk('analysis'):
 all_scripts.extend(["./gui/AlignmentGUI.py"])
 
 setup(name='msproteomicstools',
-      version='0.2.2',
+      version='0.3.0',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
