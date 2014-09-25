@@ -344,6 +344,11 @@ def main(options):
     print("Mapping the precursors took %ss" % (time.time() - start) )
 
     for m in multipeptides:
+
+        # Error handling if somehow more than one peakgroup was selected ... 
+        for p in m.getAllPeptides():
+            p._fixSelectedPGError(fixMethod="BestScore")
+
         if len(m.get_selected_peakgroups() ) > 0:
             continue 
 

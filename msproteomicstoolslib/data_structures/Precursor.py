@@ -247,6 +247,26 @@ class Precursor(PrecursorBase):
         index = [i for i,pg in enumerate(self.peakgroups_) if pg[0] == result[0]][0]
         return MinimalPeakGroup(result[0], result[1], result[2], self.cluster_ids_[index] == 1, self.cluster_ids_[index], self, result[3], result[4])
 
+    def _fixSelectedPGError(self, fixMethod="Exception"):
+      selected = [i for i,pg in enumerate(self.cluster_ids_) if pg == 1]
+      if len(selected) > 1:
+          print "Potential error detected in %s:\nWe have more than one selected peakgroup found. Starting error handling by using method '%s'." % (self, fixMethod)
+          best_score = self.peakgroups_[0][1]
+          best_pg = 0
+          for s in selected:
+              if best_score > self.peakgroups_[s][1]:
+                  best_score = self.peakgroups_[s][1]
+                  best_pg = s
+
+          if fixMethod == "Exception":
+              raise Exception("More than one selected peakgroup found in %s " % self )
+          elif fixMethod == "BestScore":
+              # Deselect all, then select the one with the best score...
+              for s in selected:
+                  self.cluster_ids_[s] = -1
+              self.cluster_ids_[best_pg] = 1
+
+
     def get_selected_peakgroup(self):
       # return the selected peakgroup of this precursor, we can only select 1 or
       # zero groups per chromatogram!
