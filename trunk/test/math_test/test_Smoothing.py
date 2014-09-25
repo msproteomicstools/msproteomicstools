@@ -134,7 +134,7 @@ class TestUnitSmoothing(unittest.TestCase):
         self.assertEqual(len(r), 5)
         expected = [10.265638884711272, 5.411029040286351, 7.352910860216361, -96.53810165019972, 15.119857967104132]
         for res, exp in zip(r,expected):
-            self.assertAlmostEqual(res,exp)
+            self.assertAlmostEqual(res,exp, 1)
 
     def test_smooth_spline_scipy_uni(self):
         """Test the univariate spline using spline (no crossvalidation)"""
