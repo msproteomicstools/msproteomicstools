@@ -205,7 +205,7 @@ class AlignmentAlgorithm():
         It does not treat heavy/light specially (they are treated like two independent runs).
         """
         verb = self.verbose
-        verb = True
+        # verb = True
 
         if verb: print "00000000000000000000000000000000000 new peptide (best overall)", m.getAllPeptides()[0].get_id()
 
