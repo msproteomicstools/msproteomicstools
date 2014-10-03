@@ -547,7 +547,7 @@ class MainWindow(QtGui.QMainWindow):
         fileList = QtGui.QFileDialog.getOpenFileNames(self, 'Open dataset')
         self.loadFiles( [str(f) for f in fileList] )
 
-    def loadFiles(self, pyFileList):
+    def loadFiles(self, pyFileList, fileType=None):
         """ Load a set of files to display
 
         1. Try to load single yaml file
@@ -564,7 +564,7 @@ class MainWindow(QtGui.QMainWindow):
             # Check whether one of them is not mzML
             mzmls = [f for f in pyFileList if f.endswith("mzML")]
             others = [f for f in pyFileList if not f.endswith("mzML")]
-            self.data_model.loadMixedFiles(mzmls, others)
+            self.data_model.loadMixedFiles(mzmls, others, fileType)
         self._refresh_view(time=time.time()-start)
 
     def updateSettings(self, settings):
@@ -609,15 +609,23 @@ def handle_args():
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=False, nargs = '+', 
                         help = 'A list of input files (.chrom.mzML and feature_alignment output files).')
+    parser.add_argument('--fileType', dest="filetype", required=False, 
+                        help = 'Type of files describing the relations (simple, openswath, yaml)')
     args = parser.parse_args(sys.argv[1:])
     return args
 
 if __name__ == '__main__':
+
+    # Handle command line options
     options = handle_args()
+
+    # Set up Qt application
     app = QtGui.QApplication(sys.argv)
     ex = MainWindow()
+
     # Check whether any options were given on the commandline
     if options.infiles is not None:
-        ex.loadFiles(options.infiles)
+        ex.loadFiles(options.infiles, options.filetype)
+
     sys.exit(app.exec_())
 

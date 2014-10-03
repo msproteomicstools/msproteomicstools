@@ -143,7 +143,7 @@ class DataModel(object):
         swathfiles.initialize_from_files(filenames)
         self.runs = [run for run in swathfiles.getSwathFiles()]
 
-    def loadMixedFiles(self, rawdata_files, aligned_pg_files):
+    def loadMixedFiles(self, rawdata_files, aligned_pg_files, fileType):
         """ Load files that contain raw data files and aligned peakgroup files.
 
         Since no mapping is present here, we need to infer it from the data.
@@ -156,6 +156,8 @@ class DataModel(object):
             List of paths to chrom.mzML files
         aligned_pg_files : list of str
             List of paths to output files of the FeatureAligner
+        fileType : str
+            Description of the type of file the metadata file is (simple, openswath)
 
         """
 
