@@ -280,6 +280,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           rightWidth = this_row[run.header_dict[right_width_name]]
           charge = this_row[run.header_dict[charge_name]]
           peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
+          peakgroup.charge = charge
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
           peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))

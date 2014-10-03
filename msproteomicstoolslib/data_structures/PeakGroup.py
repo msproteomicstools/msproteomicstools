@@ -175,7 +175,7 @@ class GuiPeakGroup(PeakGroupBase):
         elif value == "FullPeptideName":
             return self.peptide.sequence
         elif value == "Charge":
-            return self.peptide.charge
+            return self.charge
         else:
             raise Exception("Do not have value " + value)
 

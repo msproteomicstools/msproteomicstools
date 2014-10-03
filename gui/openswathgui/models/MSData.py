@@ -243,8 +243,8 @@ class DataModel(object):
                     continue
 
                 m = peakgroup_map[ precursor_id ]
-                if m.has_peptide(swathrun.runid):
-                    pg = m.get_peptide(swathrun.runid).get_best_peakgroup()
+                if m.hasPrecursorGroup(swathrun.runid):
+                    pg = m.getPrecursorGroup(swathrun.runid).getOverallBestPeakgroup()
                     swathrun._range_mapping[precursor_id]       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
                     swathrun._score_mapping[precursor_id]       = float(pg.get_value("m_score"))
                     swathrun._intensity_mapping[precursor_id]   = float(pg.get_value("Intensity"))
