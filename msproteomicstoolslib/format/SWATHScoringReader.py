@@ -455,8 +455,50 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         else:
             raise NotImplemented
 
+def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
+                 sequences_mapping, verbose=False):
+
+    assert len(aligned_pg_files), "There should only be one file in simple mode"
+    f = aligned_pg_files[0]
+
+    # Produce simple mapping between runs and files (assume each file is one run)
+    for i,raw in enumerate(rawdata_files):
+        mapping[str(i)] = [ raw ]
+
+    # Get the compression
+    if f.endswith('.gz'):
+        import gzip 
+        filehandler = gzip.open(f,'rb')
+    else:
+        filehandler = open(f)
+
+    # Get the dialect
+    dialect = csv.Sniffer().sniff(filehandler.readline(), [',',';','\t'])
+    filehandler.seek(0) 
+    reader = csv.reader(filehandler, dialect)
+    header = reader.next()
+
+    header_dict = {}
+    for i,n in enumerate(header):
+        header_dict[n] = i
+
+    for this_row in reader:
+        peptide_name = this_row [ header_dict["chromatogram_super_group_id"]]
+        precursor_name = this_row [ header_dict["chromatogram_group_id"]]
+        transition_name = this_row [ header_dict["chromatogram_id"]]
+
+        # Fill the sequence mapping
+        tmp = sequences_mapping.get(peptide_name, [])
+        tmp.append(precursor_name)
+        sequences_mapping[peptide_name] = tmp
+
+        # Fill the precursor mapping
+        tmp = precursors_mapping.get(precursor_name, [])
+        tmp.append(transition_name)
+        precursors_mapping[precursor_name] = tmp
+
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, verbose=False, throwOnMismatch=False):
+                 sequences_mapping, verbose=False, throwOnMismatch=False, fileType=None):
         
     """ Infers a mapping between raw chromatogram files (mzML) and processed feature TSV files
 
@@ -469,6 +511,10 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
     Only an excact match is allowed.
     """
     import csv, os
+
+    if fileType == "simple":
+        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
+
     for file_nr, f in enumerate(aligned_pg_files):
         header_dict = {}
         if f.endswith('.gz'):
