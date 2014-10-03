@@ -1,0 +1,5 @@
+AlignedSwathRuns:
+  PeakGroupData: [./test/data/gui/dataset1.csv]
+  RawData:
+  - {id: '0_0', trafo_file: dummy, chromatograms: [./test/data/gui/dataset1.chrom.mzML]}
+  ReferenceRun: null
