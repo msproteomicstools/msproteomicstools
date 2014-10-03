@@ -59,6 +59,9 @@ class PrecursorModel():
 
     It is initialized with an ID and knows how to parse the sequence and the
     charge from that string.
+
+    Attributes:
+        runs(str): The chromatogram native id used to infer charge and peptide sequence
     """
 
     def __init__(self, chrom_id):
@@ -66,15 +69,17 @@ class PrecursorModel():
 
     def getCharge(self):
         try:
-            return self.chrom_id.split("/")[1].split("_")[0]
+            return int(self.chrom_id.split("/")[1].split("_")[0])
         except Exception:
             return "NA"
 
     def getFullSequence(self):
         try:
-            return self.chrom_id.split("/")[0].split("_")[-1]
+            assert self.chrom_id.find("/") != -1
+            seq = self.chrom_id.split("/")[0].split("_")[-1]
+            return seq
         except Exception:
-            return "NA"
+            return self.chrom_id
 
 class DataModel(object):
     """The main data model
@@ -167,14 +172,16 @@ class DataModel(object):
         precursors_mapping = {}
         sequences_mapping = {}
         mapping = {}
-        inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
+        inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, fileType=fileType)
         print "Found the following mapping: mapping", mapping
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
         swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
-        self._read_peakgroup_files(aligned_pg_files, swathfiles)
+        if fileType != "simple":
+            self._read_peakgroup_files(aligned_pg_files, swathfiles)
+
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
                     
     def load_from_yaml(self, yamlfile):
@@ -296,10 +303,24 @@ class DataModel(object):
                 pm = PrecursorModel(p)
                 for tr in transitions:
                     if DRAW_TRANSITIONS:
-                        tr_elements.append(ChromatogramTransition(tr, -1, [], fullName=tr, peptideSequence = pm.getFullSequence(), datatype="Transition") )
-                pelements.append(ChromatogramTransition(p, pm.getCharge(), tr_elements, 
-                       peptideSequence = pm.getFullSequence(), datatype="Precursor") )
-            elements.append(ChromatogramTransition(seq, "NA", pelements, datatype="Peptide", 
-                       peptideSequence=pm.getFullSequence()) )
+                        tr_elements.append(
+                            ChromatogramTransition(tr,
+                                                   -1,
+                                                   [],
+                                                   fullName=tr,
+                                                   peptideSequence = pm.getFullSequence(),
+                                                   datatype="Transition") )
+
+                pelements.append(ChromatogramTransition(p,
+                                                        pm.getCharge(),
+                                                        tr_elements, 
+                                                        peptideSequence = pm.getFullSequence(),
+                                                        datatype="Precursor") )
+
+            elements.append(ChromatogramTransition(seq,
+                                                   "NA",
+                                                   pelements, 
+                                                   datatype="Peptide",
+                                                   peptideSequence=pm.getFullSequence()) )
         return elements
 
