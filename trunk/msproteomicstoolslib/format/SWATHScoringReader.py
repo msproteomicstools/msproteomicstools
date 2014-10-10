@@ -490,12 +490,14 @@ def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapp
 
         # Fill the sequence mapping
         tmp = sequences_mapping.get(peptide_name, [])
-        tmp.append(precursor_name)
+        if precursor_name not in tmp:
+            tmp.append(precursor_name)
         sequences_mapping[peptide_name] = tmp
 
         # Fill the precursor mapping
         tmp = precursors_mapping.get(precursor_name, [])
-        tmp.append(transition_name)
+        if transition_name not in tmp:
+            tmp.append(transition_name)
         precursors_mapping[precursor_name] = tmp
 
 def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
@@ -523,14 +525,16 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
 
         # Fill the sequence mapping
         tmp = sequences_mapping.get(peptide_precursor.sequence, [])
-        tmp.append(peptide_precursor.id)
+        if peptide_precursor.id not in tmp:
+            tmp.append(peptide_precursor.id)
         sequences_mapping[peptide_precursor.sequence] = tmp
 
     for transition in targexp.getTransitions():
 
         # Fill the precursor mapping
         tmp = precursors_mapping.get(transition.getPeptideRef(), [])
-        tmp.append(transition.getNativeID())
+        if transition.getPeptideRef() not in tmp:
+            tmp.append(transition.getNativeID())
         precursors_mapping[transition.getPeptideRef()] = tmp
 
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
