@@ -62,8 +62,9 @@ class PeptideTree(TreeModel):
     Implementation of a tree in the right-hand peptide tree in the GUI
     """
 
-    def __init__(self, rootElements):
+    def __init__(self, rootElements, firstColumnName="Peptide Sequence"):
         self.rootElements = rootElements
+        self.first_column_name_ = firstColumnName
         TreeModel.__init__(self)
 
     def _getRootNodes(self):
@@ -108,7 +109,7 @@ class PeptideTree(TreeModel):
             - Name
         """
         if section == 0:
-            return 'Peptide Sequence'
+            return self.first_column_name_
         if section == 1:
             return 'Charge'
         if orientation == Qt.Horizontal and role == Qt.DisplayRole \
