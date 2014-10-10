@@ -4,8 +4,16 @@ The following should produce a GUI window with a single transition and a picked 
 $ python gui/AlignmentGUI.py  --in test/data/gui/dataset1.yaml 
 $ python gui/AlignmentGUI.py  --in test/data/gui/dataset1.csv test/data/gui/dataset1.chrom.mzML 
 
-The following should produce a GUI window with 3 runs and 2 peptides (one of which has 2 charge states):
+The following should produce a GUI window with 3 runs and 2 peptides (one of
+which has 2 charge states). All three options are viable, depending on the
+input data that is available to you:
 
-$ python gui/AlignmentGUI.py  --in test/data/gui/dataset2_file* --fileType simple
-$ python gui/AlignmentGUI.py  --in test/data/gui/dataset2_file* test/data/gui/dataset2_description.TraML  
+$ python gui/AlignmentGUI.py  --in test/data/gui/dataset2_file* \
+    test/data/gui/dataset2_simple_description.csv --fileType simple
+
+$ python gui/AlignmentGUI.py  --in test/data/gui/dataset2_file* \
+    test/data/gui/dataset2_description.TraML  
+
+$ python gui/AlignmentGUI.py  --in test/data/gui/dataset2_file* \
+    test/data/gui/dataset2_description.csv
 
