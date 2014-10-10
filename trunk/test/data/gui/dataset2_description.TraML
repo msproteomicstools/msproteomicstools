@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TraML version="1.0.0" xmlns="http://psi.hupo.org/ms/traml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://psi.hupo.org/ms/traml TraML1.0.0.xsd">
+  <cvList>
+    <cv id="MS" fullName="Proteomics Standards Initiative Mass Spectrometry Ontology" version="unknown" URI="http://psidev.cvs.sourceforge.net/*checkout*/psidev/psi/psi-ms/mzML/controlledVocabulary/psi-ms.obo"/>
+    <cv id="UO" fullName="Unit Ontology" version="unknown" URI="http://obo.cvs.sourceforge.net/obo/obo/ontology/phenotype/unit.obo"/>
+  </cvList>
+  <ProteinList>
+    <Protein id="PROTEINA">
+      <Sequence></Sequence>
+    </Protein>
+  </ProteinList>
+  <CompoundList>
+    <Peptide id="pep0_2" sequence="PEPTIDER">
+      <cvParam cvRef="MS" accession="MS:1000041" name="charge state" value="2"/>
+      <ProteinRef ref="PROTEINA"/>
+    </Peptide>
+    <Peptide id="pep0_3" sequence="PEPTIDER">
+      <cvParam cvRef="MS" accession="MS:1000041" name="charge state" value="3"/>
+      <ProteinRef ref="PROTEINA"/>
+    </Peptide>
+    <Peptide id="pep1_2" sequence="PEPTIDEK">
+      <cvParam cvRef="MS" accession="MS:1000041" name="charge state" value="2"/>
+      <ProteinRef ref="PROTEINA"/>
+    </Peptide>
+    <Peptide id="pep1_3" sequence="PEPTIDEK">
+      <cvParam cvRef="MS" accession="MS:1000041" name="charge state" value="3"/>
+      <ProteinRef ref="PROTEINA"/>
+    </Peptide>
+  </CompoundList>
+  <TransitionList>
+    <Transition id="chromatogram_pep0_2_0" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_2_1" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_2_2" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_2_3" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_2_4" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_2_5" peptideRef="pep0_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_0" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_1" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_2" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_3" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_4" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep0_3_5" peptideRef="pep0_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="400" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_0" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_1" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_2" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_3" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_4" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_2_5" peptideRef="pep1_2">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_0" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_1" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_2" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_3" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_4" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+    <Transition id="chromatogram_pep1_3_5" peptideRef="pep1_3">
+      <Precursor>
+        <cvParam cvRef="MS" accession="MS:1000827" name="isolation window target m/z" value="410" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+      </Precursor>
+      <Product>
+      </Product>
+    </Transition>
+  </TransitionList>
+</TraML>
