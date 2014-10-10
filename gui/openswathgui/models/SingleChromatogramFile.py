@@ -340,9 +340,12 @@ class SingleChromatogramFile():
             chromatogram = self._run[str(chrom_id)] 
             try:
                 mz = chromatogram['product']['target_mz']
+                if mz > 0.0:
+                    transitions.append("%.2f" % mz + " m/z (" + chrom_id + ")")
+                else:
+                    transitions.append(chrom_id)
             except KeyError:
-                mz = 0.0
-            transitions.append("%.2f" % mz + " m/z (" + chrom_id + ")")
+                transitions.append(chrom_id)
         return transitions
 
     def get_precursors_for_sequence(self, sequence):
