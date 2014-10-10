@@ -1,0 +1,10 @@
+FullPeptideName	Charge	leftWidth	rightWidth	m_score	Intensity	align_origfilename	align_runid	aggr_Fragment_Annotation	transition_group_id
+PEPTIDEK	2	960	1040	0.001	5	dataset2_file1	0_0	chromatogram_pep0/2_0;chromatogram_pep0/2_1;chromatogram_pep0/2_2;chromatogram_pep0/2_3;chromatogram_pep0/2_4;chromatogram_pep0/2_5	trgr1
+PEPTIDEK	2	980	1060	0.001	5	dataset2_file2	0_1	chromatogram_pep0/2_0;chromatogram_pep0/2_1;chromatogram_pep0/2_2;chromatogram_pep0/2_3;chromatogram_pep0/2_4;chromatogram_pep0/2_5	trgr1
+PEPTIDEK	2	1000	1080	0.001	5	dataset2_file3	0_2	chromatogram_pep0/2_0;chromatogram_pep0/2_1;chromatogram_pep0/2_2;chromatogram_pep0/2_3;chromatogram_pep0/2_4;chromatogram_pep0/2_5	trgr1
+PEPTIDEK	3	960	1040	0.001	10	dataset2_file1	0_0	chromatogram_pep0/3_0;chromatogram_pep0/3_1;chromatogram_pep0/3_2;chromatogram_pep0/3_3;chromatogram_pep0/3_4;chromatogram_pep0/3_5	trgr2
+PEPTIDEK	3	980	1060	0.001	10	dataset2_file2	0_1	chromatogram_pep0/3_0;chromatogram_pep0/3_1;chromatogram_pep0/3_2;chromatogram_pep0/3_3;chromatogram_pep0/3_4;chromatogram_pep0/3_5	trgr2
+PEPTIDEK	3	1000	1080	0.001	10	dataset2_file3	0_2	chromatogram_pep0/3_0;chromatogram_pep0/3_1;chromatogram_pep0/3_2;chromatogram_pep0/3_3;chromatogram_pep0/3_4;chromatogram_pep0/3_5	trgr2
+PEPTIDER	2	1960	2040	0.001	5	dataset2_file1	0_0	chromatogram_pep1/2_0;chromatogram_pep1/2_1;chromatogram_pep1/2_2;chromatogram_pep1/2_3;chromatogram_pep1/2_4;chromatogram_pep1/2_5	trgr3
+PEPTIDER	2	1980	2060	0.001	5	dataset2_file2	0_1	chromatogram_pep1/2_0;chromatogram_pep1/2_1;chromatogram_pep1/2_2;chromatogram_pep1/2_3;chromatogram_pep1/2_4;chromatogram_pep1/2_5	trgr3
+PEPTIDER	2	2000	2080	0.001	5	dataset2_file3	0_2	chromatogram_pep1/2_0;chromatogram_pep1/2_1;chromatogram_pep1/2_2;chromatogram_pep1/2_3;chromatogram_pep1/2_4;chromatogram_pep1/2_5	trgr3

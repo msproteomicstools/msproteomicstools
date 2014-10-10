@@ -1,0 +1,2 @@
+chromatogram_id	transition_group_id	FullPeptideName	Charge	leftWidth	rightWidth	m_score	Intensity	align_origfilename	align_runid	aggr_Fragment_Annotation
+chromatogram_pep0/2_0	PEPTIDER/2	PEPTIDE	1	2000	2040	0.001	5	dataset2_file2	0_0	chromatogram_pep0/2_0;chromatogram_pep0/2_1;chromatogram_pep0/2_2;chromatogram_pep0/2_3;chromatogram_pep0/2_4;chromatogram_pep0/2_5 
