@@ -48,7 +48,6 @@ from ChromatogramTransition import ChromatogramTransition
 from SwathRun import SwathRun
 from SwathRunCollection import SwathRunCollection
 
-DRAW_TRANSITIONS = False
 REALIGN_RUNS = True
 FDR_CUTOFF = 0.01
 ONLY_SHOW_QUANTIFIED = False
@@ -93,6 +92,7 @@ class DataModel(object):
 
     def __init__(self):
         self.runs = []
+        self.draw_transitions_ = False
 
     #
     ## Getters
@@ -132,6 +132,12 @@ class DataModel(object):
             The main content of the class is returned, its list of :class:`.SwathRun`
         """
         return self.runs
+
+    def getDrawTransitions(self):
+        return self.draw_transitions_
+
+    def setDrawTransitions(self, draw_transitions):
+        self.draw_transitions_ = draw_transitions
 
     #
     ## Data loading
@@ -274,7 +280,7 @@ class DataModel(object):
 
     def _build_tree(self):
         """
-        Build tree of :class:`.ChromatogramTransition` objects for display
+        Build tree of :class:`.ChromatogramTransition` objects for display (see get_precursor_tree)
         """
 
         peptide_sequences = set([])
@@ -302,7 +308,9 @@ class DataModel(object):
                 tr_elements = []
                 pm = PrecursorModel(p)
                 for tr in transitions:
-                    if DRAW_TRANSITIONS:
+
+                    # Only add transition data if individual transitions should be drawn
+                    if self.draw_transitions_:
                         tr_elements.append(
                             ChromatogramTransition(tr,
                                                    -1,

@@ -319,6 +319,19 @@ class SingleChromatogramFile():
 
         return transitions
 
+    def get_data_for_transition(self, transition_id):
+        """
+        Retrieve raw data for a specific transition
+        """
+
+        chromatogram = self._run[str(transition_id)] 
+        transitions = [ [chromatogram.time, chromatogram.i] ] 
+
+        if len(transitions) == 0: 
+            return [ [ [0], [0] ] ]
+
+        return transitions
+
     def get_id(self):
         return self._basename
 

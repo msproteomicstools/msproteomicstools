@@ -121,13 +121,16 @@ class ChromatogramTransition(object):
             dataformat is a list of transitions and each transition is a pair
             of (timearray,intensityarray)
         """
+
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_data_for_precursor(self.getName()) 
+
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_data_for_precursor(prec[0]) 
             else:
+
                 # Peptide view with multiple precursors
                 # -> Sum up the data for all individual precursors
                 final_data = []
@@ -142,9 +145,12 @@ class ChromatogramTransition(object):
                         else:
                             intdata = intdata + numpy.array(data[1])
                     final_data.append( [timedata, intdata] )
+
                 return final_data
+
         elif CHROMTYPES[self.mytype] == "Transition" :
             return run.get_data_for_transition(self.getName()) 
+
         return [ [ [0], [0] ] ]
 
     def getRange(self, run):
@@ -161,12 +167,19 @@ class ChromatogramTransition(object):
         list of float:
             A pair of floats representing the data range (leftWidth/rightWidh) for a specific run
         """
+
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_range_data(self.getName()) 
+
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_range_data(prec[0]) 
+
+        elif CHROMTYPES[self.mytype] == "Transition" :
+            # TODO
+            return [0,0]
+
         return [0,0]
 
     def getProbScore(self, run):
@@ -183,14 +196,22 @@ class ChromatogramTransition(object):
         float:
             The probabilistic score for a specific run and current precursor
         """
+
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_score_data(self.getName()) 
+
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_score_data(prec[0]) 
-            else: return None
-        return 1.0
+            else: 
+                # For multiple precursors, the probability score is not defined 
+                return None
+
+        elif CHROMTYPES[self.mytype] == "Transition" :
+            return None
+
+        return None
 
     def getIntensity(self, run):
         """
@@ -206,14 +227,22 @@ class ChromatogramTransition(object):
         float:
             The intensity for a specific run and current precursor
         """
+
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_intensity_data(self.getName()) 
+
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_intensity_data(prec[0]) 
-            else: return None
-        return -1.0
+            else: 
+                # For multiple precursors, the intensity is currently not computed 
+                return None
+
+        elif CHROMTYPES[self.mytype] == "Transition" :
+            return None
+
+        return None
 
     def getLabel(self, run):
         """
@@ -235,8 +264,10 @@ class ChromatogramTransition(object):
         list of str:
             The labels to display for each line in the graph
         """
+
         if CHROMTYPES[self.mytype] == "Precursor" :
             return run.get_transitions_for_precursor_display(self.getName())
+
         elif CHROMTYPES[self.mytype] == "Peptide" :
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
@@ -244,7 +275,9 @@ class ChromatogramTransition(object):
             else:
                 # Peptide view with multiple precursors
                 return prec
+
         elif CHROMTYPES[self.mytype] == "Transition" :
             return [self.getName()]
+
         return [ "" ]
 
