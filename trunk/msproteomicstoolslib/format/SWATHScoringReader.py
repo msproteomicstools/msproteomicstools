@@ -459,7 +459,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
 def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, verbose=False):
 
-    assert len(aligned_pg_files), "There should only be one file in simple mode"
+    assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
     f = aligned_pg_files[0]
 
     # Produce simple mapping between runs and files (assume each file is one run)
@@ -498,6 +498,41 @@ def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapp
         tmp.append(transition_name)
         precursors_mapping[precursor_name] = tmp
 
+def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
+                 sequences_mapping, verbose=False):
+    try:
+        import pyopenms
+    except ImportError as e:
+        print "\nError!"
+        print "Could not import pyOpenMS while trying to load a TraML file - please make sure pyOpenMS is installed."
+        print "pyOpenMS is available from https://pypi.python.org/pypi/pyopenms"
+        print 
+        raise e
+
+    assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
+    f = aligned_pg_files[0]
+
+    # Produce simple mapping between runs and files (assume each file is one run)
+    for i,raw in enumerate(rawdata_files):
+        mapping[str(i)] = [ raw ]
+
+    targexp = pyopenms.TargetedExperiment()
+    pyopenms.TraMLFile().load(f, targexp)
+
+    for peptide_precursor in targexp.getPeptides():
+
+        # Fill the sequence mapping
+        tmp = sequences_mapping.get(peptide_precursor.sequence, [])
+        tmp.append(peptide_precursor.id)
+        sequences_mapping[peptide_precursor.sequence] = tmp
+
+    for transition in targexp.getTransitions():
+
+        # Fill the precursor mapping
+        tmp = precursors_mapping.get(transition.getPeptideRef(), [])
+        tmp.append(transition.getNativeID())
+        precursors_mapping[transition.getPeptideRef()] = tmp
+
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, verbose=False, throwOnMismatch=False, fileType=None):
         
@@ -515,6 +550,8 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
     if fileType == "simple":
         return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
+    elif fileType == "traml":
+        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
 
     for file_nr, f in enumerate(aligned_pg_files):
         header_dict = {}

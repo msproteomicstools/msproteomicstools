@@ -162,12 +162,12 @@ class DataModel(object):
         aligned_pg_files : list of str
             List of paths to output files of the FeatureAligner
         fileType : str
-            Description of the type of file the metadata file is (simple, openswath)
-
+            Description of the type of file the metadata file (valid: simple, traml, openswath)
         """
 
         print "Input contained no mapping of run_id to the chromatograms."
         print "Try to infer mapping - if this fails, please provide a yaml input."
+        print fileType
 
         precursors_mapping = {}
         sequences_mapping = {}
@@ -179,7 +179,7 @@ class DataModel(object):
         swathfiles = SwathRunCollection()
         swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
-        if fileType != "simple":
+        if not fileType in ["simple", "traml"]:
             self._read_peakgroup_files(aligned_pg_files, swathfiles)
 
         print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
