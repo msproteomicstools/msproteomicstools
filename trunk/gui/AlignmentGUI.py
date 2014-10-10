@@ -229,14 +229,15 @@ class PeptideTreeWidget(QtGui.QWidget):
     # Signals
     selectionChanged = QtCore.pyqtSignal(QModelIndex)
 
-    def __init__(self):
+    def __init__(self, firstColumnName):
         super(PeptideTreeWidget, self).__init__()
+        self.first_column_name_ = firstColumnName
         self.initUI()
 
     def initUI(self):
 
         # Set up the model and the view
-        self._precursor_model = PeptideTree([])
+        self._precursor_model = PeptideTree([], firstColumnName=self.first_column_name_)
         self.treeView = PeptidesTreeView()
         self.treeView.setModel(self._precursor_model)
 
@@ -346,8 +347,8 @@ class ApplicationView(QtGui.QWidget):
         super(ApplicationView, self).__init__()
         self.parent = None
         self.treeiter = None
-        self.initUI()
         self.settings = settings
+        self.initUI()
         
     @QtCore.pyqtSlot(QModelIndex)
     def treeSelectionChanged(self, idx):
@@ -357,7 +358,7 @@ class ApplicationView(QtGui.QWidget):
 
     def initUI(self):
 
-        self.leftside = PeptideTreeWidget()
+        self.leftside = PeptideTreeWidget(self.settings.first_column_name_)
         self.leftside.selectionChanged.connect(self.treeSelectionChanged)
 
         # Do the main application (leftside/graphing area)
@@ -395,12 +396,19 @@ class ApplicationView(QtGui.QWidget):
 # 
 class Settings(object):
 
-    def __init__(self):
+    def __init__(self, runMode ):
         self.show_legend = True
         self.draw_transitions = False
         self.autoscale_y_axis = True
         self.nr_rows = 3
         self.window_title = 'OpenSWATH Alignment GUI'
+
+        if runMode == "proteomics":
+            self.first_column_name_ = 'Peptide Sequence'
+        elif runMode == "metabolomics":
+            self.first_column_name_ = 'Metabolite'
+        else:
+            raise Exception("Unknown run mode %s" % runMode)
 
 #
 ## Configuration Dialog
@@ -482,17 +490,16 @@ class ConfigDialog(QtGui.QDialog):
 # 
 class MainWindow(QtGui.QMainWindow):
     
-    def __init__(self):
+    def __init__(self, settings):
         super(MainWindow, self).__init__()
         
+        self.settings = settings
         self.c = Communicate()
         self.data_model = DataModel()
 
         self.initUI()
         
     def initUI(self):               
-
-        self.settings = Settings()
 
         self.data_model.setDrawTransitions( self.settings.draw_transitions )
         
@@ -641,6 +648,8 @@ def handle_args():
                         help = 'A list of input files (.chrom.mzML and feature_alignment output files).')
     parser.add_argument('--fileType', dest="filetype", required=False, 
                         help = 'Type of files describing the relations (simple, openswath, yaml)')
+    parser.add_argument('--runMode', dest="run_mode", required=False, default="proteomics",
+                        help = 'Mode to run in (proteomics, metabolomics)')
     args = parser.parse_args(sys.argv[1:])
     return args
 
@@ -648,10 +657,11 @@ if __name__ == '__main__':
 
     # Handle command line options
     options = handle_args()
+    settings = Settings(options.run_mode)
 
     # Set up Qt application
     app = QtGui.QApplication(sys.argv)
-    ex = MainWindow()
+    ex = MainWindow(settings)
 
     # Check whether any options were given on the commandline
     if options.infiles is not None:
