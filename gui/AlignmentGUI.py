@@ -553,18 +553,36 @@ class MainWindow(QtGui.QMainWindow):
         1. Try to load single yaml file
         2. Try to load a list of only mzML files
         3. Try to load a mixed list of mzML and other files (.tsv)
+
+        For the third option, 
+
+        pyFileList : list of str
+            List of paths to files
+        fileType : str
+            Description of the type of file the metadata file (valid: simple, yaml, traml, openswath)
         """
 
         start = time.time() 
-        if len(pyFileList) == 1 and pyFileList[0].endswith(".yaml"):
+
+        if fileType == "yaml" and len(pyFileList) == 1:
+            Exception("When providing a yaml file, please do not provide any other files as input.")
+
+        if len(pyFileList) == 1 and (pyFileList[0].endswith(".yaml") or fileType == "yaml"):
             self.data_model.load_from_yaml(pyFileList[0])
-        elif all( [f.endswith(".mzML") for f in pyFileList] ):
+        elif all( [f.lower().endswith("mzml") for f in pyFileList] ):
             self.data_model.loadFiles(pyFileList)
         else:
-            # Check whether one of them is not mzML
-            mzmls = [f for f in pyFileList if f.endswith("mzML")]
-            others = [f for f in pyFileList if not f.endswith("mzML")]
+
+            # Separate the mzML and other files
+            mzmls = [f for f in pyFileList if f.lower().endswith("mzml")]
+            others = [f for f in pyFileList if not f.lower().endswith("mzml")]
+
+            if fileType == None and len(others) == 1 and others[0].lower().endswith("traml"):
+                fileType = "traml"
+
             self.data_model.loadMixedFiles(mzmls, others, fileType)
+
+        # After loading, refresh view and print load time
         self._refresh_view(time=time.time()-start)
 
     def updateSettings(self, settings):
