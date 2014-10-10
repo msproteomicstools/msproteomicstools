@@ -212,6 +212,10 @@ class GraphArea(QtGui.QWidget):
             ranges = chr_transition.getRange(pl.run) 
             mscore = chr_transition.getProbScore(pl.run) 
             intensity = chr_transition.getIntensity(pl.run) 
+
+            # print "Got data for", i, "plot labels", labels, "from", chr_transition, "and nr data ", len(data)
+            # print "Got mscore and int", mscore, intensity
+
             # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
             pl.update_all_curves(data, labels, ranges, mscore, intensity, show_legend)
             pl.set_x_limits(min(xmins),max(xmaxs))
@@ -393,6 +397,7 @@ class Settings(object):
 
     def __init__(self):
         self.show_legend = True
+        self.draw_transitions = False
         self.autoscale_y_axis = True
         self.nr_rows = 3
         self.window_title = 'OpenSWATH Alignment GUI'
@@ -412,6 +417,7 @@ class ConfigDialog(QtGui.QDialog):
         self.settings.window_title = str(self.window_title.text())
         self.settings.nr_rows = int(self.nr_rows.text())
         self.settings.show_legend = self.show_legend.isChecked()
+        self.settings.draw_transitions = self.draw_transitions.isChecked()
         self.settings.autoscale_y_axis = self.autoscale_y_axis.isChecked()
         self.parent.updateSettings(self.settings)
         self.close()
@@ -429,6 +435,7 @@ class ConfigDialog(QtGui.QDialog):
         # Left side layout
         updateGroup = QtGui.QGroupBox("OpenSWATH settings");
         self.show_legend = QtGui.QCheckBox("Show legend");
+        self.draw_transitions = QtGui.QCheckBox("Draw individual transitions");
         self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
         label_rows = QtGui.QLabel("Number of window rows");
         self.nr_rows = QtGui.QLineEdit();
@@ -436,12 +443,14 @@ class ConfigDialog(QtGui.QDialog):
         self.window_title = QtGui.QLineEdit();
 
         self.show_legend.setChecked( self.settings.show_legend )
+        self.draw_transitions.setChecked( self.settings.draw_transitions )
         self.autoscale_y_axis.setChecked( self.settings.autoscale_y_axis )
         self.nr_rows.setText( str(self.settings.nr_rows) )
         self.window_title.setText( str(self.settings.window_title) )
 
         updateLayout = QtGui.QVBoxLayout()
         updateLayout.addWidget(self.show_legend);
+        updateLayout.addWidget(self.draw_transitions);
         updateLayout.addWidget(self.autoscale_y_axis);
         updateLayout.addWidget(label_rows);
         updateLayout.addWidget(self.nr_rows);
@@ -484,6 +493,8 @@ class MainWindow(QtGui.QMainWindow):
     def initUI(self):               
 
         self.settings = Settings()
+
+        self.data_model.setDrawTransitions( self.settings.draw_transitions )
         
         self.application = ApplicationView(self, self.settings)
         self.application.set_communication(self.c)
@@ -589,9 +600,10 @@ class MainWindow(QtGui.QMainWindow):
         """
         Update global settings (after closing the settings dialog)
         """
+
         self.application.graph_layout.nr_rows = settings.nr_rows
         self.application.graph_layout.autoscale_y_axis = settings.autoscale_y_axis
-        print "set window title to ", self.settings.window_title
+        self.data_model.setDrawTransitions( settings.draw_transitions )
         self.setWindowTitle(self.settings.window_title)
         self._refresh_view()
 

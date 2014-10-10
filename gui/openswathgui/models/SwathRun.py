@@ -85,7 +85,8 @@ class SwathRun(object):
         self._initialize()
 
     def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None):
-        """ Load the files associated with this run using pymzml
+        """
+        Load the files associated with this run using pymzml
 
         Each run is stored in the _all_swathes dictionary where the runs are
         accessible through the m/z of the first precursor.
@@ -103,14 +104,18 @@ class SwathRun(object):
                 precursor_mapping=precursor_mapping, sequences_mapping=sequences_mapping)
 
     def _initialize(self):
-        """ A precursor can be mapped uniquely to a certain SWATH window.
+        """ 
+        Map the individual sequences and precursors to the respective swath file
         """
+
         self._precursor_run_map = {}
         self._sequences_mapping = {}
-        self._chrom_id_run_map = {}
+
         for run_key, run in self._all_swathes.iteritems():
+
             for key in run._precursor_mapping:
                 self._precursor_run_map[key] = run_key
+
             for key in run._sequences_mapping:
                 tmp = self._sequences_mapping.get(key, [])
                 tmp.extend( run._sequences_mapping[key] )
@@ -157,9 +162,24 @@ class SwathRun(object):
         return sum([r.getTransitionCount() for r in self._all_swathes.values()] )
 
     def get_data_for_precursor(self, precursor):
-        """Retrieve raw data for a specific precursor (using the right run)."""
+        """
+        Retrieve raw data for a specific precursor (using the correct run).
+        """
+
         run = self._precursor_run_map[str(precursor)]
         return self._all_swathes[run].get_data_for_precursor(precursor)
+
+    def get_data_for_transition(self, transition_id):
+        """
+        Retrieve raw data for a specific transition (using the correct run).
+        """
+
+        for run in self._all_swathes.values():
+            if len( run.get_data_for_transition(transition_id)[0][0] ) > 1:
+                return run.get_data_for_transition(transition_id)
+
+        # Default value
+        return run.get_data_for_transition(transition_id)
 
     def get_range_data(self, precursor):
         return self._range_mapping.get(precursor, [0,0])
