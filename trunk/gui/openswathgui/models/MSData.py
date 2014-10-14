@@ -172,8 +172,7 @@ class DataModel(object):
         """
 
         print "Input contained no mapping of run_id to the chromatograms."
-        print "Try to infer mapping - if this fails, please provide a yaml input."
-        print fileType
+        print "Try to infer mapping for filetype %s - if this fails, please provide a yaml input." % fileType
 
         precursors_mapping = {}
         sequences_mapping = {}
@@ -239,8 +238,9 @@ class DataModel(object):
             if ONLY_SHOW_QUANTIFIED:
                 intersection = set(swathrun.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
                 todelete = set(swathrun.get_all_precursor_ids()).difference(intersection)
-                if len(intersection):
+                if len(intersection) == 0:
                     print "Could not find any intersection between identifiers in your transition file and the provided chromatograms"
+                    print len(intersection)
                 swathrun.remove_precursors(todelete)
 
             # for each precursor in this run, identify the best peakgroup and store the value
