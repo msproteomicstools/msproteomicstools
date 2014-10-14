@@ -58,6 +58,11 @@ except ImportError:
         def __init__(self, *args, **kwargs):
             pass
 
+try:
+    QtGui.QStaticText("Test")
+except AttributeError:
+    print "Could not find QtGui.QStaticText - maybe your version of Qt and PyQt is too old? Will not be able to display text on top of the graphs."
+
 USE_ANTIALIASING = True
 
 class CurveItemModel(CurveItem):
