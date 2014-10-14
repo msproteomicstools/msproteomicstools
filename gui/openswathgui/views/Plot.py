@@ -370,7 +370,12 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         # draw two ellipses
         if True:
             diam = 5
-            ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+            ymax = 5
+            try:
+                ymax = self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound()
+            except AttributeError:
+                pass
+
             rect3 = QtCore.QRectF(rct)
             rect3.setLeft(xMap.transform(self.l_width) -  diam/2.0)
             rect3.setTop(yMap.transform(ymax/2) )
@@ -398,10 +403,14 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             self.r_width = ranges[1]
 
             # create and add labels -> see drawCanvas
-            mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
-            intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
-            width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
-            self.labels.extend([mscore_txt, intensity_txt, width_txt])
+            try:
+                mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
+                intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
+                width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
+                self.labels.extend([mscore_txt, intensity_txt, width_txt])
+            except AttributeError:
+                # old qt version?
+                pass
 
         for d, curve in zip(data, self.curves):
             curve.setData( d[0], d[1] )
