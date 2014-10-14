@@ -40,8 +40,10 @@ from PyQt4 import QtGui, Qt, QtCore
 from PyQt4.Qwt5 import QwtPlotItem
 import PyQt4.Qwt5 as Qwt
 
+
 # There are two implementations of the plotting view, one uses guiqwt (may not
 # be present on all systems) and the other one uses plain Qwt (should be safer)
+have_guiqwt = True
 try:
     from guiqwt.curve import CurveItem
     from guiqwt.plot import CurvePlot, CurveDialog
@@ -50,8 +52,11 @@ try:
     from guiqwt.transitional import QwtPlotItem
 except ImportError:
     print "Could not import guiqwt, will try to use Qwt only."
-    class CurveItem: pass
-    class CurveDialog: pass
+    have_guiqwt = False
+    class CurveItem(object): pass
+    class CurveDialog(object): 
+        def __init__(self, *args, **kwargs):
+            pass
 
 USE_ANTIALIASING = True
 

@@ -91,7 +91,8 @@ from openswathgui.models.PeptideTree import PeptideTree
 ## Views for the plots and the peptide tree (on the right)
 #
 from openswathgui.views.PeptideTree import PeptidesTreeView
-if USE_GUIQWT:
+from openswathgui.views.Plot import have_guiqwt 
+if USE_GUIQWT and have_guiqwt:
     from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
 else:
     from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
