@@ -96,6 +96,8 @@ class SWATHScoringReader:
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
             return Peakview_SWATHScoringReader(infiles, readmethod, readfilter)
+        elif filetype  == "peakview_preprocess": 
+            return PeakviewPP_SWATHScoringReader(infiles, readmethod, readfilter)
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
@@ -456,6 +458,126 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         else:
             raise NotImplemented
 
+class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
+    """
+    Parser for Peakview output
+    """
+
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), enable_isotopic_grouping=False):
+        self.infiles = infiles
+        self.run_id_name = "Sample"
+        self.aligned_run_id_name = "align_runid"
+        self.readmethod = readmethod
+        self.readfilter = readfilter
+        self.errorHandling = "strict"
+
+        # Only minimal reading is implemented
+        if readmethod == "minimal":
+            self.Precursor = Precursor
+        else:
+            raise Exception("Cannot only use readmethod minimal Peakview data.")
+
+        if enable_isotopic_grouping:
+            raise Exception("Cannot use isotopic grouping with Peakview data.")
+        else:
+            self.peptide_group_label_name = "Pep Index"
+
+    def parse_row(self, run, this_row, read_exp_RT):
+        decoy_name = "decoy"
+        fdr_score_name = "m_score"
+        ## dscore_name = "d_score"
+        unique_peakgroup_id_name = "transition_group_id"
+        ## diff_from_assay_in_sec_name = "delta_rt"
+        run_id_name = "run_id"
+        protein_id_col = "ProteinName"
+        intensity_name = "Intensity"
+        decoy = "FALSE"
+        # left_width_name = "leftWidth"
+        # right_width_name = "rightWidth"
+        charge_name = "Charge"
+        cluster_id = -1
+
+        decoy_name = "Decoy"
+        fdr_score_name = "Score" # note this score is better when higher
+        unique_peakgroup_id_name = "Pep Index"
+        diff_from_assay_in_sec_name = "Median RT"
+        run_id_name = "Sample"
+        protein_id_col = "Protein"
+        self.sequence_col = "Peptide"
+        unique_feature_id_name = "preprocess_id"
+        decoy = "FALSE"
+        intensity_name = "MaxPeak Intensity"
+        charge_name = "Precursor Charge"
+        d_score = 2
+
+        # use the aligned retention time if it is available!
+        if "aligned_rt" in run.header_dict: 
+            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+        # if we want to re-do the re-alignment, we just use the "regular" retention time
+        if read_exp_RT: 
+            diff_from_assay_in_sec_name = "Median RT"
+        if "align_clusterid" in run.header_dict: 
+            cluster_id = int(this_row[run.header_dict["align_clusterid"]])
+
+        trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
+        unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
+        sequence = this_row[run.header_dict[self.sequence_col]]
+        peptide_group_label = trgr_id
+
+        if self.peptide_group_label_name in run.header_dict: 
+            peptide_group_label = this_row[run.header_dict[self.peptide_group_label_name]]
+
+        # Attributes that only need to be present in strict mode
+        diff_from_assay_seconds = -1
+        fdr_score = -1
+        protein_name = "NA"
+        thisid = -1
+        try:
+            fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+            protein_name = this_row[run.header_dict[protein_id_col]]
+            thisid = this_row[run.header_dict[unique_feature_id_name]]
+            diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+        except KeyError:
+            if self.errorHandling == "strict": 
+                raise Exception("Did not find essential column.")
+
+        # compute 1/score to have a score that gets better when smaller
+        fdr_score = 1/fdr_score
+
+        # Optional attributes
+        intensity = -1
+        if run.header_dict.has_key(intensity_name):
+            intensity = float(this_row[run.header_dict[intensity_name]])
+        if "decoy" in run.header_dict:
+            decoy = this_row[run.header_dict[decoy_name]]
+
+        # If the peptide does not yet exist, generate it
+        if not run.hasPrecursor(peptide_group_label, trgr_id):
+          p = self.Precursor(trgr_id, run)
+          p.protein_name = protein_name
+          p.sequence = sequence
+          p.set_decoy(decoy)
+          run.addPrecursor(p, peptide_group_label)
+
+        if self.readmethod == "minimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+        elif self.readmethod == "gui":
+          leftWidth = this_row[run.header_dict[left_width_name]]
+          rightWidth = this_row[run.header_dict[right_width_name]]
+          charge = this_row[run.header_dict[charge_name]]
+          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
+          peakgroup.charge = charge
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+        elif self.readmethod == "complete":
+          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_fdr_score(fdr_score)
+          peakgroup.set_feature_id(thisid)
+          peakgroup.set_intensity(intensity)
+          peakgroup.setClusterID(cluster_id)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+
 def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, verbose=False):
 
@@ -596,11 +718,15 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
             if aligned_id in mapping:
                 continue 
 
+
             aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
+
+            print "rafiles ", rawdata_files
 
             # 2. Go through all chromatogram input files and try to find
             # one that matches the one from align_origfilename
             for rfile in rawdata_files:
+
 
                 # 2.1 remove common file endings from the raw data
                 rfile_base = os.path.basename(rfile)
@@ -610,6 +736,8 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 # 2.2 remove common file endings from the tsv data
                 for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
                     aligned_fname = aligned_fname.split(ending)[0]
+
+                print rfile_base, aligned_fname
 
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
