@@ -557,11 +557,23 @@ class SmoothingInterpolation:
         self.linear_sm.initialize(data1, data2)
 
     def predict(self, xhat):
+        import math 
+
         try:
             predicted_result = self.f(xhat) # interpolation fxn
         except ValueError:
             # outside bound, use linear
             return self.linear_sm.predict(xhat)
+
+        # If the input is a list, we need to check every value in the list
+        # -> fix those that are "NA"
+        if any( [math.isnan(pp) for pp in predicted_result] ):
+            
+            for i, (qq, pp) in enumerate(zip(xhat, predicted_result)):
+                if (math.isnan(pp)):
+                    predicted_result[ i ] = self.linear_sm.predict([ qq ])[0]
+
+
         return list(predicted_result)
 
 class LocalKernel:
