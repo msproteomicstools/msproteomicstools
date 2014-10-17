@@ -97,6 +97,7 @@ class SplineAligner():
         data2 = []
 
         data_tmp = []
+        cnt_multiple = 0
         for m in multipeptides:
 
             try: 
@@ -108,6 +109,8 @@ class SplineAligner():
                 # Do not consider peakgroups that are missing in one run
                 # Do not consider peakgroups that have more than one good peakgroup
                 if len_ali != 1 or len_ref != 1:
+                    if len_ali > 1 or len_ref > 1:
+                        cnt_multiple += 1
                     continue
 
                 ref_pep = m.getPrecursorGroup(bestrun.get_id()).getOverallBestPeakgroup()
@@ -130,6 +133,11 @@ class SplineAligner():
                     ref_pep.get_normalized_retentiontime(), 
                     align_pep.get_normalized_retentiontime() 
                 ) )
+
+        if cnt_multiple > len(multipeptides) * 0.8 :
+            print ""
+            print "  Warning: Most of your data has more than one peakgroup with a score better than %s."  % self.alignment_fdr_threshold_
+            print "  This may be a problem for the alignment, please consider adjusting the --alignment_score option." 
 
         maxdata = self.max_data_
         if maxdata == -1:
