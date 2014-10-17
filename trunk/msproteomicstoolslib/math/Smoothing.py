@@ -76,6 +76,8 @@ def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOut
         return UnivarSplineNoCV()
     elif smoother == "CVSpline":
         return UnivarSplineCV()
+    elif smoother == "Earth":
+        return SmoothingEarth()
     elif smoother == "WeightedNearestNeighbour":
         return WeightedNearestNeighbour(topN, max_rt_diff, min_rt_diff, removeOutliers)
     elif smoother == "SmoothLLDMedian":
@@ -498,6 +500,25 @@ class UnivarSplineCV:
 
     def predict(self, xhat):
         return list(self.sp(xhat))
+
+class SmoothingEarth:
+    """Class for MARS type smoothing based on pyearth
+
+    Get it at https://github.com/jcrudy/py-earth/
+    """
+
+    def __init__(self):
+        pass
+
+    def initialize(self, data1, data2):
+        import pyearth
+        self.model = pyearth.Earth()
+        X = numpy.array(data1)
+        Y = numpy.array(data2)
+        self.model.fit(X, Y)
+
+    def predict(self, xhat):
+        return list(self.model.predict(xhat))
 
 class SmoothingLinear:
     """Class for linear transformation
