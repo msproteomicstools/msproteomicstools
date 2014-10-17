@@ -305,7 +305,12 @@ class Experiment(MRExperiment):
                     row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                     writer.writerow(row_to_write)
 
-        elif len(outfile) > 0 and file_format == "openswath":
+        elif len(outfile) > 0 and file_format in ["openswath", "peakview_preprocess"]:
+
+            name_of_id_col_map = { "openswath" : "id" , "peakview_preprocess" : "preprocess_id"}
+            name_of_trgr_col_map = { "openswath" : "transition_group_id" , "peakview_preprocess" : "Pep Index"}
+            name_of_id_col = name_of_id_col_map[file_format]
+            name_of_trgr_col = name_of_trgr_col_map[file_format]
 
             # Only in openswath we have the ID and can go back to the original file.
             # We can write out the complete original files.
@@ -331,18 +336,19 @@ class Experiment(MRExperiment):
                 header_dict[n] = i
 
               for row in reader:
-                  f_id = row[ header_dict["id"]]
+                  f_id = row[ header_dict[name_of_id_col]]
                   if selected_ids_dict.has_key(f_id):
                       # Check the "id" and "transition_group_id" field.
                       # Unfortunately the id can be non-unique, there we check both.
                       trgroup_id = selected_ids_dict[f_id].peptide.get_id()
-                      unique_peptide_id = row[ header_dict["transition_group_id"]]
+                      unique_peptide_id = row[ header_dict[name_of_trgr_col]]
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
                           row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
                           # Replace run_id with the aligned id (align_runid) ->
                           # otherwise the run_id is not guaranteed to be unique 
-                          row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
+                          if file_format == "openswath" : 
+                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                           writer.writerow(row_to_write)
 
         # 5. Write out the .tr transformation files
