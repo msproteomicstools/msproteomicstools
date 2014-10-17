@@ -127,7 +127,9 @@ class AlignmentAlgorithm():
                         p.get_best_peakgroup().select_this_peakgroup()
                 continue
 
-            if method == "global_best_cluster_score" or method == "best_cluster_score":
+            if method == "naive":
+                self._align_features_naive(mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
+            elif method == "global_best_cluster_score" or method == "best_cluster_score":
                 self._align_features_cluster(mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
             elif method == "global_best_overall" or method == "best_overall":
                 self._align_features_best(mpep, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method)
@@ -251,4 +253,14 @@ class AlignmentAlgorithm():
                 if verb: print "could not align", current_best_pg.peptide.run.get_id(), current_best_pg.peptide.run.orig_filename, "best rt_diff was ", \
                       abs(float(bestScoringPG.get_normalized_retentiontime()) - float(best_rt_diff)), "best score", \
                       bestScoringPG.get_fdr_score() 
+
+    def _align_features_naive(self, m, rt_diff_cutoff, fdr_cutoff, aligned_fdr_cutoff, method):
+        """ Naive alignment by taking always the best scoring feature (only for comparison purposes!)
+        """
+        if self.verbose: print "00000000000000000000000000000000000 new peptide (naive)", m.getAllPeptides()[0].get_id()
+
+        for p in m.getAllPeptides(): # loop over runs
+            current_best_pg = p.get_best_peakgroup()
+            current_best_pg.select_this_peakgroup()
+            if self.verbose: print " == Selected peakgroup ", current_best_pg.print_out()
 
