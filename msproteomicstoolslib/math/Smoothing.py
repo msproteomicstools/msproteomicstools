@@ -36,6 +36,11 @@ $Authors: Hannes Roest$
 """
 
 import numpy
+import os
+import csv
+import math
+import random
+from numpy import median, absolute
 from msproteomicstoolslib.algorithms.shared.bounds import lower_bound, upper_bound
 
 def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
@@ -165,7 +170,6 @@ class SmoothingRExtern:
         self.internal_interpolation.initialize(arr[:,0], arr[:,1])
 
     def predict_R_(self, data1, data2, predict_data, TMPDIR):
-        import random
         fname = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_pred = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_out = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
@@ -201,11 +205,9 @@ class SmoothingRExtern:
         fh.close()
 
         # Execute command
-        import os
         cmd = "R --slave --args %s %s %s < %s" % (fname, fname_pred, fname_out, Rscript) 
         os.system(cmd)
 
-        import csv
         try:
             r = csv.reader(open(fname_out), delimiter="\t")
             r.next()
@@ -373,8 +375,12 @@ class LowessSmoothingPy:
         pass
 
     def initialize(self, data1, data2):
-        from Bio.Statistics.lowess import lowess
-        import math
+        try:
+            from Bio.Statistics.lowess import lowess
+        except ImportError:
+            print "==================================="
+            print "Cannot import the module lowess from Biopython, \nplease install 'biopython' from https://pypi.python.org/pypi/biopython"
+            print "==================================="
 
         old_settings = numpy.seterr(all='ignore')
         result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=10)
@@ -422,7 +428,6 @@ class UnivarSplineCV:
 
     def initialize(self, data1, data2, frac_training_data = 0.75, max_iter = 100, s_iter_decrease = 0.75, verb=False):
         from scipy.interpolate import UnivariateSpline
-        import random
 
         if verb: 
             print " --------------------" 
@@ -511,7 +516,13 @@ class SmoothingEarth:
         pass
 
     def initialize(self, data1, data2):
-        import pyearth
+        try:
+            import pyearth
+        except ImportError:
+            print "==================================="
+            print "Cannot import pyearth, \nplease install it from https://github.com/jcrudy/py-earth/"
+            print "==================================="
+
         self.model = pyearth.Earth()
         X = numpy.array(data1)
         Y = numpy.array(data2)
@@ -557,8 +568,6 @@ class SmoothingInterpolation:
         self.linear_sm.initialize(data1, data2)
 
     def predict(self, xhat):
-        import math 
-
         try:
             predicted_result = self.f(xhat) # interpolation fxn
         except ValueError:
@@ -685,8 +694,6 @@ class SmoothLLDMedian(LocalKernel):
         self.removeOutliers = removeOutliers
 
     def predict(self, xhat):
-
-        from numpy import median, absolute
 
         def mad(data, axis=None):
             """Median absolute deviation (MAD) is a robust estimator of variation.
