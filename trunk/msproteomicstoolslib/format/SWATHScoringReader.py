@@ -548,8 +548,12 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
         intensity = -1
         if run.header_dict.has_key(intensity_name):
             intensity = float(this_row[run.header_dict[intensity_name]])
-        if "decoy" in run.header_dict:
+        if "Decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
+            if decoy in ["True", "TRUE"]:
+                decoy = "TRUE"
+            elif decoy in ["False", "FALSE"]:
+                decoy = "FALSE"
 
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
