@@ -178,9 +178,9 @@ class ChromatogramTransition(object):
 
         elif CHROMTYPES[self.mytype] == "Transition" :
             # TODO
-            return [0,0]
+            return [ [0,0] ]
 
-        return [0,0]
+        return [ [0,0] ]
 
     def getProbScore(self, run):
         """

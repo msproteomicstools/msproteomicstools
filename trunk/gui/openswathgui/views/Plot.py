@@ -141,10 +141,16 @@ class GuiQwtMultiLinePlot(CurveDialog):
             if show_legend:
                 plot.add_item( l )
 
+        self.myranges = []
+        for r in this_range:
+            self.add_range_to_plot(plot, r)
+
+    def add_range_to_plot(self, plot, this_range):
+
         self.myrange = make.range(this_range[0], this_range[1])
         self.myrange.itemChanged()
         self.myrange.set_movable(False)
-        #
+
         if False:
             # make all colors black/gray
             # check /usr/lib/python2.7/dist-packages/guiqwt/config.py for parameters
@@ -160,6 +166,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
 
         self.myrange.set_resizable(False)
         self.myrange.itemChanged()
+
         # print self.myrange._can_move, "move"
         # disp2 = make.computations(self.myrange, "TL",
         #                               [(curve, "min=%.5f", lambda x,y: y.min()),
@@ -167,6 +174,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
         #                                (curve, "avg=%.5f", lambda x,y: y.mean())])
         # plot.add_item( disp2 )
         plot.add_item( self.myrange )
+        self.myranges.append( self.myrange )
 
     def rangeChanged(self, data):
         print "range changed"
@@ -198,12 +206,13 @@ class GuiQwtMultiLinePlot(CurveDialog):
 
         assert len(data) == len(labels), "Length of labels %s does not correspond to length of data %s" % (len(labels), len(data))
         self.create_curves(labels, ranges, show_legend)
-        if mscore is not None: 
+
+        if mscore is not None and len(ranges) < 2: 
             self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
             self.get_plot().add_item( self.mscore_label )
             self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
             self.get_plot().add_item( self.l2 )
-            self.width = make.label("PeakWidth=%0.3fs" % (ranges[1]-ranges[0]), "TL", (0,50), "TL")
+            self.width = make.label("PeakWidth=%0.3fs" % (ranges[0][1]-ranges[0][0]), "TL", (0,50), "TL")
             self.get_plot().add_item( self.width )
 
         for d, curve in zip(data, self.curves):
