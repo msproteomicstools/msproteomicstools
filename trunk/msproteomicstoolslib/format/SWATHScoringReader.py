@@ -705,6 +705,8 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
               header_dict.has_key("Charge") and \
               header_dict.has_key("aggr_Fragment_Annotation"):
                 transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
+                if len(transitions[-1]) == 0:
+                    transitions = transitions[:-1]
                 peptide_name = this_row[header_dict["FullPeptideName"]]
                 charge_state = this_row[header_dict["Charge"]]
                 key = peptide_name + "/" + charge_state
