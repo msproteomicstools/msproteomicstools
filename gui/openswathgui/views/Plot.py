@@ -196,7 +196,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
 
     def update_all_curves(self, data, labels, ranges, mscore, intensity, show_legend=True):
 
-        assert len(data) == len(labels)
+        assert len(data) == len(labels), "Length of labels %s does not correspond to length of data %s" % (len(labels), len(data))
         self.create_curves(labels, ranges, show_legend)
         if mscore is not None: 
             self.mscore_label = make.label("m_score=%0.4g" % mscore, "TL", (0,0), "TL")
