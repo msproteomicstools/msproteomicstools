@@ -60,8 +60,6 @@ class SwathRun(object):
 
         _in_memory:          Whether data should be held in memory
 
-        TODO: the following three attributes are set by _read_peakgroup_files violating encapsulation)
-
         _range_mapping:      Dictionary of { precursor_id : [leftWidth, rightWidth] }
 
         _score_mapping:      Dictionary of { precursor_id : FDR_score }
@@ -189,6 +187,11 @@ class SwathRun(object):
 
     def get_intensity_data(self, precursor):
         return self._intensity_mapping.get(precursor, None)
+
+    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity):
+        self._range_mapping[precursor_id]       = [ leftWidth, rightWidth ]
+        self._score_mapping[precursor_id]       = fdrscore
+        self._intensity_mapping[precursor_id]   = intensity 
 
     def get_id(self):
         fileid = ""

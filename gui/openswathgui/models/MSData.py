@@ -251,9 +251,10 @@ class DataModel(object):
                 m = peakgroup_map[ precursor_id ]
                 if m.hasPrecursorGroup(swathrun.runid):
                     pg = m.getPrecursorGroup(swathrun.runid).getOverallBestPeakgroup()
-                    swathrun._range_mapping[precursor_id]       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
-                    swathrun._score_mapping[precursor_id]       = float(pg.get_value("m_score"))
-                    swathrun._intensity_mapping[precursor_id]   = float(pg.get_value("Intensity"))
+                    l,r       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
+                    fdrscore  = float(pg.get_value("m_score"))
+                    intensity = float(pg.get_value("Intensity"))
+                    swathrun.add_peakgroup_data(precursor_id,l,r, fdrscore, intensity)
 
     def _loadFiles_with_peakgroups(self, RawData, aligned_pg_files):
 
