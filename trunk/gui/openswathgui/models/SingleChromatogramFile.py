@@ -312,6 +312,13 @@ class SingleChromatogramFile():
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             chromatogram = self._run[str(chrom_id)] 
+
+            if chromatogram is None:
+                print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id
+                print "Please check your input data"
+                transitions.append(  [ [0], [0] ]  )
+                continue
+
             transitions.append([chromatogram.time, chromatogram.i])
 
         if len(transitions) == 0: 
@@ -325,6 +332,10 @@ class SingleChromatogramFile():
         """
 
         chromatogram = self._run[str(transition_id)] 
+        if chromatogram is None:
+            print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
+            print "Please check your input data"
+
         transitions = [ [chromatogram.time, chromatogram.i] ] 
 
         if len(transitions) == 0: 
@@ -358,6 +369,9 @@ class SingleChromatogramFile():
                 else:
                     transitions.append(chrom_id)
             except KeyError:
+                transitions.append(chrom_id)
+            except TypeError:
+                # None for chromatogram
                 transitions.append(chrom_id)
         return transitions
 
