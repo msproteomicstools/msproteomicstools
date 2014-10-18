@@ -184,13 +184,15 @@ class SwathRun(object):
 
     def get_score_data(self, precursor):
         r = self._score_mapping.get(precursor, None)
-        if r is not None and len(r) > 1:
+
+        if r is not None and len(r) > 0:
             return r[0]
         return None
 
     def get_intensity_data(self, precursor):
         r = self._intensity_mapping.get(precursor, None)
-        if r is not None and len(r) > 1:
+
+        if r is not None and len(r) > 0:
             return r[0]
         return None
 
