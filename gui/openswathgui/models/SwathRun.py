@@ -180,18 +180,33 @@ class SwathRun(object):
         return run.get_data_for_transition(transition_id)
 
     def get_range_data(self, precursor):
-        return self._range_mapping.get(precursor, [0,0])
+        return self._range_mapping.get(precursor, [ [0,0] ])
 
     def get_score_data(self, precursor):
-        return self._score_mapping.get(precursor, None)
+        r = self._score_mapping.get(precursor, None)
+        if r is not None and len(r) > 1:
+            return r[0]
+        return None
 
     def get_intensity_data(self, precursor):
-        return self._intensity_mapping.get(precursor, None)
+        r = self._intensity_mapping.get(precursor, None)
+        if r is not None and len(r) > 1:
+            return r[0]
+        return None
 
     def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity):
-        self._range_mapping[precursor_id]       = [ leftWidth, rightWidth ]
-        self._score_mapping[precursor_id]       = fdrscore
-        self._intensity_mapping[precursor_id]   = intensity 
+
+        tmp = self._range_mapping.get(precursor_id, [])
+        tmp.append( [leftWidth, rightWidth ] )
+        self._range_mapping[precursor_id] = tmp
+
+        tmp = self._score_mapping.get(precursor_id, [])
+        tmp.append(fdrscore)
+        self._score_mapping[precursor_id] = tmp
+
+        tmp = self._intensity_mapping.get(precursor_id, [])
+        tmp.append(intensity)
+        self._intensity_mapping[precursor_id] = tmp
 
     def get_id(self):
         fileid = ""

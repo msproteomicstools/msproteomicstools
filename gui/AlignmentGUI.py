@@ -150,13 +150,13 @@ class GraphArea(QtGui.QWidget):
         self.plots = []
 
         self.plot = MultiLinePlot(edit=False, toolbar=False )
-        self.plot.create_curves([1,2,3], [0,0])
+        self.plot.create_curves([1,2,3], [ [0,0] ] )
         self.add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
         self.plot2 = MultiLinePlot(edit=False, toolbar=False )
-        self.plot2.create_curves([1,2], [0,0])
+        self.plot2.create_curves([1,2], [ [0,0] ])
         self.add_new(self.plot2)
         self.plots.append(self.plot2)
 
