@@ -999,7 +999,7 @@ def main(argv) :
                                     peak.frg_serie , peak.frg_z , peak.frg_nr , iRT_experimental , protein_code1 , 'FALSE', protein_index[protein_desc] , 1 , protein_shared ]
                 if key == 'openswath' :
                     transition_group_id = "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent))
-                    transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s_%s" % (transition_cnt, pep.getSequenceWithMods(code), int(z_parent)), '-1',
+                    transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s%s_%s_%s_%s" % (transition_cnt, peak.frg_serie, peak.frg_nr, peak.frg_z, pep.getSequenceWithMods(code), int(z_parent)), '-1',
                             peak.intensity, transition_group_id, 0, spectrum.sequence, protein_desc, 
                             peak.peak_annotation, pep.getSequenceWithMods(code),
                             int(z_parent), transition_group_id, protein_code1, peak.frg_serie, peak.frg_z,
