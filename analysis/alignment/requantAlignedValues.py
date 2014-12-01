@@ -196,8 +196,8 @@ class SwathChromatogramCollection(object):
         return self.allruns.keys()
 
 # Main entry points:
-# runSingleFileImputation
-# runImputeValues
+# runSingleFileImputation -> for tree based, new imputation
+# runImputeValues -> old method using .tr files
 
 def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     """Impute values across chromatograms
@@ -381,11 +381,24 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                           disable_isotopic_transfer=False):
     """Analyze the multipeptides and impute missing values
 
+    This function has three different modes:
+
+        - if a tree is given, it will use the single shortest path on the tree to infer the boundaries
+        - if a distance matrix is given, it will use the closest run overall to infer the boundaries
+        - if neither is given, it will use a mean / median / maximum of all
+          borders by converting all boundaries to the frame of the reference run
+          and then to the current run
+
     Args:
         new_exp(AlignmentExperiment): experiment containing the aligned peakgroups
         multipeptides(list(AlignmentHelper.Multipeptide)): list of multipeptides
         swath_chromatograms(dict): containing the objects pointing to the original chrom mzML (see runImputeValues)
         transformation_collection_(.TransformationCollection): specifying how to transform between retention times of different runs
+        border_option(String): one of the following options ("mean", "median" "max_width"), determining how to aggregate multiple peak boundary information
+        onlyExtractFromRun(String): Whether only to perform signal extraction from a single run (if not None, needs to be a run id)
+        tree(MinimumSpanningTree): alignment guidance tree (if given, will use shortest path approach)
+        mat( matrix(float) ): distance matrix, see getDistanceMatrix (if given, will use closest run approach)
+        disable_isotopic_transfer(bool): whether to use isotopic grouping (e.g. group heavy/light channels together)
 
     Returns:
         The updated multipeptides
@@ -548,13 +561,17 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 if inferred_from_isotope:
                     # All good
                     pass
+
                 elif tree is not None:
+                    ## Use the closest path approach
                     border_l, border_r = integrationBorderShortestPath(selected_pg, 
                         rid, transformation_collection_, tree)
                 elif mat is not None:
+                    ## Use the closest overall run approach
                     border_l, border_r = integrationBorderShortestDistance(selected_pg, 
                         rid, transformation_collection_, mat, rmap)
                 else:
+                    ## Use the refernce-based approach
                     border_l, border_r = integrationBorderReference(new_exp, selected_pg, rid, transformation_collection_, border_option)
                 newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
                                              border_l, border_r, cnt)
@@ -727,19 +744,22 @@ def handle_args():
 
     experimental_parser = parser.add_argument_group('experimental options')
     experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
-    experimental_parser.add_argument('--disable_isotopic_transfer', action='store_true', default=False, help="Disable the transfer of isotopic boundaries in all cases. If enabled (default), the best (best score) isotopic channel dictates the peak boundaries and all other channels use those boundaries.")
+    experimental_parser.add_argument('--disable_isotopic_transfer', action='store_true', default=False, help="Disable the transfer of isotopic boundaries in all cases. If enabled (default), the best (best score) isotopic channel dictates the peak boundaries and all other channels use those boundaries. This ensures consistency in peak picking in all cases.")
 
     args = parser.parse_args(sys.argv[1:])
     args.verbosity = int(args.verbosity)
     return args
 
 def main(options):
-    import time
+
     if options.method in ["singleShortestPath", "singleClosestRun"]:
         new_exp, multipeptides = runSingleFileImputation(options, options.peakgroups_infile, options.do_single_run, options.method)
     else:
         new_exp, multipeptides = runImputeValues(options, options.peakgroups_infile, options.infiles)
-    if options.dry_run: return
+
+    if options.dry_run:
+        return
+
     write_out(new_exp, multipeptides, options.output, options.matrix_outfile, options.do_single_run)
 
 if __name__=="__main__":

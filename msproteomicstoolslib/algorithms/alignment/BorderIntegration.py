@@ -113,6 +113,7 @@ def integrationBorderReference(new_exp, selected_pg, rid, transformation_collect
         selected_pg(list(GeneralPeakGroup)): list of selected peakgroups (e.g. those passing the quality threshold)
         rid(String): current run id
         transformation_collection_(:class:`.TransformationCollection`): specifying how to transform between retention times of different runs
+        border_option(String): one of the following options ("mean", "median" "max_width"), determining how to aggregate multiple peak boundary information
 
     Returns:
         A tuple of (left_integration_border, right_integration_border) in the retention time space of the _reference_ run
