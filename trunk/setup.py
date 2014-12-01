@@ -9,6 +9,7 @@ for root, dirnames, filenames in os.walk('analysis'):
   for filename in fnmatch.filter(filenames, '*.py'):
       all_scripts.append(os.path.join(root, filename))
 all_scripts.extend(["./gui/AlignmentGUI.py"])
+all_scripts.extend(["./gui/TAPIR.py"])
 
 setup(name='msproteomicstools',
       version='0.3.0',
