@@ -60,7 +60,6 @@ def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
             given that there are enough points.
 
     Returns:
-        None
         numpy (n x n) matrix(float): distance matrix
     """
 
