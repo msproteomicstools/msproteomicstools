@@ -68,7 +68,7 @@ class SwathRun(object):
 
     """
 
-    def __init__(self, files, runid=None, precursor_mapping = None, sequences_mapping = None):
+    def __init__(self, files, runid=None, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         self.runid = runid
         self._all_swathes = {}
         self._in_memory = False
@@ -79,10 +79,10 @@ class SwathRun(object):
         self._score_mapping = {}
         self._intensity_mapping = {}
 
-        self._loadFiles(files, precursor_mapping, sequences_mapping)
+        self._loadFiles(files, precursor_mapping, sequences_mapping, protein_mapping)
         self._initialize()
 
-    def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None):
+    def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """
         Load the files associated with this run using pymzml
 
@@ -99,7 +99,8 @@ class SwathRun(object):
             first = run_.next()
             mz = first['precursors'][0]['mz']
             self._all_swathes[ int(mz) ] = SingleChromatogramFile(run_, f, 
-                precursor_mapping=precursor_mapping, sequences_mapping=sequences_mapping)
+                precursor_mapping=precursor_mapping, sequences_mapping=sequences_mapping, 
+                protein_mapping=protein_mapping)
 
     def _initialize(self):
         """ 
@@ -144,6 +145,12 @@ class SwathRun(object):
         res = set([])
         for m in self._all_swathes.values():
             res.update( m._sequences_mapping.keys() )
+        return res
+
+    def get_all_proteins(self):
+        res = set([])
+        for m in self._all_swathes.values():
+            res.update( m._protein_mapping.keys() )
         return res
 
     #
