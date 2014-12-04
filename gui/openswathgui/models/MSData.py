@@ -180,7 +180,6 @@ class DataModel(object):
         mapping = {}
         inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType=fileType)
         print "Found the following mapping: mapping", mapping
-        print "proteins: ", protein_mapping
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
