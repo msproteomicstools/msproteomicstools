@@ -200,7 +200,8 @@ class TestUnitScoring(unittest.TestCase):
         mapping = {}
         precursors_mapping = {}
         sequences_mapping = {}
-        self.assertRaises(Exception, reader.inferMapping, rawfiles, [filename], mapping, precursors_mapping, sequences_mapping, False, True)
+        protein_mapping = {}
+        self.assertRaises(Exception, reader.inferMapping, rawfiles, [filename], mapping, precursors_mapping, sequences_mapping, protein_mapping, False, True)
         expected = {'0_0': ['split_olgas_K121102_003_SW_PA1_earlyexp'], '0_1': ['split_olgas_otherfile']}
         self.assertEqual(mapping, expected)
 
