@@ -649,6 +649,16 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
 
     for peptide_precursor in targexp.getPeptides():
 
+        # Fill the protein mapping
+        protein_id = peptide_precursor.protein_refs
+        if len(protein_id) > 0:
+            protein_id = protein_id[0] # take the first one ... 
+
+        tmp = protein_mapping.get(protein_id, [])
+        if peptide_precursor.sequence not in tmp:
+            tmp.append(peptide_precursor.sequence)
+        protein_mapping[protein_id] = tmp
+
         # Fill the sequence mapping
         tmp = sequences_mapping.get(peptide_precursor.sequence, [])
         if peptide_precursor.id not in tmp:
