@@ -747,12 +747,9 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
             aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
 
-            print "rafiles ", rawdata_files
-
             # 2. Go through all chromatogram input files and try to find
             # one that matches the one from align_origfilename
             for rfile in rawdata_files:
-
 
                 # 2.1 remove common file endings from the raw data
                 rfile_base = os.path.basename(rfile)
