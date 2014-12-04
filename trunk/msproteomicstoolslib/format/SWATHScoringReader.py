@@ -725,6 +725,16 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 mapped_precursors.append(key)
                 sequences_mapping[peptide_name] = [ key ]
 
+                if "ProteinName" in header_dict:
+                    protein_name = this_row[header_dict["ProteinName"]]
+
+                    tmp = protein_mapping.get(protein_name, [])
+                    if peptide_name not in tmp:
+                        tmp.append(peptide_name)
+                    protein_mapping[protein_name] = tmp
+
+
+
             # 1. Get the original filename (find a non-NA entry) and the corresponding run id
             if len(this_row) == 0: 
                 continue
