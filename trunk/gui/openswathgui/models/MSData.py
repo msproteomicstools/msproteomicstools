@@ -290,8 +290,14 @@ class DataModel(object):
         for r in self.get_runs():
             peptide_sequences.update( r.get_all_peptide_sequences() )
 
-        ## The peptide sequences are our top-level items
-        # print "pepseqs", peptide_sequences
+        elements = self._build_tree_sequences(peptide_sequences)
+
+        return elements
+
+    def _build_tree_sequences(self, peptide_sequences):
+        """
+        Build tree of :class:`.ChromatogramTransition` objects for display (see get_precursor_tree)
+        """
         elements = []
         for seq in peptide_sequences:
 
