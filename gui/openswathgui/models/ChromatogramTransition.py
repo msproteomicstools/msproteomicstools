@@ -36,9 +36,10 @@ $Authors: Hannes Roest$
 """
 
 CHROMTYPES = {
-    0 : "Peptide", 
-    1 : "Precursor", 
-    2 : "Transition"
+    0 : "Protein", 
+    1 : "Peptide", 
+    2 : "Precursor", 
+    3 : "Transition"
 } 
 
 CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
