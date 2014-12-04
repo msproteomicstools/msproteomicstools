@@ -405,7 +405,7 @@ class Settings(object):
         self.window_title = 'TAPIR'
 
         if runMode == "proteomics":
-            self.first_column_name_ = 'Peptide Sequence'
+            self.first_column_name_ = 'Identifier'
         elif runMode == "metabolomics":
             self.first_column_name_ = 'Metabolite'
         else:

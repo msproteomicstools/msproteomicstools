@@ -40,7 +40,7 @@ import subprocess as sub
 import os
 from nose.plugins.attrib import attr
 
-from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
+from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
