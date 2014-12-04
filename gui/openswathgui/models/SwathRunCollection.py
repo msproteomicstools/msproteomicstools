@@ -73,7 +73,7 @@ class SwathRunCollection(object):
             files = glob.glob(os.path.join(dname + "/*.mzML") )
             self.swath_chromatograms[ runid ] = SwathRun(files, runid)
 
-    def initialize_from_chromatograms(self, runid_mapping, precursor_mapping = None, sequences_mapping = None):
+    def initialize_from_chromatograms(self, runid_mapping, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """Initialize from a set of mapped chromatogram files. There may be
         multiple chromatogram (chrom.mzML) files mapped to one run id.
 
@@ -88,7 +88,7 @@ class SwathRunCollection(object):
         """
         self.swath_chromatograms = {}
         for runid, chromfiles in runid_mapping.iteritems():
-            self.swath_chromatograms[ runid ] = SwathRun(chromfiles, runid, precursor_mapping, sequences_mapping)
+            self.swath_chromatograms[ runid ] = SwathRun(chromfiles, runid, precursor_mapping, sequences_mapping, protein_mapping)
 
     def initialize_from_files(self, filenames):
         """Initialize from individual files, setting the runid as increasing

@@ -583,7 +583,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, verbose=False):
+                 sequences_mapping, protein_mapping, verbose=False):
 
     assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
     f = aligned_pg_files[0]
@@ -627,7 +627,7 @@ def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapp
         precursors_mapping[precursor_name] = tmp
 
 def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, verbose=False):
+                 sequences_mapping, protein_mapping, verbose=False):
     try:
         import pyopenms
     except ImportError as e:
@@ -664,7 +664,7 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
         precursors_mapping[transition.getPeptideRef()] = tmp
 
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, verbose=False, throwOnMismatch=False, fileType=None):
+                 sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):
         
     """ Infers a mapping between raw chromatogram files (mzML) and processed feature TSV files
 
@@ -679,9 +679,9 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
     import csv, os
 
     if fileType == "simple":
-        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
+        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
     elif fileType == "traml":
-        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping)
+        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
 
     for file_nr, f in enumerate(aligned_pg_files):
         header_dict = {}

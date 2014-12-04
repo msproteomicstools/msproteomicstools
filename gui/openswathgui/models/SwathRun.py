@@ -109,6 +109,7 @@ class SwathRun(object):
 
         self._precursor_run_map = {}
         self._sequences_mapping = {}
+        self._protein_mapping = {}
 
         for run_key, run in self._all_swathes.iteritems():
 
@@ -119,6 +120,11 @@ class SwathRun(object):
                 tmp = self._sequences_mapping.get(key, [])
                 tmp.extend( run._sequences_mapping[key] )
                 self._sequences_mapping[key] = tmp
+
+            for key in run._protein_mapping:
+                tmp = self._protein_mapping.get(key, [])
+                tmp.extend( run._protein_mapping[key] )
+                self._protein_mapping[key] = tmp
 
     #
     ## Getters (info)

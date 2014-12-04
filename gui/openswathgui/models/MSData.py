@@ -176,13 +176,15 @@ class DataModel(object):
 
         precursors_mapping = {}
         sequences_mapping = {}
+        protein_mapping = {}
         mapping = {}
-        inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, fileType=fileType)
+        inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType=fileType)
         print "Found the following mapping: mapping", mapping
+        print "proteins: ", protein_mapping
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping)
+        swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping, protein_mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
         if not fileType in ["simple", "traml"]:
             self._read_peakgroup_files(aligned_pg_files, swathfiles)
