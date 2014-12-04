@@ -129,6 +129,9 @@ class SwathRun(object):
     #
     ## Getters (info)
     #
+    def get_sequence_for_protein(self, protein):
+        return self._protein_mapping.get(protein, [])
+
     def get_precursors_for_sequence(self, sequence):
         return self._sequences_mapping.get(sequence, [])
 

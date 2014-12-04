@@ -377,6 +377,9 @@ class SingleChromatogramFile():
                 transitions.append(chrom_id)
         return transitions
 
+    def get_sequence_for_protein(self, protein):
+        return self._protein_mapping.get(protein, [])
+
     def get_precursors_for_sequence(self, sequence):
         """
         Get all precursors mapping to one stripped sequence

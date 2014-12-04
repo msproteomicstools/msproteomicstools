@@ -290,7 +290,28 @@ class DataModel(object):
         for r in self.get_runs():
             peptide_sequences.update( r.get_all_peptide_sequences() )
 
-        elements = self._build_tree_sequences(peptide_sequences)
+        proteins = set([])
+        for r in self.get_runs():
+            proteins.update( r.get_all_proteins() )
+
+        if len(proteins) == 0:
+            elements = self._build_tree_sequences(peptide_sequences)
+        else:
+
+            elements = []
+            for protein in proteins:
+
+                # get all sequences from all runs
+                sequences = set([])
+                for r in self.get_runs():
+                    sequences.update( r.get_sequence_for_protein(protein) )
+
+                pelements = self._build_tree_sequences(sequences)
+
+                elements.append(ChromatogramTransition(protein,
+                                                       "NA",
+                                                       pelements, 
+                                                       datatype="Protein") )
 
         return elements
 
