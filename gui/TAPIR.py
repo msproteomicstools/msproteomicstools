@@ -293,9 +293,11 @@ class PeptideTreeWidget(QtGui.QWidget):
 
     # Iterator generator function to go through all indexes
     def generate_it(self, treeView, column_, text_):
+
         s = re.compile(str(text_), re.IGNORECASE)
         m = treeView.model()
-        for model_idx in treeView.iterTopLevelElements(column_):
+
+        for model_idx in treeView.iterAllLevelElements(column_):
             display_data = m.data(model_idx, Qt.DisplayRole).toPyObject()
             if s.search(display_data):
                 yield model_idx
