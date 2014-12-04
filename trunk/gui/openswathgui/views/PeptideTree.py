@@ -61,6 +61,18 @@ class PeptidesTreeView( QtGui.QTreeView ):
         for i in range(m.rowCount(root)):
             yield m.index(i,column,root)
 
+    def iterAllLevelElements(self, column):
+        root = self.rootIndex()
+        m = self.model()
+        for elem in self._iterAllLevelElements_rec(column, m, root):
+            yield elem
+
+    def _iterAllLevelElements_rec(self, column, m, root, level=1):
+        for i in range(m.rowCount(root)):
+            yield m.index(i,column,root)
+            for elem in self._iterAllLevelElements_rec(column, m, m.index(i,column,root), level+1):
+                yield elem
+
     def selectAndScrollTo(self, model_idx):
         if model_idx is None:
             return
