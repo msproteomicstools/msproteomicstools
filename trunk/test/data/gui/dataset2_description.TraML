@@ -7,6 +7,7 @@
   <ProteinList>
     <Protein id="PROTEINA">
       <Sequence></Sequence>
+      <cvParam cvRef="MS" accession="MS:1000886" name="protein name" value="Heat shock factor protein 1"/>
     </Protein>
   </ProteinList>
   <CompoundList>
