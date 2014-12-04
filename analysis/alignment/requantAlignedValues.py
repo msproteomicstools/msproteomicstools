@@ -233,7 +233,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     mapping = {}
     precursors_mapping = {}
     sequences_mapping = {}
-    inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, verbose=False)
+    protein_mapping = {}
+    inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
     mapping_inv = dict([(v[0],k) for k,v in mapping.iteritems()])
     if VERBOSE:
         print mapping
