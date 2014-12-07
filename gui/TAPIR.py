@@ -444,7 +444,7 @@ class ConfigDialog(QtGui.QDialog):
         # connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
 
         # Left side layout
-        updateGroup = QtGui.QGroupBox("OpenSWATH settings");
+        updateGroup = QtGui.QGroupBox("TAPIR settings");
         self.show_legend = QtGui.QCheckBox("Show legend");
         self.draw_transitions = QtGui.QCheckBox("Draw individual transitions");
         self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
@@ -514,18 +514,23 @@ class MainWindow(QtGui.QMainWindow):
         ###################################
         # Actions
         ###################################
-        icon = QtGui.QIcon("web.png")
-
-        openFile = QtGui.QAction(icon, 'Open', self)
+        openFileIcon = QtGui.QIcon()
+        openFileIcon.addPixmap(self.style().standardPixmap(QtGui.QStyle.SP_DirOpenIcon),
+                QtGui.QIcon.Normal, QtGui.QIcon.On)
+        openFile = QtGui.QAction(openFileIcon, 'Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open new File')
         openFile.triggered.connect(self.showFileLoadDialog)
 
-        openSettings = QtGui.QAction(icon, 'Open Settings', self)
+        openSettingsIcon = QtGui.QIcon("")
+        openSettingsIcon.addPixmap(self.style().standardPixmap(QtGui.QStyle.SP_FileIcon),
+                QtGui.QIcon.Normal, QtGui.QIcon.On)
+        openSettings = QtGui.QAction(openSettingsIcon, 'Open Settings', self)
         openSettings.setStatusTip('Open settings dialog')
         openSettings.triggered.connect(self.showSettings)
 
-        exitAction = QtGui.QAction(icon, 'Exit', self)
+        exitIcon = QtGui.QIcon("")
+        exitAction = QtGui.QAction(exitIcon, 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.close)
