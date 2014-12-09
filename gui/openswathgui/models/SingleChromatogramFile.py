@@ -299,10 +299,13 @@ class SingleChromatogramFile():
         """
         Get total number of transitions 
         """
-        if self._in_memory:
-            return len(self._run)
-        else:
-            return len(self._run.info['offsets']) -2
+
+        return sum([ len(v) for v in self._precursor_mapping.values()])
+
+        # if self._in_memory:
+        #     return len(self._run)
+        # else:
+        #     return len(self._run.info['offsets']) -2
 
     def get_data_for_precursor(self, precursor):
         """Retrieve raw data for a specific precursor - data will be as list of
