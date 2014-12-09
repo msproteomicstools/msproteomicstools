@@ -12,7 +12,7 @@ all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
 setup(name='msproteomicstools',
-      version='0.3.1',
+      version='0.3.2',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
@@ -51,7 +51,7 @@ setup(name='msproteomicstools',
           "xlsxwriter >= 0.5.3 ", # for xlsx
           'xlwt', # for xls
           'scikits.datasmooth',
-          'pymzml',
+          # 'pymzml',
           'lxml'
       ],
       extras_require = {
