@@ -12,7 +12,7 @@ all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
 setup(name='msproteomicstools',
-      version='0.3.0',
+      version='0.3.1',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
