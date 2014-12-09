@@ -760,8 +760,6 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
                     aligned_fname = aligned_fname.split(ending)[0]
 
-                print rfile_base, aligned_fname
-
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
                     if verbose: 
