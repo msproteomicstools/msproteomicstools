@@ -23,6 +23,17 @@ def dir_files(path, rel):
 block_cipher = None
 
 
+path = os.path.dirname(pyopenms.__file__)
+
+def pyopenms_libs(path):
+  ret = []
+  for f in os.listdir(path):
+      if f.endswith(".so") and not f.startswith("pyopenms"):
+        # print (os.path.join("pyopenms", f), os.path.join(path, f),"BINARY")
+        ret.append( (os.path.join("pyopenms", f), 
+          os.path.join(path, f),"BINARY") )
+  return ret
+
 a = Analysis([tapir_exe],
              hiddenimports=[],
              hookspath=None,
@@ -36,9 +47,9 @@ a.datas.extend(dir_files(os.path.join(os.path.dirname(pymzml.__file__),
     'obo'), os.path.join('pymzml', 'obo')))
 a.datas.extend(dir_files(os.path.join(os.path.dirname(pyopenms.__file__),
     'share'), os.path.join('pyopenms', 'share')))
-# Add all the OpenMS libraries by hand
-a.datas.append(("pyopenms/libOpenSwathAlgo.so", os.path.join(os.path.dirname(pyopenms.__file__), 'libOpenSwathAlgo.so'),"BINARY"))
-a.datas.append(("pyopenms/libOpenMS.so", os.path.join(os.path.dirname(pyopenms.__file__), 'libOpenMS.so'),"BINARY"))
+# Add all the OpenMS libraries (seems necessary for Linux)
+a.datas.extend(pyopenms_libs( (os.path.dirname(pyopenms.__file__) ) ) )
+
 pyz = PYZ(a.pure,
              cipher=block_cipher)
 exe = EXE(pyz,
