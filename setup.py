@@ -3,6 +3,8 @@
 import os
 from distutils.core import setup
 
+# get py-earth from https://github.com/jcrudy/py-earth/
+
 import fnmatch
 all_scripts = []
 for root, dirnames, filenames in os.walk('analysis'):
