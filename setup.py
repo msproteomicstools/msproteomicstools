@@ -12,7 +12,7 @@ all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
 setup(name='msproteomicstools',
-      version='0.3.2',
+      version='0.3.3',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
@@ -52,7 +52,9 @@ setup(name='msproteomicstools',
           'xlwt', # for xls
           'scikits.datasmooth',
           # 'pymzml',
-          'lxml'
+          'lxml',
+          'configobj',
+          'biopython',
       ],
       extras_require = {
           'RSmoothing' : ["rpy2"]
