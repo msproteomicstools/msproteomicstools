@@ -471,7 +471,10 @@ class UnivarSplineNoCV:
         self.sp = UnivariateSpline(data1s, data2s)
 
     def predict(self, xhat):
-        return list(self.sp(xhat))
+        if len(xhat) == 1:
+            return [ self.sp(xhat) ]
+        else:
+            return list(self.sp(xhat))
 
 class UnivarSplineCV:
     """Smoothing of 2D data using a Python spline (using crossvalidation to determine smoothing parameters).
@@ -562,7 +565,10 @@ class UnivarSplineCV:
         self.sp = UnivariateSpline(data1s, data2s, k=3, s=self.s)
 
     def predict(self, xhat):
-        return list(self.sp(xhat))
+        if len(xhat) == 1:
+            return [ self.sp(xhat) ]
+        else:
+            return list(self.sp(xhat))
 
 class SmoothingEarth:
     """Class for MARS type smoothing based on pyearth
