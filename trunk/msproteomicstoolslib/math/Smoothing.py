@@ -736,7 +736,10 @@ class WeightedNearestNeighbour(LocalKernel):
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
+            # EXP = 0.65 # produces slightly better results
+            EXP = 1.0
             expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s > self.min_diff else self.min_diff for s in source_d_diff])
+            expected_targ = numpy.average(target_data_transf, weights=[ 1/(abs(s)**EXP) if s > self.min_diff else self.min_diff for s in source_d_diff])
 
             # Compute a measurement of dispersion, standard deviation
             self.last_dispersion = numpy.std(target_data_transf)
