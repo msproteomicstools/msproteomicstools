@@ -76,7 +76,11 @@ def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOut
     elif smoother == "splinePy":
         return SmoothingPy()
     elif smoother == "lowess":
-        return LowessSmoothingPy()
+        return LowessSmoothingBiostats()
+    elif smoother == "lowess_statsmodels":
+        return LowessSmoothingStatsmodels()
+    elif smoother == "lowess_cython":
+        return LowessSmoothingCyLowess()
     elif smoother == "nonCVSpline":
         return UnivarSplineNoCV()
     elif smoother == "CVSpline":
@@ -367,7 +371,7 @@ class SmoothingPy:
         yhat_new = s.predict(xhat)
         return yhat_new
 
-class LowessSmoothingPy:
+class LowessSmoothingBase:
     """Smoothing using Lowess smoother and then interpolate on the result
     """
 
@@ -375,6 +379,22 @@ class LowessSmoothingPy:
         pass
 
     def initialize(self, data1, data2):
+        result = self._initialize(data1, data2)
+
+        self.internal_interpolation = SmoothingInterpolation()
+        self.internal_interpolation.initialize(data1, result)
+
+    def predict(self, xhat):
+        return self.internal_interpolation.predict(xhat)
+
+class LowessSmoothingBiostats(LowessSmoothingBase):
+    """Smoothing using Lowess smoother and then interpolate on the result
+    """
+
+    def __init__(self):
+        pass
+
+    def _initialize(self, data1, data2):
         try:
             from Bio.Statistics.lowess import lowess
         except ImportError:
@@ -383,17 +403,53 @@ class LowessSmoothingPy:
             print "==================================="
 
         old_settings = numpy.seterr(all='ignore')
+
         result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=10)
         if all([math.isnan(it) for it in result]):
             # Try standard paramters
             result = lowess(numpy.array(data1), numpy.array(data2))
 
-        self.internal_interpolation = SmoothingInterpolation()
-        self.internal_interpolation.initialize(data1, result)
         numpy.seterr(**old_settings)
+        return result
 
-    def predict(self, xhat):
-        return self.internal_interpolation.predict(xhat)
+class LowessSmoothingStatsmodels(LowessSmoothingBase):
+    """Smoothing using Lowess smoother and then interpolate on the result
+    """
+
+    def __init__(self):
+        pass
+
+    def _initialize(self, data1, data2):
+        try:
+            import statsmodels.api as sm
+            lowess = sm.nonparametric.lowess
+        except ImportError:
+            print "==================================="
+            print "Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'"
+            print "==================================="
+
+        result = lowess(numpy.array(data1), numpy.array(data2))
+        return result
+
+class LowessSmoothingCyLowess(LowessSmoothingBase):
+    """Smoothing using Lowess smoother and then interpolate on the result
+    """
+
+    def __init__(self):
+        pass
+
+    def _initialize(self, data1, data2):
+        try:
+            import cylowess
+            lowess = cylowess.lowess
+        except ImportError:
+            print "==================================="
+            print "Cannot import the module lowess from 'cylowess', \nplease install the cylowess package according to http://slendermeans.org/lowess-speed.html (see also README)"
+            print "==================================="
+
+        delta = (max(data1) - min(data1)) * 0.01
+        result = lowess(numpy.array(data1), numpy.array(data2), delta=delta)
+        return result
 
 class UnivarSplineNoCV:
     """Smoothing of 2D data using a Python spline (no crossvalidation).
