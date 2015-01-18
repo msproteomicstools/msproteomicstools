@@ -156,6 +156,16 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     data_0, data_1 = spl_aligner._getRTData(run_0, run_1, multipeptides)
     tr_data.addData(id_0, data_0, id_1, data_1)
 
+    # import pylab
+    # pylab.scatter(data_0, data_1)
+    # pylab.savefig('data_%s_%s.pdf' % (run_0, run_1) )
+    # pylab.clf()
+    # pylab.scatter(data_0, data_1)
+    # pylab.xlim(2300, 2600)
+    # pylab.ylim(2300, 2600)
+    # pylab.savefig('data_%s_%s_zoom.pdf' % (run_0, run_1) )
+    # pylab.clf()
+
     if len(data_0) == 0:
         null = smoothing.SmoothingNull()
         tr_data.addTrafo(id_0, id_1, null)
