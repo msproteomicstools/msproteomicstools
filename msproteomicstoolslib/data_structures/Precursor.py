@@ -51,9 +51,9 @@ class PrecursorBase(object):
         return self._decoy
 
     def set_decoy(self, decoy):
-        if decoy == "FALSE" or decoy == "0":
+        if decoy in ["FALSE", "False", "0"]:
             self._decoy = False
-        elif decoy == "TRUE" or decoy == "1":
+        elif decoy in ["TRUE", "True", "1"]:
             self._decoy = True
         else:
             raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
