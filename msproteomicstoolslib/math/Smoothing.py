@@ -382,7 +382,7 @@ class LowessSmoothingBase:
         result = self._initialize(data1, data2)
 
         self.internal_interpolation = SmoothingInterpolation()
-        self.internal_interpolation.initialize(data1, result)
+        self.internal_interpolation.initialize(result[0], result[1])
 
     def predict(self, xhat):
         return self.internal_interpolation.predict(xhat)
@@ -404,13 +404,13 @@ class LowessSmoothingBiostats(LowessSmoothingBase):
 
         old_settings = numpy.seterr(all='ignore')
 
-        result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=10)
+        result = lowess(numpy.array(data1), numpy.array(data2), f=0.1, iter=3)
         if all([math.isnan(it) for it in result]):
             # Try standard paramters
             result = lowess(numpy.array(data1), numpy.array(data2))
 
         numpy.seterr(**old_settings)
-        return result
+        return data1, result
 
 class LowessSmoothingStatsmodels(LowessSmoothingBase):
     """Smoothing using Lowess smoother and then interpolate on the result
@@ -428,7 +428,8 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
             print "Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'"
             print "==================================="
 
-        result = lowess(numpy.array(data1), numpy.array(data2))
+        # Input data is y/x -> needs switch
+        result = lowess(numpy.array(data2), numpy.array(data1))
         return result
 
 class LowessSmoothingCyLowess(LowessSmoothingBase):
@@ -448,8 +449,9 @@ class LowessSmoothingCyLowess(LowessSmoothingBase):
             print "==================================="
 
         delta = (max(data1) - min(data1)) * 0.01
-        result = lowess(numpy.array(data1), numpy.array(data2), delta=delta)
-        return result
+        # Input data is y/x -> needs switch
+        result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=0.1, it=10)
+        return [ r[0] for r in result], [r[1] for r in result]
 
 class UnivarSplineNoCV:
     """Smoothing of 2D data using a Python spline (no crossvalidation).
