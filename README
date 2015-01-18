@@ -27,6 +27,20 @@ your $PYTHONPATH and add the./bin folder to your $PATH).
 
 }}}
 
+=== Extra packages ===
+
+There are some extra packages that can increase the features and improve the speed of the toolset
+
+==== Fast lowess ==== 
+To get fast lowess performance (several orders of magnitude faster), do the
+following
+
+git clone https://github.com/carljv/Will_it_Python.git
+cd Will_it_Python/MLFH/CH2/lowess\ work/
+python setup.py build
+sudo python setup.py install
+
+
 }}}
 
 === Testing === 
