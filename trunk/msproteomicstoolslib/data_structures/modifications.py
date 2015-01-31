@@ -82,7 +82,7 @@ class Modifications:
         N130            = Modification('N'      ,   'N[130]',  35,  '[Oxi]',    False,    {'O': 1 })
         P113            = Modification('P'      ,   'P[113]',  35,  '[Oxi]',    False,    {'O': 1 })
         C119            = Modification('C'      ,   'C[119]',  35,  '[Oxi]',    False,    {'O': 1 })
-
+        N317            = Modification('N'      ,   'N[317]',  43,  '[XXX]',    False,    {'C': 8, 'H': 15, 'N' : 1, 'O' : 6 })
 
         self.appendModification(CAM)
         self.appendModification(Ox)
@@ -107,6 +107,7 @@ class Modifications:
         self.appendModification(N130)
         self.appendModification(P113)
         self.appendModification(C119)
+        self.appendModification(N317)
     
     def appendModification(self, modification) :
         self.list.append(modification)
