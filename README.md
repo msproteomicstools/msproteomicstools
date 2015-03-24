@@ -5,6 +5,9 @@ applied to proteomics. Speficically, it contains
 - the MS Proteomics Tools Library 
 - a set of executables and scripts (available under ./analysis)
 
+The code is under the 3-clause BSD licence (see the [COPYRIGHT](COPYRIGHT.txt)
+and the [AUTHORS](AUTHORS.txt)  files).
+
 # TAPIR 
 
 TAPIR is a software that allows visualization of targeted proteomics data. See
