@@ -1,0 +1,4 @@
+numpy
+scipy
+cluster==1.1.2
+pyteomics>=2.4.0
