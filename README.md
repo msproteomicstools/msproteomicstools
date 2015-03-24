@@ -1,4 +1,9 @@
-Some hopefully useful tools for mass spectrometry applied to proteomics
+This repository contains some hopefully useful tools for mass spectrometry
+applied to proteomics. Speficically, it contains 
+
+- the TAPIR visualization software
+- the MS Proteomics Tools Library 
+- a set of executables and scripts (available under ./analysis)
 
 # TAPIR 
 
