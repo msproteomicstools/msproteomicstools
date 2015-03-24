@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/msproteomicstools/msproteomicstools.svg?branch=develop)](https://travis-ci.org/msproteomicstools/msproteomicstools) [![Project Stats](https://www.openhub.net/p/msproteomicstools/widgets/project_thin_badge.gif)](https://www.openhub.net/p/msproteomicstools)
+
 This repository contains some hopefully useful tools for mass spectrometry
 applied to proteomics. Speficically, it contains 
 
