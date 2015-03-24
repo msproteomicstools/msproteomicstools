@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-from distutils.core import setup
+from setuptools import setup
 
 # get py-earth from https://github.com/jcrudy/py-earth/
 
@@ -53,7 +53,7 @@ setup(name='msproteomicstools',
           "xlsxwriter >= 0.5.3 ", # for xlsx
           'xlwt', # for xls
           'scikits.datasmooth',
-          # 'pymzml',
+          'pymzml',
           'lxml',
           'configobj',
           'biopython',
