@@ -52,7 +52,7 @@ setup(name='msproteomicstools',
           "pyteomics >= 2.4.0",
           "xlsxwriter >= 0.5.3 ", # for xlsx
           'xlwt', # for xls
-          'scikits.datasmooth',
+          # 'scikits.datasmooth',
           # 'pymzml',
           'lxml',
           'configobj',
