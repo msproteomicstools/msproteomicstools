@@ -662,6 +662,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_fdr_score(2.0)
     newpg.set_feature_id(thisid)
+    newpg.set_value("id", thisid)
 
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
