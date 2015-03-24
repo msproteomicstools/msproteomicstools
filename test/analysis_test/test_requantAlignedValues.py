@@ -70,7 +70,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_1.out.tmp"
         tmpfilename_matrix = "imputeValues_1.out.tmp_matrix.tsv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT --test" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -92,7 +92,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_2.out.tmp_matrix.tsv"
 
         # We should get the same results if we cache the chromatograms in memory
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory --border_option median --matrix_output_method RT" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --cache_in_memory --border_option median --matrix_output_method RT --test" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -112,7 +112,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_3.out.tmp_matrix.tsv"
 
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
-                --realign_runs None --method singleShortestPath --matrix_output_method RT" % (
+                --realign_runs None --method singleShortestPath --matrix_output_method RT --test" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -132,7 +132,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_4.out.tmp_matrix.tsv"
 
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
-                --realign_runs None --method singleClosestRun --matrix_output_method RT" % (
+                --realign_runs None --method singleClosestRun --matrix_output_method RT --test" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -152,7 +152,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_5.out.tmp_matrix.tsv"
 
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
-                --realign_runs linear --method singleClosestRun --matrix_output_method RT" % (
+                --realign_runs linear --method singleClosestRun --matrix_output_method RT --test" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -172,7 +172,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename_matrix = "imputeValues_6.out.tmp_matrix.tsv"
 
         args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
-                --realign_runs linear --method singleShortestPath --matrix_output_method RT" % (
+                --realign_runs linear --method singleShortestPath --matrix_output_method RT --test" % (
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -193,7 +193,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_7.out.tmp"
         tmpfilename_matrix = "imputeValues_7.out.tmp_matrix.tsv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT --disable_isotopic_transfer" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT --disable_isotopic_transfer --test" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
@@ -214,7 +214,7 @@ class TestNoiseIntegration(unittest.TestCase):
         tmpfilename = "imputeValues_8.out.tmp"
         tmpfilename_matrix = "imputeValues_8.out.tmp_matrix.tsv"
 
-        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT" % (
+        args = "--in %s %s --peakgroups_infile %s --out %s --out_matrix %s --border_option median --matrix_output_method RT --test" % (
             tr_f1, tr_f2, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
