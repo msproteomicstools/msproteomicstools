@@ -6,7 +6,7 @@ virtualenv:
 before_install:
  - sudo apt-get install -qq python-numpy python-scipy python-rpy2
  - git clone https://github.com/pymzml/pymzML.git
- - "cd pymzml && setup.py install && cd .."
+ - "cd pymzML && setup.py install && cd .."
 install:
   - travis_retry pip install -r requirements.txt
   - travis_retry python setup.py develop
