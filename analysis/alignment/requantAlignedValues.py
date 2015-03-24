@@ -199,7 +199,7 @@ class SwathChromatogramCollection(object):
 # runSingleFileImputation -> for tree based, new imputation
 # runImputeValues -> old method using .tr files
 
-def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
+def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test):
     """Impute values across chromatograms
 
     Args:
@@ -286,12 +286,12 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method):
     start = time.time()
     multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
         tr_data, options.border_option, rid, tree=tree_mapped, mat=dist_matrix,
-        disable_isotopic_transfer=options.disable_isotopic_transfer)
+        disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
     print("Analyzing the runs took %ss" % (time.time() - start) )
 
     return new_exp, multipeptides
 
-def runImputeValues(options, peakgroups_file, trafo_fnames):
+def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
     """Impute values across chromatograms
 
     Args:
@@ -347,7 +347,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
         start = time.time()
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
             transformation_collection_, options.border_option, 
-            onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer)
+            onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
         print("Analyzing the runs took %ss" % (time.time() - start) )
         return new_exp, multipeptides
 
@@ -369,17 +369,17 @@ def runImputeValues(options, peakgroups_file, trafo_fnames):
             swath_chromatograms.createRunCache(rid)
             multipeptides = analyze_multipeptides(new_exp, multipeptides, 
                 swath_chromatograms, transformation_collection_, options.border_option, 
-                onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer)
+                onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
     else:
         multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-            transformation_collection_, options.border_option, disable_isotopic_transfer=options.disable_isotopic_transfer)
+            transformation_collection_, options.border_option, disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
     print("Analyzing the runs took %ss" % (time.time() - start) )
     return new_exp, multipeptides
 
 def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms, 
                           transformation_collection_, border_option,
                           onlyExtractFromRun=None, tree=None, mat=None,
-                          disable_isotopic_transfer=False):
+                          disable_isotopic_transfer=False, is_test=False):
     """Analyze the multipeptides and impute missing values
 
     This function has three different modes:
@@ -460,7 +460,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                     if pg.peptide.get_id() == trgr_id and pg.get_cluster_id() == cl]
                 analyze_multipeptide_cluster(m, cnt, new_exp, swath_chromatograms, 
                                           transformation_collection_, border_option, selected_pg, cl,
-                                          onlyExtractFromRun, tree, mat)
+                                          onlyExtractFromRun, tree, mat, is_test=is_test)
 
 
             # Ensure consistency in peak picking between isotopic channels by
@@ -488,7 +488,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                                 # Propagate peak boundaries of the best peakgroup to the current one
                                 current_run = [r for r in new_exp.runs if r.get_id() == rid][0]
                                 newpg = integrate_chromatogram(pg, current_run, swath_chromatograms,
-                                                             border_l, border_r, cnt)
+                                                             border_l, border_r, cnt, is_test)
                                 pg.set_value("Intensity", newpg.get_value("Intensity"))
                                 pg.set_intensity(newpg.get_intensity())
                                 pg.set_value("leftWidth", newpg.get_value("leftWidth"))
@@ -510,7 +510,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
 
 def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms, 
                           transformation_collection_, border_option, selected_pg, cluster_id,
-                          onlyExtractFromRun=None, tree=None, mat=None):
+                          onlyExtractFromRun=None, tree=None, mat=None, is_test=False):
 
         for rid in [r.get_id() for r in new_exp.runs]:
             if VERBOSE: print "Shall work on run ", rid
@@ -575,7 +575,7 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                     ## Use the refernce-based approach
                     border_l, border_r = integrationBorderReference(new_exp, selected_pg, rid, transformation_collection_, border_option)
                 newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
-                                             border_l, border_r, cnt)
+                                             border_l, border_r, cnt, is_test)
                 if newpg != "NA": 
                     if VERBOSE: 
                         print "Managed to fill NA in run", current_run.get_id(), \
@@ -614,7 +614,7 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                         current_mpep.insert(rid, precursor_group)
 
 def integrate_chromatogram(template_pg, current_run, swath_chromatograms, 
-                           left_start, right_end, cnt):
+                           left_start, right_end, cnt, is_test):
     """ Integrate a chromatogram from left_start to right_end and store the sum.
 
     Args:
@@ -662,7 +662,8 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
     newpg.set_fdr_score(2.0)
     newpg.set_feature_id(thisid)
-    newpg.set_value("id", thisid)
+    if not is_test:
+        newpg.set_value("id", thisid)
 
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
@@ -738,6 +739,7 @@ def handle_args():
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
     parser.add_argument('--border_option', default='median', metavar="median", help="How to determine integration border (possible values: max_width, mean, median). Max width will use the maximal possible width (most conservative since it will overestimate the background signal).")
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
+    parser.add_argument('--test', dest="is_test", action='store_true', default=False, help="For running the tests (does not add a random id to the results)")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
     parser.add_argument('--method', dest='method', default="allTrafo", help="Which method to use (singleShortestPath, singleClosestRun, other)")
     parser.add_argument('--realign_runs', dest='realign_method', default="splineR", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line, 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother)")
@@ -755,9 +757,9 @@ def handle_args():
 def main(options):
 
     if options.method in ["singleShortestPath", "singleClosestRun"]:
-        new_exp, multipeptides = runSingleFileImputation(options, options.peakgroups_infile, options.do_single_run, options.method)
+        new_exp, multipeptides = runSingleFileImputation(options, options.peakgroups_infile, options.do_single_run, options.method, options.is_test)
     else:
-        new_exp, multipeptides = runImputeValues(options, options.peakgroups_infile, options.infiles)
+        new_exp, multipeptides = runImputeValues(options, options.peakgroups_infile, options.infiles, options.is_test)
 
     if options.dry_run:
         return
