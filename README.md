@@ -50,9 +50,9 @@ There are some extra packages that can increase the features and improve the spe
 To get fast lowess performance (several orders of magnitude faster), do the
 following
 
-git clone https://github.com/carljv/Will_it_Python.git
-cd Will_it_Python/MLFH/CH2/lowess\ work/
-python setup.py build
-sudo python setup.py install
+    git clone https://github.com/carljv/Will_it_Python.git
+    cd Will_it_Python/MLFH/CH2/lowess\ work/
+    python setup.py build
+    sudo python setup.py install
 
 
