@@ -53,7 +53,7 @@ setup(name='msproteomicstools',
           "xlsxwriter >= 0.5.3 ", # for xlsx
           'xlwt', # for xls
           'scikits.datasmooth',
-          # 'pymzml',
+          'pymzml',
           'lxml',
           'configobj',
           'biopython',
