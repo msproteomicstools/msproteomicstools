@@ -13,6 +13,12 @@ for root, dirnames, filenames in os.walk('analysis'):
 all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
+import sys
+if (sys.version_info > (3, 0)):
+    extra_installs = ['xlwt3']
+else:
+    extra_installs = ['xlwt']
+
 setup(name='msproteomicstools',
       version='0.3.3',
       packages = ['msproteomicstoolslib', 
@@ -51,13 +57,13 @@ setup(name='msproteomicstools',
           "cluster == 1.1.2",
           "pyteomics >= 2.4.0",
           "xlsxwriter >= 0.5.3 ", # for xlsx
-          'xlwt', # for xls
+          # 'xlwt', # for xls
           'scikits.datasmooth',
           'pymzml',
           'lxml',
           'configobj',
           'biopython',
-      ],
+      ] + extra_installs,
       extras_require = {
           'RSmoothing' : ["rpy2"]
       },
