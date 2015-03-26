@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import unittest
 import os
 
@@ -216,7 +217,7 @@ class TestUnitPeptide(unittest.TestCase):
     def test_getAminoacidList(self):
         #def _getAminoacidList(self, fullList=False):
         pass
-        print self.mypep._getAminoacidList()
+        print(self.mypep._getAminoacidList())
 
     def test_getMZ(self):
         self.assertAlmostEqual(self.mypep.getMZ(1), 1145.63470545)

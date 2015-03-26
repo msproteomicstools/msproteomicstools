@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import numpy
 
 class ParamEst(object):
@@ -89,7 +90,7 @@ class ParamEst(object):
         stepsize = start
 
         if self.verbose: 
-            print "Recurse", recursion
+            print("Recurse", recursion)
 
         if recursion > self.max_recursion:
             raise Exception("Recursed too much in FDR iteration.")
@@ -98,8 +99,8 @@ class ParamEst(object):
         val_005 = self._calc_precursor_fr(multipeptides, (start+stepsize)/100.0 )*100
         val_1 = self._calc_precursor_fr(multipeptides, end/100.0 )*100
 
-        if self.verbose: print "Decoy pcnt aim:", decoy_pcnt
-        if self.verbose: print "Aim, high_value, low_value", decoy_pcnt, val_1, val_005
+        if self.verbose: print("Decoy pcnt aim:", decoy_pcnt)
+        if self.verbose: print("Aim, high_value, low_value", decoy_pcnt, val_1, val_005)
 
         # Check if 
         # i)   we already found the correct value (no need for iteration)
@@ -113,7 +114,7 @@ class ParamEst(object):
 
         elif decoy_pcnt > val_1:
             if self.verbose: 
-                print "choose larger step from 0.5 on"
+                print("choose larger step from 0.5 on")
 
             start = 0.5
             end = 100.0
@@ -137,12 +138,12 @@ class ParamEst(object):
         decoy_pcnt = decoy_frac*100
 
         if self.verbose: 
-            print "mScore_cutoff", "Calc-precursor-FDR"
+            print("mScore_cutoff", "Calc-precursor-FDR")
 
         for fdr in fdrrange:
             calc_fdr = self._calc_precursor_fr(multipeptides, fdr/100.0 )*100
             if self.verbose: 
-                print fdr, calc_fdr
+                print(fdr, calc_fdr)
 
             # Break if the calculated FDR is higher than our aim -> the true
             # value lies between this and the previous value.

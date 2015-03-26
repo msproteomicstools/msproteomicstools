@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from sys import stdout
 
 import csv, os
@@ -117,13 +118,13 @@ class MRExperiment(object):
         target_prec = sum([len(s) for s in union_target_transition_groups])
 
         if verbose or verbosity >= 1:
-            print "==================================="
-            print "Finished parsing, number of precursors and peptides per run"
-            print "All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
-            print "All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set)
-            print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
+            print("===================================")
+            print("Finished parsing, number of precursors and peptides per run")
+            print("All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set))
+            print("All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set))
+            print("All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set))
             if all_prec > 0:
-                print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
+                print("Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec ))
 
         self.initial_fdr_cutoff = fdr_cutoff
         if all_prec > 0 and all_prec - target_prec != 0:

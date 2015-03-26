@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import unittest
 import subprocess as sub
 import os
@@ -79,7 +80,7 @@ class TestComputeFullMatrix(unittest.TestCase):
 
         args = "--in %s --out_matrix %s --aligner_mscore_threshold 1.0 --output_method full" % (filename, tmpfilename)
         cmd = "python %s %s" % (script, args)
-        print cmd
+        print(cmd)
         sub.check_output(cmd,shell=True)
         
         self.exact_diff(tmpfilename, expected_matrix_outcome)

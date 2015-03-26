@@ -119,7 +119,10 @@ class GeneralPrecursor(PrecursorBase):
         best_score = self.peakgroups[0].get_fdr_score()
         result = self.peakgroups[0]
         for peakgroup in self.peakgroups:
-            if peakgroup.get_fdr_score() <= best_score:
+            # TODO this is not well done !!! 
+            if best_score is None or \
+               peakgroup.get_fdr_score() is None or \
+            peakgroup.get_fdr_score() <= best_score:
                 # print "better: ", peakgroup.get_fdr_score(),  best_score
                 best_score = peakgroup.get_fdr_score()
                 result = peakgroup

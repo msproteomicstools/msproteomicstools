@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import unittest
 import os
 
@@ -50,16 +51,16 @@ class TestUnitElement(unittest.TestCase):
         isots = elements.Elements()
         
         for el in isots.list:
-            print el.symbol
+            print(el.symbol)
             totalAb = 0
             for k,m in zip(el.isotMass,el.isotAbundance):
-                print "Mass: %s, Abundance: %s" % (k,m)
+                print("Mass: %s, Abundance: %s" % (k,m))
                 totalAb += m
-            print "Total abundance : " , totalAb
+            print("Total abundance : " , totalAb)
                 
         #Monoisotopic masses
         for el in isots.list:
-            print el.symbol , el.isotMass[0]
+            print(el.symbol , el.isotMass[0])
 
     def test_getElement(self):
         self.assertAlmostEqual(self.isots.getElement("C").isotMass[0], 12)

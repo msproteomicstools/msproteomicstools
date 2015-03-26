@@ -169,6 +169,12 @@ class GuiPeakGroup(PeakGroupBase):
       self.rightWidth_ = rightWidth
       self.peptide = peptide
   
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        return self.id_ > other.id_
+
     def get_value(self, value):
         if value == "m_score":
             return self.fdr_score
@@ -194,6 +200,12 @@ class GeneralPeakGroup(PeakGroupBase):
       self.row = row
       self.run = run
       self.peptide = peptide
+
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        return self.id_ > other.id_
 
     def get_value(self, value):
         return self.row[self.run.header_dict[value]]

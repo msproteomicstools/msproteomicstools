@@ -90,7 +90,7 @@ def findOnePath(graph, start, end, path=[]):
     path = path + [start]
     if start == end:
         return path
-    if not graph.has_key(start):
+    if not start in graph:
         return None
     for node in graph[start]:
         if node not in path:

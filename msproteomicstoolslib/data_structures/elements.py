@@ -66,7 +66,7 @@ class Formulas :
         if elementsLib == None : elements = Elements()
         deltaMass=0
         
-        for el , numatoms in formula.iteritems() : 
+        for el , numatoms in formula.items() : 
             #Search it in the elements list
             found = False
             for el2 in elements.list :
@@ -101,7 +101,7 @@ class Formulas :
     @staticmethod
     def add2components(formula1,formula2) :
         formula = formula1.copy()
-        for el, value in formula2.iteritems() :
+        for el, value in formula2.items() :
             if el in formula    : formula[el] = formula[el] + formula2[el]
             else                : formula[el] = formula2[el]
         return formula
@@ -109,7 +109,7 @@ class Formulas :
     @staticmethod
     def substract2components(formula1,formula2) :
         formula = formula1.copy()
-        for el,value in formula2.iteritems() :
+        for el,value in formula2.items() :
             if el in formula : formula[el] = formula[el] - formula2[el]
             else             : formula[el] = -formula2[el]
         return formula
@@ -117,7 +117,7 @@ class Formulas :
     @staticmethod
     def compositionString(formula):
         compString=""
-        for elem,num in formula.iteritems():
+        for elem,num in formula.items():
             if num>1:
                 compString += "%s%s" % (elem,num)
             else:
