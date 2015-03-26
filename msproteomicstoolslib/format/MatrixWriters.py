@@ -43,7 +43,7 @@ try:
     import xlwt
 except ImportError:
     # Python 3
-    import xlwt3 as xlwt
+    import xlwt
 
 
 def getwriter(matrix_outfile):

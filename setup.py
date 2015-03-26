@@ -15,9 +15,9 @@ all_scripts.extend(["./gui/TAPIR.py"])
 
 import sys
 if (sys.version_info > (3, 0)):
-    extra_installs = ['xlwt3']
+    extra_installs = []
 else:
-    extra_installs = ['xlwt']
+    extra_installs = []
 
 setup(name='msproteomicstools',
       version='0.3.3',
@@ -63,6 +63,7 @@ setup(name='msproteomicstools',
           'lxml',
           'configobj',
           'biopython',
+          'xlwt-future',
       ] + extra_installs,
       extras_require = {
           'RSmoothing' : ["rpy2"]
