@@ -4,7 +4,14 @@
 #  This code may be used pursuant to the MIT License.
 ######################################################################
 
-import __builtin__
+try:
+    import __builtin__
+    builtin_cmp = __builtin__.cmp
+except ImportError:
+    # Python 3
+    import builtins
+    def builtin_cmp(a, b):
+        return (a > b) - (a < b)
 
 __all__ = (
     'lower_bound',
@@ -25,7 +32,7 @@ belongs with the formula "-\var{N}-1".
 \var{cmp} - the cmp function used to order the \var{haystack} items.
 \var{key} - the key function used to extract keys from the elements.
 """
-    if cmp is None: cmp = __builtin__.cmp
+    if cmp is None: cmp = builtin_cmp
     if key is None: key = lambda x: x
     if lo < 0: raise ValueError( 'lo cannot be negative' )
     if hi is None: hi = len(haystack)

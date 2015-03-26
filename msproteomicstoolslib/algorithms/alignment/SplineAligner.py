@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import numpy
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
@@ -85,7 +86,7 @@ class SplineAligner():
             if cnt > maxcount:
                 maxcount = cnt
                 bestrun = run.get_id()
-        print "Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, self.alignment_fdr_threshold_)
+        print("Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, self.alignment_fdr_threshold_))
         return [r for r in experiment.runs if r.get_id() == bestrun][0]
 
     def _getRTData(self, bestrun, run, multipeptides):
@@ -135,9 +136,9 @@ class SplineAligner():
                 ) )
 
         if cnt_multiple > len(multipeptides) * 0.8 :
-            print ""
-            print "  Warning: Most of your data has more than one peakgroup with a score better than %s."  % self.alignment_fdr_threshold_
-            print "  This may be a problem for the alignment, please consider adjusting the --alignment_score option." 
+            print ("")
+            print ("  Warning: Most of your data has more than one peakgroup with a score better than %s."  % self.alignment_fdr_threshold_)
+            print ("  This may be a problem for the alignment, please consider adjusting the --alignment_score option."  )
 
         maxdata = self.max_data_
         if maxdata == -1:
@@ -161,9 +162,9 @@ class SplineAligner():
         data1,data2 = self._getRTData(bestrun, run, multipeptides)
 
         if len(data2) < 2:
-            print "No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
-                run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_)
-            print "If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)." 
+            print("No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
+                run.get_id(), bestrun.get_id(), len(data1), self.alignment_fdr_threshold_) )
+            print("If you ran the feature_alignment.py script, try to skip the re-alignment step (e.g. remove the --realign_runs option)." )
             raise Exception("Not enough datapoints (less than 2 datapoints).")
 
         # Since we want to predict how to convert from slave to master, slave
@@ -177,8 +178,8 @@ class SplineAligner():
 
         stdev = numpy.std(numpy.array(data1) - numpy.array(data2_aligned))
         median = numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
-        print "Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1))
-        print "  Computed stdev", stdev, "and median", median
+        print("Will align run %s against %s, using %s features" % (run.get_id(), bestrun.get_id(), len(data1)) )
+        print("  Computed stdev", stdev, "and median", median )
 
         # Store error for later
         d = self.transformation_error.transformations.get(run.get_id(), {})
@@ -210,7 +211,7 @@ class SplineAligner():
             multipeptides(list(multipeptides)): a list of Multipeptide derived from the above expriment
         """
 
-        print "Will re-align runs"
+        print("Will re-align runs" )
 
         # get the best run (e.g. the one with the most ids below threshold)
         bestrun = self._determine_best_run(experiment)

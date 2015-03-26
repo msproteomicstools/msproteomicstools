@@ -35,8 +35,15 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-from elements import Elements
-from elements import Formulas
+from __future__ import print_function
+try:
+    from elements import Elements
+    from elements import Formulas
+except ImportError:
+    # Python 3
+    from .elements import Elements
+    from .elements import Formulas
+
 
 class Aminoacides:
     
@@ -123,12 +130,12 @@ if __name__ == "__main__":
     
 #    for aa in myAAs.list:
 #        for elem,num in aa.composition.iteritems():
-#            print "%s: %s" % (elem,num)
+#            print("%s: %s" % (elem,num))
     
-    print "1-letter code    3-letter code    Chemical formula    Monoisotopic"
-    print "-"*65
+    print("1-letter code    3-letter code    Chemical formula    Monoisotopic")
+    print("-"*65)
     for aa in myAAs.list:
-        print "%-10s  %-15s  %-20s %s" % (aa.code, aa.code3, Formulas.compositionString(aa.composition), aa.deltaMass)
+        print("%-10s  %-15s  %-20s %s" % (aa.code, aa.code3, Formulas.compositionString(aa.composition), aa.deltaMass))
           
 ##1-letter code 3-letter code Chemical formula Monoisotopic
 ##-----------------------------------------------------------------

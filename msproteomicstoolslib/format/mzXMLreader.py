@@ -35,10 +35,17 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from xml.etree.cElementTree import iterparse
 import xml.etree.cElementTree as etree
-import StringIO
 import numpy #for the "floor" fxn
+import sys
+try:
+    from StringIO import StringIO
+except ImportError:
+    # Python 3
+    from io import StringIO
+
 
 from ..data_structures import DDB
 
@@ -78,7 +85,7 @@ class mzXMLReader:
         string = "".join( lines )
         string += "\n</msRun>"
         string += "\n</mzXML>"
-        source = StringIO.StringIO( string )
+        source = StringIO( string )
         context = iterparse(source, events=("start", "end", "start-ns"))
         self._parse_header_context(context)
 
@@ -157,10 +164,10 @@ class mzXMLReader:
         for s in scans:
             prec_floor = numpy.floor( s.precursorMZ )
             rt_floor = numpy.floor( s.retTime )
-            if self.scan_ms_bins.has_key( prec_floor ): 
+            if prec_floor in self.scan_ms_bins: 
                 self.scan_ms_bins[ prec_floor ].append( s)
             else: self.scan_ms_bins[ prec_floor ] = [ s ]
-            if self.scan_rt_bins.has_key( rt_floor ):
+            if rt_floor in self.scan_rt_bins:
                 self.scan_rt_bins[ rt_floor ].append( s )
             else: self.scan_rt_bins[ rt_floor ] = [s]
 
@@ -177,7 +184,7 @@ class mzXMLReader:
             if line.strip() == "</scan>": break
         #cast to string and feed to parses StringIO based :-)
         string = "".join( lines )
-        source = StringIO.StringIO( string )
+        source = StringIO( string )
         context = iterparse(source, events=("start", "end") )
         for event, elem in context:
             if event == "end" and elem.tag[ -4: ] == 'scan': 
@@ -195,7 +202,7 @@ class mzXMLReader:
         return  scan
 
         if self.scan_rt_bins is None: 
-            raise ValueError, 'you need to run create_ms_rt_hashes() first'
+            raise ValueError('you need to run create_ms_rt_hashes() first')
 
         rt = searchHit.get_retention_time()
         m  = searchHit.get_precursor_mass() 
@@ -249,9 +256,9 @@ class Scan:
 
     @property
     def peaks(self):
-        if self._peaks is None: raise ValueError, """You have to read in\
+        if self._peaks is None: raise ValueError("""You have to read in\
  the peaks first before accessing. Use the read_scan function on the reader
- object."""
+ object.""")
         else: return self._peaks
 
     @property 
@@ -439,7 +446,7 @@ class Peak:
             if self.type == 'pn':
                 return "([M+%sxH]%s - %s)" % (self.charge, ch, self.comment )
             return "%s%s%s" % (self.type, self.number, ch)
-        else: raise ValueError, "format %s not known" % format
+        else: raise ValueError("format %s not known" % format)
 
     def is_y(self):
         return self.annotated and self.type in ('y', 'yn')
@@ -458,7 +465,13 @@ class mzXML64coder:
     def decode(self, mystring ):
         import base64
         import struct
-        mynr = base64.standard_b64decode(mystring)
+
+        # Python 3 handles strings differently 
+        if (sys.version_info > (3, 0)):
+            mynr = base64.standard_b64decode(bytes(mystring, 'utf-8'))
+        else:
+            mynr = base64.standard_b64decode(mystring)
+
         peaks_ints = []
         for i in range(0, len(mynr), 8):
             peak = struct.unpack('>f', mynr[i:i+4]) 
@@ -486,7 +499,7 @@ def TEST_mzXMLdecoder():
     res = coder.decode( input )
     res2 = coder.encode( res )
     assert res2 == input
-    print "Tests for mzXML decoder passed."
+    print("Tests for mzXML decoder passed.")
 
 if __name__ == '__main__':
     TEST_mzXMLdecoder()

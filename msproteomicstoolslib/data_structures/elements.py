@@ -35,6 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import sys
 import re
 
@@ -75,9 +76,9 @@ class Formulas :
                 isotope_match = (re.findall('[\d\.]+', el))
                 if not len(isotope_match) == 1 or not len(element_match) == 1 : 
                     #Throw an Exception. Note : Should we create an Exception handler object??
-                    print "The following composition has not been recognized : " , formula
-                    print "Please, review the compositions of your modifications as a probable cause of this error."
-                    print "Error caused by : " , element_match , isotope_match
+                    print("The following composition has not been recognized : " , formula)
+                    print("Please, review the compositions of your modifications as a probable cause of this error.")
+                    print("Error caused by : " , element_match , isotope_match)
                     sys.exit(5)
                 
                 found2 = False
@@ -90,9 +91,9 @@ class Formulas :
                                 found2 = True
                 if not found2 : 
                     #Throw an Exception. Note : Should we create an Exception handler object??
-                    print "The following composition has not been recognized : " , formula, deltaMass
-                    print "Please, review the compositions of your modifications as a probable cause of this error."
-                    print "Error caused by : " , element_match[0] , isotope_match[0]
+                    print("The following composition has not been recognized : " , formula, deltaMass)
+                    print("Please, review the compositions of your modifications as a probable cause of this error.")
+                    print("Error caused by : " , element_match[0] , isotope_match[0])
                     sys.exit(5)                        
                 
         return deltaMass
@@ -147,27 +148,27 @@ class Elements:
         #Check that the lists of masses and natural abundances have the same length
         if len(isotMass) != len(isotAbundance) :
             #Throw an exception
-            print "Error : the isotopic masses and the natural abundance vector sizes don't match!"
-            print "Element : " , symbol
-            print "isotopic masses : " , isotMass
-            print "natural abundances : " , isotAbundance
+            print("Error : the isotopic masses and the natural abundance vector sizes don't match!")
+            print("Element : " , symbol)
+            print("isotopic masses : " , isotMass)
+            print("natural abundances : " , isotAbundance)
             sys.exit(5)
 
         #Check that the sum of all the natural abundances is close enough to 1 (over 1 is not good, a bit below 1 might be acceptable)
         sumAbundances = sum(isotAbundance)
         
         if sumAbundances > 1 : 
-            print "Error : the sum of the abundances is over 1!"
-            print "Element : " , symbol
-            print "isotopic masses : " , isotMass
-            print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+            print("Error : the sum of the abundances is over 1!")
+            print("Element : " , symbol)
+            print("isotopic masses : " , isotMass)
+            print("natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances))
             sys.exit(5)
         
         if sumAbundances < 0.97 :
-            print "Error : the sum of the abundances is too low! It should be closer to 1."
-            print "Element : " , symbol
-            print "isotopic masses : " , isotMass
-            print "natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances)
+            print("Error : the sum of the abundances is too low! It should be closer to 1.")
+            print("Element : " , symbol)
+            print("isotopic masses : " , isotMass)
+            print("natural abundances : %s , that makes : %s" % (isotAbundance, sumAbundances))
             sys.exit(5)
             
         newEl = Element(symbol,isotMass, isotAbundance)
@@ -193,21 +194,21 @@ def test():
     isots = Elements()
     
     for el in isots.list:
-        print el.symbol
+        print (el.symbol)
         totalAb = 0
         for k,m in zip(el.isotMass,el.isotAbundance):
-            print "Mass: %s, Abundance: %s" % (k,m)
+            print("Mass: %s, Abundance: %s" % (k,m))
             totalAb += m
-        print "Total abundance : " , totalAb
+        print("Total abundance : " , totalAb)
             
     #Monoisotopic masses
     for el in isots.list:
-        print el.symbol , el.isotMass[0]
+        print(el.symbol , el.isotMass[0])
     
-    print "Adding H2O and H3PO4 results in :", Formulas.add2components(Formulas.H2O, Formulas.H3PO4)
-    print "Substracting H2O to H3PO4 results in :", Formulas.substract2components(Formulas.H3PO4, Formulas.H2O)
-    print "Calculating the mass for the formula 13C6_18O2 : " , Formulas.mass({'C13' : 6 , '18O' : 2})
-    #print isots.element
+    print("Adding H2O and H3PO4 results in :", Formulas.add2components(Formulas.H2O, Formulas.H3PO4))
+    print("Substracting H2O to H3PO4 results in :", Formulas.substract2components(Formulas.H3PO4, Formulas.H2O))
+    print("Calculating the mass for the formula 13C6_18O2 : " , Formulas.mass({'C13' : 6 , '18O' : 2}))
+    #print (isots.element)
     
 if __name__=="__main__":
     test()

@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import msproteomicstoolslib.math.Smoothing as smoothing
 import numpy
 
@@ -177,7 +178,7 @@ class TransformationCollection():
                         sm_rev = smoothing.getSmoothingObj(smoother)
                         sm_rev.initialize(data[1], data[0])
                         self._addTransformation(sm_rev, s_to, s_from)
-                print "Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from)
+                print("Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from))
 
     def addTransformationData(self, data, s_from, s_to):
       """ Add raw data points to the collection 
@@ -231,7 +232,7 @@ class TransformationCollection():
     def printTransformationData(self, s_from, s_to):
       r = self.getTransformationData(s_from, s_to)
       if r is None: return
-      print "This data is able to transform from %s to %s" % (s_from, s_to)
+      print("This data is able to transform from %s to %s" % (s_from, s_to))
 
     def writeTransformationData(self, filename, s_from, s_to):
       """Write the transformation s_from to s_to to a file.
@@ -285,7 +286,7 @@ class TransformationCollection():
           data2.append(float(d[1]))
           if len(d) == 3:
             transformed_data.append(float(d[2]))
-      # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
+      # print("read data from %s to %s " %(s_from, s_to), [data1, data2])
       self.addTransformationData([data1, data2], s_from, s_to)
       if len(transformed_data) > 0: self.addTransformedData(transformed_data, s_from, s_to)
 

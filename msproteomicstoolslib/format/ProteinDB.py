@@ -34,12 +34,19 @@ $Maintainer: Pedro Navarro$
 $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
+
+from __future__ import print_function
 import os
 import csv
 import sys
 import getopt
 import re
-from itertools import izip
+try:
+    # Python 2
+    from itertools import izip
+except ImportError:
+    # Python 3
+    izip = zip
 
 from ..data_structures import aminoacides
 
@@ -153,7 +160,7 @@ class Protein :
         if len(rev_protein) == 0 : rev_protein = self.sequence[::-1]
         
         if not len(rev_protein) == len(self.sequence) :
-            print "Warning : size of reversed protein does not match with the original. " , len(rev_protein) , len(self.sequence) 
+            print("Warning : size of reversed protein does not match with the original. " , len(rev_protein) , len(self.sequence) )
                 
         self.sequence = rev_protein
         self.code1    = decoytag + self.code1
@@ -234,7 +241,7 @@ class ProteinDB :
         
         #check wether fastaFileName exists or not
         if not os.path.exists(fastaFileName):
-            print "The file: %s does not exist!" % fastaFileName
+            print("The file: %s does not exist!" % fastaFileName)
             sys.exit(2)
         
         is_chunksize_set = False
@@ -278,7 +285,7 @@ class ProteinDB :
                         #set up to send a new protein to the database
                         dectag = '>' + decoytag
                         if line[:len(dectag)] == dectag : proteinToSend = False
-                        if line[:len(dectag)] <> dectag : 
+                        if line[:len(dectag)] != dectag : 
                             
                             # Try the first annotation structure
                             firstannotation = False
@@ -355,26 +362,26 @@ class ProteinDB :
                 self.proteinDictionary[code1] = protein
             
         
-        if file.closed: print "file is closed"
+        if file.closed: print("file is closed")
         
-        print "Number of target proteins: %s" % counter
+        print("Number of target proteins: %s" % counter)
 
 
 def usage() :
-    print "proteinDB.py"
-    print ("-" * 16)
-    print "Given a peptide list, it gives back the protein(s) for each peptide."
-    print "Usage: "
-    print "python proteinDB.py -f fastafile.fasta peptidelist.txt"
+    print("proteinDB.py")
+    print("-" * 16)
+    print("Given a peptide list, it gives back the protein(s) for each peptide.")
+    print("Usage: ")
+    print("python proteinDB.py -f fastafile.fasta peptidelist.txt")
 
 def readPeptideListCSV(filename):
     
-    print "Reading target peptide list csv file %s" % filename
+    print("Reading target peptide list csv file %s" % filename)
     reader = csv.reader(open(filename), dialect ='excel-tab')
     
     v= [ row[0] for row in reader if row ]
     
-    print "...done."
+    print("...done.")
     
     return v
 
@@ -395,7 +402,7 @@ def writecsv(headers,matrix,filename) :
     try :
         writer = csv.writer(open(filename,'w'), dialect='excel-tab')
     except :
-        print "something went wrong while writing this file : " , filename 
+        print("something went wrong while writing this file : " , filename )
         sys.exit(1)
     
     writer.writerow(headers)
@@ -432,7 +439,7 @@ def main(argv) :
         
     
     if len(fastaFile) == 0 : 
-        print "You must input a fasta file!"
+        print("You must input a fasta file!")
         usage()
         sys.exit()
 
@@ -450,7 +457,7 @@ def main(argv) :
     
     if len(outputFile) == 0 :
         for peptide in peptides :
-            print peptide, len(protDB.findSequenceInProteins(peptide)) , protDB.findSequenceInProteins(peptide)
+            print(peptide, len(protDB.findSequenceInProteins(peptide)) , protDB.findSequenceInProteins(peptide))
         sys.exit()
     
     

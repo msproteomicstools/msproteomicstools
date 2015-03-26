@@ -63,7 +63,7 @@ class Multipeptide():
 
     def has_peptide(self, runid):
         raise Exception("This doesnt do what you want")
-        return self._peptides.has_key(runid)
+        return runid in self._peptides
 
     def get_peptide(self, runid):
         raise Exception("This doesnt do what you want")
@@ -108,7 +108,7 @@ class Multipeptide():
         check : bool
             Whether the given run has a precursor group
         """
-        return self._peptides.has_key(runid)
+        return runid in self._peptides
 
     def getAllPeptides(self):
       return [p for prgr in self.getPrecursorGroups() for p in prgr]

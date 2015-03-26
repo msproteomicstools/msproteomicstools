@@ -35,10 +35,15 @@ $Authors: Hannes Roest, Lorenz Blum$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import csv
 
-import xlwt
-import xlsxwriter
+try:
+    import xlsxwriter
+    import xlwt
+except ImportError:
+    # Python 3
+    import xlwt3 as xlwt
 
 
 def getwriter(matrix_outfile):
@@ -93,7 +98,7 @@ class CsvWriter(IWriter):
         self.line = []
 
     def __del__(self):
-        print "Closing ", self.outfile
+        print("Closing ", self.outfile)
         self.f.close()
 
 
@@ -119,7 +124,7 @@ class XlsWriter(IWriter):
         self.col = 0
 
     def __del__(self):
-        print "Writing out", self.outfile
+        print("Writing out", self.outfile)
         self.workbook.save(self.outfile)
 
 
@@ -148,5 +153,5 @@ class XlsxWriter(IWriter):
         self.col = 0
 
     def __del__(self):
-        print "Writing out", self.outfile
+        print("Writing out", self.outfile)
         self.workbook.close()

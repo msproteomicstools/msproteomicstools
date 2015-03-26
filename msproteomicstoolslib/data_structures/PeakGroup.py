@@ -116,6 +116,12 @@ class MinimalPeakGroup(PeakGroupBase):
       self.peptide = peptide
       self.intensity_ = intensity
       self.dscore_ = dscore
+
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        return self.id_ > other.id_
   
     ## Print
     def print_out(self):
