@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from ..util.utils import *
 import sys
 import re
@@ -249,7 +250,7 @@ class Library:
         start = time.time()
         t.read( query )
         end = time.time()
-        print "query took %s s" % ( end - start)
+        print("query took %s s" % ( end - start))
         self._read_from_db_table( t)
 
     def read_fromDB(self, library_key, db):
@@ -487,7 +488,7 @@ class Library:
         stack = [ firstRow ]
         while True:
             row = fs.readline()
-            print row
+            print(row)
             if len(row) == 0: break
             if len(row) > 5 and row[:5] == 'Name:': break
             stack.append( row )

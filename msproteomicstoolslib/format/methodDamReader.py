@@ -310,7 +310,7 @@ class MRMParser():
 		entry.q1_unpacked = struct.unpack('<f', entry.q1)[0]
 		entry.q3_unpacked = struct.unpack('<f', entry.q3)[0]
 		entry.rt_unpacked = struct.unpack('<f', entry.rt)[0]
-		entry.ce_unpacked = struct.unpack('<f', ionParam['CE'])[0]
+		entry.ce_unpacked = struct.unpack('<f', ionParam[b'CE'])[0]
 		entry.ep_unpacked = struct.unpack('<f', ionParam['EP'])[0]
 		entry.dp_unpacked = struct.unpack('<f', ionParam['DP'])[0]
 		entry.cxp_unpacked = struct.unpack('<f', ionParam['CXP'])[0]
@@ -322,12 +322,12 @@ def main(args):
     outputfile = args.outputfile
     do_assert = args.doAssert
 
-    f = open(inputfile)
+    f = open(inputfile, 'rb')
     r = f.read()
     f.close()
 
     # Find all instances of ParameterDatafield and collect the resulting data
-    beginData = r.find(ParameterDatafield,0)
+    beginData = r.find(ParameterDatafield, 0)
     endData = beginData
     if do_assert: assert beginData > 0
 

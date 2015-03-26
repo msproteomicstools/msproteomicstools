@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import os, sys, csv
 import numpy
 import argparse
@@ -97,7 +98,7 @@ class Experiment(MRExperiment):
         nr_all_peptides = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if not m.find_best_peptide_pg().peptide.get_decoy()]))
         peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.find_best_peptide_pg().peptide.get_decoy()]))
 
-        print "Present targets in all runs", in_all_runs_wo_align
+        print("Present targets in all runs", in_all_runs_wo_align)
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
         precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
 
@@ -120,36 +121,36 @@ class Experiment(MRExperiment):
         max_pg = self.get_max_pg()
         dstats = self.estimate_real_fdr(multipeptides, fraction_present)
         dstats_all = self.estimate_real_fdr(multipeptides, 1.0)
-        print "="*75
-        print "="*75
-        print "Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
+        print("="*75)
+        print("="*75)
+        print("Total we have", len(self.runs), "runs with", len(self.union_transition_groups_set),\
                 "peakgroups quantified in at least %s run(s) above FDR %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
-                "giving maximally nr peakgroups", max_pg
-        print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align
+                "giving maximally nr peakgroups", max_pg)
+        print("We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
+                alignment.nr_aligned, "and changed order of", alignment.nr_changed, "and could not align", alignment.could_not_align)
 
-        print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align)
-        print "We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_peptides_to_quant, nr_all_peptides, min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
-        print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
-          nr_proteins_to_quant, nr_all_proteins, min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
+        print("We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_precursors_to_quant, nr_precursors_total, min_nrruns, nr_precursors_in_all, in_all_runs_wo_align))
+        print("We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_peptides_to_quant, nr_all_peptides, min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target))
+        print("We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
+          nr_proteins_to_quant, nr_all_proteins, min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target))
 
         # print "quant proteins", nr_proteins_to_quant
 
         # Get decoy estimates
         if len(precursors_in_all_runs) > 0:
-            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
-                dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100)
+            print("Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
+                dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100))
 
-            print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
-                dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
+            print("Decoy percentage of peakgroups that are partially aligned %1.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
+                dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100))
 
-            print "There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors))
+            print("There were", decoy_precursors, "decoy precursors identified out of", nr_precursors_to_quant + decoy_precursors, "precursors which is %0.4f %%" % (decoy_precursors *100.0 / (nr_precursors_to_quant + decoy_precursors)))
 
 
         if outlier_detection is not None: 
-            print "Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed
+            print("Outliers:", outlier_detection.nr_outliers, "outliers in", len(multipeptides), "peptides or", outlier_detection.outlier_pg, "peakgroups out of", alignment.nr_quantified, "changed", outlier_detection.outliers_changed)
 
     def write_to_file(self, multipeptides, options):
 
@@ -220,7 +221,7 @@ class Experiment(MRExperiment):
                 header_dict[n] = i
               for row in reader:
                   f_id = row[ header_dict["id"]]
-                  if selected_ids_dict.has_key(f_id):
+                  if f_id in selected_ids_dict:
                       # Check the "id" and "transition_group_id" field. 
                       # Unfortunately the id can be non-unique, there we check both.
                       trgroup_id = selected_ids_dict[f_id].peptide.get_id()
@@ -302,12 +303,12 @@ def fix_input_fnames(options, runs):
       else:
           filehandler = open(f)
       reader = csv.reader(filehandler, delimiter="\t")
-      header = reader.next()
+      header = next(reader)
       for i,n in enumerate(header):
         header_dict[n] = i
 
       # Check if runs are already aligned (only one input file and correct header)
-      already_aligned = (len(options.infiles) == 1 and header_dict.has_key(aligned_run_id_name))
+      already_aligned = (len(options.infiles) == 1 and aligned_run_id_name in header_dict)
 
       if not already_aligned:
           raise Exception("Can only complete data matrix generation on fully aligned runs")
@@ -354,12 +355,12 @@ def main(options):
 
         for p in m.get_peptides():
             if len(list(p.get_all_peakgroups())) != 1:
-                print p
-                print dir(p)
-                print p.get_run_id()
+                print(p)
+                print(dir(p))
+                print(p.get_run_id())
                 for pg in p.get_all_peakgroups():
-                    print pg.print_out()
-                print len(list(p.get_all_peakgroups()))
+                    print (pg.print_out())
+                print (len(list(p.get_all_peakgroups())))
 
             assert len(list(p.get_all_peakgroups())) == 1
             for pg in p.get_all_peakgroups():

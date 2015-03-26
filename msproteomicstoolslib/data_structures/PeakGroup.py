@@ -205,7 +205,8 @@ class GeneralPeakGroup(PeakGroupBase):
         """
         Larger than operator, allows sorting in Python 3.x
         """
-        return self.id_ > other.id_
+        # TODO what should we use to compare ? 
+        return self.get_dscore() > other.get_dscore()
 
     def get_value(self, value):
         return self.row[self.run.header_dict[value]]

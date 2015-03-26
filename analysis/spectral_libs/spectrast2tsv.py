@@ -35,6 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import sys
 import os
 import csv
@@ -51,35 +52,35 @@ import msproteomicstoolslib.format.speclib_db_lib            as speclib_db_lib
 #import msproteomicstoolslib.utils.logs.MultiProcessingLog     as MPlog 
 
 def usage() :
-    print ""
-    print "spectrast2tsv.py"
-    print ("-" * 15)
-    print "This script is used as filter from spectraST files to swath input files."
-    print ""
-    print "Usage: "
-    print "python spectrast2tsv.py [options] spectrast_file(s)"
-    print "-h                  Display this help"
-    print "-d                  Remove duplicate masses from labeling"
-    print "-e                  Use theoretical mass"
-    print "-f    fasta_file    Fasta file to relate peptides to their proteins (this is optional)."
-    print "-g    mass_modifs   List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -79.97,-97.98,-17.03,-18.01"
-    print "-i    labeling_file File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated."
-    print "-k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview"
-    print "-l    mass_limits   Lower and upper mass limits of fragment ions. Example: -l 400,2000"
-    print "-m    mods_file     File with the modifications delta mass"
-    print "-n    int           Max number of reported ions per peptide/z. Default: 20"
-    print "-o    int           Min number of reported ions per peptide/z. Default: 3"
-    print "-p    float         Maximum error allowed at the annotation of a fragment ion. Default: 0.05"
-    print "-q    int            Number of processors to use (only for isoforms!). Default: 1"
-    print "-s    ion_series    List of ion series to be used. Example: -s y,b"
-    print "-t    time-scale    Options: minutes, seconds. Default: seconds."
-    print "-u     unimod-code    Use this unimod code as a switching modification. Useful for phosphorylations. Example: -u 21"
-    print "-v                  Verbose mode."
-    print "-w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)"
-    print "-x    allowed_frg_z Fragment ion charge states allowed. Default: 1,2"
-    print "-y    UIS-order     When using a switching modification, this determines the UIS order to be calculated. If -1 is set, all transitions for each isoform will be reported. Default : 2"
-    print "-a    outfile       Output file name (default: appends _peakview.txt)"
-    print ""
+    print("")
+    print("spectrast2tsv.py")
+    print("-" * 15)
+    print("This script is used as filter from spectraST files to swath input files.")
+    print("")
+    print("Usage: ")
+    print("python spectrast2tsv.py [options] spectrast_file(s)")
+    print("-h                  Display this help")
+    print("-d                  Remove duplicate masses from labeling")
+    print("-e                  Use theoretical mass")
+    print("-f    fasta_file    Fasta file to relate peptides to their proteins (this is optional).")
+    print("-g    mass_modifs   List of allowed fragment mass modifications. Useful for phosphorylation and neutral losses. Example: -g -79.97,-97.98,-17.03,-18.01")
+    print("-i    labeling_file File containing the amino acid isotopic labeling mass shifts. If this option is used, heavy transitions will be generated.")
+    print("-k    output_key    Select the output provided. Keys available: openswath, peakview. Default: peakview")
+    print("-l    mass_limits   Lower and upper mass limits of fragment ions. Example: -l 400,2000")
+    print("-m    mods_file     File with the modifications delta mass")
+    print("-n    int           Max number of reported ions per peptide/z. Default: 20")
+    print("-o    int           Min number of reported ions per peptide/z. Default: 3")
+    print("-p    float         Maximum error allowed at the annotation of a fragment ion. Default: 0.05")
+    print("-q    int            Number of processors to use (only for isoforms!). Default: 1")
+    print("-s    ion_series    List of ion series to be used. Example: -s y,b")
+    print("-t    time-scale    Options: minutes, seconds. Default: seconds.")
+    print("-u     unimod-code    Use this unimod code as a switching modification. Useful for phosphorylations. Example: -u 21")
+    print("-v                  Verbose mode.")
+    print("-w    swaths_file   File containing the swath ranges. This is used to remove transitions with Q3 falling in the swath mass range. (line breaks in windows/unix format)")
+    print("-x    allowed_frg_z Fragment ion charge states allowed. Default: 1,2")
+    print("-y    UIS-order     When using a switching modification, this determines the UIS order to be calculated. If -1 is set, all transitions for each isoform will be reported. Default : 2")
+    print("-a    outfile       Output file name (default: appends _peakview.txt)")
+    print("")
 
 def writeStandardConfigFile(filename):
 
@@ -145,7 +146,7 @@ def readLabelingFile(labeling_file) :
 
     cur_file.close()
 
-    print "Labeling file :" , labeling
+    print("Labeling file :" , labeling)
     return labeling
 
 def read_swathsfile(swathsfile) :
@@ -161,7 +162,7 @@ def read_swathsfile(swathsfile) :
 
         counterline += 1
         if len(row) == 0 :
-            print "Swaths file contains %s swaths" % counterline
+            print("Swaths file contains %s swaths" % counterline)
             break
 
         if row[0] == '#' : continue
@@ -169,12 +170,12 @@ def read_swathsfile(swathsfile) :
         srow = row.split("\t")
 
         if len(srow) != 2 :
-            print "Error when reading swaths file. Are there more than two values in the same row?"
+            print("Error when reading swaths file. Are there more than two values in the same row?")
             sys.exit(2)
 
         for value in srow :
             if not is_number(value) :
-                print "Error when reading swaths file. Some value(s) are not numbers!"
+                print("Error when reading swaths file. Some value(s) are not numbers!")
                 sys.exit(2)
 
         swaths.append( ( float(srow[0]) , float(srow[1]) ) )
@@ -225,7 +226,7 @@ def removeSimilarDuplicates(seq, tolerance , idfun=None) :
         marker = idfun(item)
         if not is_number(idfun(item)) : raise "comparison values are supposed to be numbers!"
 
-        for cp in seen.iterkeys() :
+        for cp in seen.keys() :
             if abs( marker - cp ) <= tolerance : catchup = True
 
         if catchup : continue
@@ -331,7 +332,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
         pepfamily_cnt += 1
         progress = float(pepfamily_cnt) / float(len(isobaric_species))
         if progress >= fut_progress and progress > 0.005 : 
-            print "process id:", os.getpid() , ", ", fut_progress*100 ,  "% of peptide families written."
+            print("process id:", os.getpid() , ", ", fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.05 
         
         #print pepfamily, isoforms
@@ -351,7 +352,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                 if lock : lock.release()
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.iterkeys() : 
+            for isof in isoforms.keys() : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
             shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
@@ -447,7 +448,7 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     # dict into
     #out_q = multiprocessing.Queue()
     chunksize = int(math.ceil(len(isobaric_species) / float(nprocs)))
-    print "%s peptide families divided into %s chunks of %s" % (len(isobaric_species) , nprocs, chunksize) 
+    print("%s peptide families divided into %s chunks of %s" % (len(isobaric_species) , nprocs, chunksize) )
     procs = []
     lock = multiprocessing.Lock()
     #lock = None
@@ -500,7 +501,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
     transition_cnt = 0
     precursor_cnt  = 0
     
-    print "A total of %s peptide families have been found."  % len(isobaric_species) 
+    print("A total of %s peptide families have been found."  % len(isobaric_species) )
     
     pepfamily_cnt = 0
     fut_progress = 0.01
@@ -509,7 +510,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
     if nprocs > 0 :
         mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
                     writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision, nprocs)
-        print "done!"
+        print("done!")
         sys.exit()
     
     for pepfamily , isoforms in isobaric_species.iteritems() :
@@ -517,7 +518,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         pepfamily_cnt += 1
         progress = float(pepfamily_cnt) / float(len(isobaric_species))
         if progress >= fut_progress and progress > 0.005 : 
-            print fut_progress*100 ,  "% of peptide families written."
+            print(fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.01 
         
         #print pepfamily, isoforms
@@ -533,7 +534,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             if offset > 0 :  _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.iterkeys() : 
+            for isof in isoforms.keys() : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
             uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
@@ -610,7 +611,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     filteredtransitions.append(transition)
             
             #For each isoform, filtering and write
-            if verbose and ( len(filteredtransitions) > maxtransitions or len(filteredtransitions) ) < mintransitions : print mintransitions, maxtransitions, len(filteredtransitions)
+            if verbose and ( len(filteredtransitions) > maxtransitions or len(filteredtransitions) ) < mintransitions : print(mintransitions, maxtransitions, len(filteredtransitions))
             do_filtering_and_write(filteredtransitions, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, verbose = verbose)
             filteredtransitions = []
 
@@ -689,7 +690,7 @@ def main(argv) :
             modificationsfile = arg
             argsUsed += 2
         if opt in ("-w","--swaths") :
-            print "swathsfile : " , arg
+            print("swathsfile : " , arg)
             swathsfile = arg
             argsUsed += 2
         if opt in ("-l","--limits") :
@@ -698,7 +699,7 @@ def main(argv) :
             try :
                 for val in masslimits_txt : masslimits.append( float(val) )
             except :
-                print "Mass range limits are not a number! Please, try again."
+                print("Mass range limits are not a number! Please, try again.")
                 sys.exit(2)
             argsUsed += 2
         if opt in ("-s","--series") :
@@ -711,14 +712,14 @@ def main(argv) :
             try :
                 maxtransitions = int(arg)
             except :
-                print "Max number of transitions is not an integer! Please, try again."
+                print("Max number of transitions is not an integer! Please, try again.")
                 sys.exit(2)
             argsUsed += 2
         if opt in ("-o","--min") :
             try :
                 mintransitions = int(arg)
             except :
-                print "Min number of transitions is not an integer! Please, try again."
+                print("Min number of transitions is not an integer! Please, try again.")
             argsUsed += 2
         if opt in ("-c","--config") :
             searchEngineconfig = ConfigObj(arg)
@@ -751,12 +752,12 @@ def main(argv) :
             if arg in ["minutes","seconds"] :
                 if arg in ["minutes"] : useMinutes = True
             else :
-                print "Choose a right time-scale. Options are: minutes, seconds"
+                print("Choose a right time-scale. Options are: minutes, seconds")
                 sys.exit(10) 
         if opt in ('-k', 'key') :
             if arg not in codes :
-                print "Error: key option is not valid! key : " , arg
-                print "Valid options are : " , keys
+                print("Error: key option is not valid! key : " , arg)
+                print("Valid options are : " , keys)
                 sys.exit(2)
             key = arg
             if key == 'openswath'     : csv_headers = csv_headers_openswath
@@ -776,24 +777,24 @@ def main(argv) :
             UISorder = int(arg)
             
 
-    print "Masslimits:",masslimits
+    print("Masslimits:",masslimits)
 
     if mintransitions > maxtransitions :
-        print "This might seem a bit fool, but... You can't select a minimum number of transitions higher than the maximum!! "
-        print "Min : " , mintransitions , " Max :" , maxtransitions
+        print("This might seem a bit fool, but... You can't select a minimum number of transitions higher than the maximum!! ")
+        print("Min : " , mintransitions , " Max :" , maxtransitions)
         sys.exit(2)
 
 
     sptxtfiles = argv[argsUsed:]
     if len(sptxtfiles) == 0:
-        print "No input files given"
+        print("No input files given")
         sys.exit(2)
     
     #If a modifications file is provided, update the Modifications
     modificationsLib = Modifications()     #None
     if len(modificationsfile) > 0 :
         modificationsLib.readModificationsFile(modificationsfile)
-    print "Modifications used : ",modificationsLib.mods_TPPcode.keys()
+    print("Modifications used : ",modificationsLib.mods_TPPcode.keys())
     
     
     #If a fasta file is provided, read and store it into a dictionary
@@ -801,7 +802,7 @@ def main(argv) :
     proteins = None
     if len(fastafile) > 0 :
         proteins = ProteinDB()
-        print "Reading fasta file :" , fastafile
+        print("Reading fasta file :" , fastafile)
         proteins.readFasta(fastafile)
 
     protein_cnt = 1
@@ -812,12 +813,12 @@ def main(argv) :
         swaths = read_swathsfile(swathsfile)
     else:
         #print "Using default swath windows",swaths
-        print "No swath windows set."
+        print("No swath windows set.")
 
     for sptxtfile in sptxtfiles :
-        print "Reading : " , sptxtfile
+        print("Reading : " , sptxtfile)
         if not os.path.exists(sptxtfile):
-            print "The file: %s does not exist!" % sptxtfile
+            print("The file: %s does not exist!" % sptxtfile)
             sys.exit(2)
 
         if outputfile is None:
@@ -827,7 +828,7 @@ def main(argv) :
         try :
             writer = csv.writer(open(peakviewfilename,'w'), dialect='excel-tab')
         except :
-            print "something went wrong while trying to write the file :" , peakviewfilename
+            print("something went wrong while trying to write the file :" , peakviewfilename)
             sys.exit(1)
 
         #write the headers
@@ -846,7 +847,7 @@ def main(argv) :
             transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, UISorder, ionseries, gain_or_loss_mz, frgchargestate,
                         useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, aaLib = aaLib, nprocs = nprocs, verbose = verbose)
             
-            print "done!"
+            print("done!")
             sys.exit()
 
         filteredtransitions = []
@@ -917,7 +918,7 @@ def main(argv) :
             
             
             num_spectrum = num_spectrum +1
-            if (num_spectrum % 1000 == 0) : print "spectra processed: %s" % num_spectrum
+            if (num_spectrum % 1000 == 0) : print("spectra processed: %s" % num_spectrum)
 
             precursorMZ = spectrum.precursorMZ
             if useexactmass : #calculate Q1 and Q3 mass/charge values
@@ -1127,10 +1128,10 @@ def main(argv) :
 
             filteredtransitions = []
 
-        print "file written : " , peakviewfilename
+        print("file written : " , peakviewfilename)
 
 
-    print "Done."
+    print("Done.")
 
 
 
@@ -1140,14 +1141,14 @@ def main(argv) :
 def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance = 0.02, verbose = False , lock = None) :
     #Sort transitions by frg_serie, frg_nr, frg_z and MINUS intensity, then remove duplicates
     #this means of every frag_serie/no/chg only the highest(!) intensity peak is stored
-    if verbose : print "initial number transitions " , len(filteredtransitions)
+    if verbose : print("initial number transitions " , len(filteredtransitions))
     if key == 'peakview':
         filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[9], x[10], x[11], -x[5]))
         filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[9], x[10], x[11]))
     elif key == 'openswath':
         filteredtransitions = sorted(filteredtransitions, key=lambda x: (x[15], x[16], x[17], -x[5]))
         filteredtransitions = removeDuplicates(filteredtransitions, lambda x: (x[15], x[16], x[17]))
-    if verbose : print "after removing duplicates " , len(filteredtransitions)
+    if verbose : print("after removing duplicates " , len(filteredtransitions))
 
     #REVERSE sort the transitions by intensity
     #this means the highest(!) intensity peaks of this transition are on top
@@ -1156,7 +1157,7 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     #Remove transitions with very similar Q3 masses
     massTolerance = 0.02 #This should be configured by user --> TO-DO
     filteredtransitions = removeSimilarDuplicates (filteredtransitions , massTolerance , lambda x : x[1])
-    if verbose : print "after removing similar duplicates " , len(filteredtransitions)
+    if verbose : print("after removing similar duplicates " , len(filteredtransitions))
 
     #If a swaths file was provided, remove transitions falling into the swath
     filteredtransitions_tmp = []
@@ -1164,13 +1165,13 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
         for tr in filteredtransitions :
             if not is_Q3_in_swath_range(tr[0] , tr[1] , swaths) : filteredtransitions_tmp.append(tr)
         filteredtransitions = filteredtransitions_tmp
-    if verbose : print "after removing transitions within the swath isolation window " , len(filteredtransitions)
+    if verbose : print("after removing transitions within the swath isolation window " , len(filteredtransitions))
 
     #if less transitions than the minimum --> continue to next spectrum
     #print filteredtransitions
     if len(filteredtransitions) < mintransitions :
         filteredtransitions = [] #I don't think this is really necessary, just in case.
-    if verbose : print "after removing num of transitions below the required minimum " , len(filteredtransitions)
+    if verbose : print("after removing num of transitions below the required minimum " , len(filteredtransitions))
 
     adssfsfadsf
     
@@ -1195,9 +1196,9 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
                 frg_z                   = heavy_transition[10]
                 frg_number               = heavy_transition[11]
             if key == 'openswath' :
-                print heavy_transition
+                print(heavy_transition)
                 heavy_transition[4] = 'heavy'
-                print heavy_transition
+                print(heavy_transition)
                 precursorMZ_heavy      = heavy_transition[0]
                 fragment_mz_heavy      = heavy_transition[1]
                 sequence_heavy         = heavy_transition[8]
