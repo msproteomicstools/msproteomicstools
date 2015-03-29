@@ -140,6 +140,8 @@ class MRExperiment(object):
                 m.insert(r.get_id(), precursor_group)
             m.set_nr_runs(len(self.runs))
             multipeptides.append(m)
-        return multipeptides
+
+        # Return sorted multipeptides for consistency across all Python versions
+        return(sorted(multipeptides, key=lambda x: str(x)))
 
 
