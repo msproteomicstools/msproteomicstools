@@ -225,7 +225,6 @@ class Peak:
     
         #So far, we pick only the first interpretation
         first_interp = str(peak_annotations[0])
-        first_interp = str(list(first_interp))
         
         #is_not_unique
         if '[' in first_interp :
