@@ -710,7 +710,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
     writer.writerow(header_first)
 
     print("number of precursors quantified:", len(multipeptides))
-    for m in multipeptides:
+    for m in sorted(multipeptides, key=lambda x: str(x)):
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
         for p in m.getAllPeptides():

@@ -55,6 +55,9 @@ class PrecursorGroup():
     def __str__(self):
         return "PrecursorGroup %s" % (self.getPeptideGroupLabel())
 
+    def __lt__(self, other):
+        return self.getPeptideGroupLabel() > other.getPeptideGroupLabel()
+
     def __iter__(self):
         for precursor in self.precursors_:
             yield precursor

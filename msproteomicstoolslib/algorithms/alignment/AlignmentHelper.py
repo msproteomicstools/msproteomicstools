@@ -69,12 +69,12 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
         matrix_writer.write(i)
     matrix_writer.newline()
 
-    for multipep in multipeptides:
+    for multipep in sorted(multipeptides, key=lambda x: str(x)):
 
         # Retrieve all transition group ids available for this precursor group
         # Iterate through all ids and write one line per transition group id
         trgr_ids = set([ trgr.get_id() for prgr in multipep.getPrecursorGroups() for trgr in prgr ])
-        for trgr_id in trgr_ids:
+        for trgr_id in sorted(trgr_ids):
 
             # Get all selected peakgroups that correspond to the current
             # transition group id and ensure we do not have any twice.

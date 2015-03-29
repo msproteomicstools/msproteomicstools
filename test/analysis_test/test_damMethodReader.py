@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import unittest
 import subprocess as sub
 import os
+from nose.plugins.attrib import attr
 
 class TestDAMReader(unittest.TestCase):
 
@@ -57,7 +58,7 @@ class TestDAMReader(unittest.TestCase):
                 except ValueError:
                     self.assertEqual(field1,field2)
 
-
+    @attr('python2')
     def test_damReader(self):
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
         filename = os.path.join(self.datadir, "ABSciex_testInput.dam")
@@ -72,6 +73,7 @@ class TestDAMReader(unittest.TestCase):
 
         os.remove(tmpfilename)
 
+    @attr('python2')
     def test_damReader2(self):
         #tests for the correct reading after a large "FFFFF" insertion into the method parameters
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
@@ -87,6 +89,7 @@ class TestDAMReader(unittest.TestCase):
 
         os.remove(tmpfilename)
 
+    @attr('python2')
     def test_damReader3(self):
         #tests for the correct translation of a non-ASCII character ('ð') in the name/ID of the method paramters
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")
