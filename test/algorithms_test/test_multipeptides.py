@@ -83,6 +83,9 @@ class MockPrecursorGroup():
     def getPeptideGroupLabel(self):
         return self.id_
 
+    def __lt__(self, other):
+        return self.id_ > other.id_
+
     def __iter__(self):
         for p in self.peptides:
             yield p
