@@ -56,7 +56,11 @@ class PrecursorGroup():
         return "PrecursorGroup %s" % (self.getPeptideGroupLabel())
 
     def __lt__(self, other):
-        return self.getPeptideGroupLabel() > other.getPeptideGroupLabel()
+
+        if self.run_.get_id() == other.run_.get_id():
+            return self.getPeptideGroupLabel() > other.getPeptideGroupLabel()
+        else:
+            return self.run_.get_id() > other.run_.get_id()
 
     def __iter__(self):
         for precursor in self.precursors_:
