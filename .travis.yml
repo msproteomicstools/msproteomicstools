@@ -8,6 +8,8 @@ before_install:
  - sudo apt-get install -qq python-numpy python-scipy python-rpy2 python-lxml python-biopython python-xlwt python-scikits-learn  python-cluster
 # - git clone https://github.com/pymzml/pymzML.git
 # - "cd pymzML && python setup.py install && cd .."
+ - git clone https://github.com/hroest/scikit-datasmooth.git
+ - "cd scikit-datasmooth && python setup.py install && cd .."
 install:
   - pip install rpy2 # for Python 3.3
   - travis_retry python setup.py develop
