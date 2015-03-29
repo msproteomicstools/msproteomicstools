@@ -54,7 +54,7 @@ setup(name='msproteomicstools',
       install_requires=[
           "numpy",
           "scipy",
-          "cluster == 1.1.2",
+          "cluster == 1.2.2", # note that 1.1.2 does not work with py3
           "pyteomics >= 2.4.0",
           "xlsxwriter >= 0.5.3 ", # for xlsx
           # 'xlwt', # for xls
