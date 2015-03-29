@@ -95,14 +95,24 @@ class MRExperiment(object):
         union_transition_groups = []
         union_proteins = []
         union_target_transition_groups = []
+
         for i,r in enumerate(self.runs):
             if verbose or verbosity >= 10: 
                 stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
                 stdout.flush()
-            union_target_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
-            union_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
-            union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
-        if verbose or verbosity >= 10: stdout.write("\r\r\n") # clean up
+            union_target_transition_groups.append( 
+              [peak.peptide.precursor_group.getPeptideGroupLabel() 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_transition_groups.append( 
+              [peak.peptide.precursor_group.getPeptideGroupLabel() 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
+            union_proteins.append( list(set(
+              [peak.peptide.protein_name 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) 
+                    if not peak.peptide.get_decoy()])) )
+
+        if verbose or verbosity >= 10: 
+            stdout.write("\r\r\n") # clean up
 
         union_target_transition_groups_set = set(union_target_transition_groups[0])
         self.union_transition_groups_set = set(union_transition_groups[0])
