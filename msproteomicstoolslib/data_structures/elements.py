@@ -117,7 +117,7 @@ class Formulas :
     @staticmethod
     def compositionString(formula):
         compString=""
-        for elem,num in formula.items():
+        for elem,num in sorted(formula.items()):
             if num>1:
                 compString += "%s%s" % (elem,num)
             else:
