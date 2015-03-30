@@ -174,12 +174,21 @@ class QtrapFileFormat:
 # Constants {{{
 ###########################################################################
 
-ParameterDatafield = "".join( [ c + '\x00' for c in 'ParameterData']) + \
-        '\x00' * 38 + '\x1c\x00\x02\x01' + '\xff' * 12
-           
-Q1start = '\x02\x00\x00\x00'+'\x04\x00\x00\x00'
 
-EOT = '\x04' #end of transmission EOT = 04
+if sys.version_info >= (3,0,0):
+    ParameterDatafield = b"".join( [ bytes(c, "ascii") + b'\x00' for c in 'ParameterData']) + \
+            b'\x00' * 38 + b'\x1c\x00\x02\x01' + b'\xff' * 12
+
+    Q1start = b'\x02\x00\x00\x00'+b'\x04\x00\x00\x00'
+
+    EOT = b'\x04' #end of transmission EOT = 04
+else:
+    ParameterDatafield = "".join( [ c + '\x00' for c in 'ParameterData']) + \
+            '\x00' * 38 + '\x1c\x00\x02\x01' + '\xff' * 12
+                
+    Q1start = '\x02\x00\x00\x00'+'\x04\x00\x00\x00'
+     
+    EOT = '\x04' #end of transmission EOT = 04
 
 # }}}
 
@@ -286,7 +295,10 @@ class MRMParser():
 		#look for the DP, EP, CE and CXP, data structure splits on CXP+12 bytes before next Q1
 		ionParam=self.ionParams
 		for e in self.ionArr:
-			myStr = "".join( [ c + '\x00' for c in e])
+			if sys.version_info >= (3,0,0):
+				myStr = b"".join( [ bytes(c, "ascii") + b'\x00' for c in e])
+			else:
+				myStr = "".join( [ c + '\x00' for c in e])
 			foundOne = self.data[pos:].find(myStr)
 			if foundOne>-1:
 				pos += foundOne + len(myStr)
@@ -354,7 +366,11 @@ def main(args):
 
         
     # Write out a csv file
-    f = open(outputfile, 'wb')
+    if sys.version_info >= (3,0,0):
+        f = open(outputfile, 'w', newline='')
+    else:
+        f = open(outputfile, 'wb')
+
     csvWriter = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
     #write a header for the values
     csvWriter.writerow( ['Q1','Q3','Time','ID','CE','EP','DP','CXP'] )
