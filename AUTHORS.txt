@@ -9,9 +9,9 @@ tag in the respective file header.
  - Ruedi Aebersold
  - Lorenz Blum
  - Ludovic Gillet
- - Lars Malmström
+ - Lars MalmstrÃ¶m
  - Pedro Navarro
- - Hannes Röst
+ - Hannes RÃ¶st
  - George Rosenberger
  - Smarason Sigurdur
 
