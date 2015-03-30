@@ -51,6 +51,10 @@ from msproteomicstoolslib.format.ProteinDB                import ProteinDB
 import msproteomicstoolslib.format.speclib_db_lib            as speclib_db_lib  
 #import msproteomicstoolslib.utils.logs.MultiProcessingLog     as MPlog 
 
+import sys
+if (sys.version_info > (3, 0)):
+    raise Exception("This script currently does not work as intended with Python3")
+
 def usage() :
     print("")
     print("spectrast2tsv.py")
