@@ -7,7 +7,7 @@ applied to proteomics. Speficically, it contains
 - the MS Proteomics Tools Library (available in ./msproteomicstoolslib)
 - a set of executables and scripts (available under ./analysis)
 
-The code is under the 3-clause BSD licence (see the [COPYRIGHT](COPYRIGHT.txt)
+The code is under the 3-clause BSD licence (see the [LICENSE](LICENSE)
 and the [AUTHORS](AUTHORS.txt)  files).
 
 # TAPIR 
