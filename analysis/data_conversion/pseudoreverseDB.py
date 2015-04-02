@@ -79,7 +79,11 @@ def main(argv):
             cleavage_rule = arg
 
     # copy orig
-    shutil.copy(i, o)
+    try:
+        shutil.copy(i, o)
+    except UnboundLocalError:
+        usage()
+
     # append decoys
     out = open(o, 'a')
     seq = ""
