@@ -239,7 +239,7 @@ class Scan:
             if child.tag.endswith( 'peaks' ):
                 self.precision = child.get( 'precision' )
                 self.byteOrder = child.get( 'byteOrder' )
-                self.pairOrder = child.get( 'pairOrder' )
+                self.pairOrder = child.get( 'contentType' )
                 string = child.text
         assert (self.byteOrder == 'network' and self.precision == '32' and
         self.pairOrder == 'm/z-int')
