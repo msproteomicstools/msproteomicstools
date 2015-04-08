@@ -66,12 +66,14 @@ class pepXMLReader:
             if elem.tag.find("spectrum_query") != -1:
                 specQuery = Spectrum_Query( elem )
                 if len( elem.getchildren() ) >0:
-                    search_hit = elem.getchildren()[0].getchildren()[0]
-                    search_hit = SearchHit( search_hit ) 
-                    search_hit.set_spectrum_query( specQuery )
-                    if getAll or (
-                      search_hit.probability > threshold and not search_hit.decoy):
-                        search_hits.append(  search_hit )
+                    temp = elem.getchildren()[0].getchildren()
+                    if len(temp) > 0:
+                        search_hit = temp[0]
+                        search_hit = SearchHit( search_hit )
+                        search_hit.set_spectrum_query( specQuery )
+                        if getAll or (
+                            search_hit.probability > threshold and not search_hit.decoy):
+                            search_hits.append(  search_hit )
         return search_hits
 
     def get_threshold(self, myfdr):
