@@ -35,6 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
+
 #from elements       import Elements
 from elements       import Formulas        
 from aminoacides    import Aminoacides
@@ -43,7 +44,7 @@ from peptide        import Peptide
 import csv
 import ast
 import re
-import sys
+import pkg_resources
 
 class Modifications:
     """
@@ -57,7 +58,8 @@ class Modifications:
         self._initModifications()
     
     def _initModifications(self):
-        self.readModificationsFile("modifications_default.tsv")
+        default_mod_file = pkg_resources.resource_filename(__name__, "modifications_default.tsv")
+        self.readModificationsFile(default_mod_file)
 
     def appendModification(self, modification) :
         self.list.append(modification)
