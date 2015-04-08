@@ -35,6 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
+
 #from elements       import Elements
 from elements       import Formulas        
 from aminoacides    import Aminoacides
@@ -43,6 +44,7 @@ from peptide        import Peptide
 import csv
 import ast
 import re
+import pkg_resources
 import sys
 
 class Modifications:
@@ -57,60 +59,9 @@ class Modifications:
         self._initModifications()
     
     def _initModifications(self):
-        #                              aminoacid, tpp_Mod, unimodAccession, peakViewAccession, is_labeling, composition):
-        CAM             = Modification('C'      ,   'C[160]',   4,  '[CAM]',    False,    {'H': 3 ,'C': 2 ,'N':1 , 'O': 1 })
-        Ox              = Modification('M'      ,   'M[147]',  35,  '[Oxi]',    False,    {'O': 1 })
-        WOx             = Modification('W'      ,   'W[202]',  35,  '[Oxi]',    False,    {'O': 1 })
-        HOx             = Modification('H'      ,   'H[153]',  35,  '[Oxi]',    False,    {'O': 1 })
+        default_mod_file = pkg_resources.resource_filename(__name__, "modifications_default.tsv")
+        self.readModificationsFile(default_mod_file)
 
-        heavyK          = Modification('K'      ,   'K[136]', 259,  '[+08]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -2 , '15N' : 2 } )
-        heavyR          = Modification('R'      ,   'R[166]', 267,  '[+10]',    True,    {'C' : -6 , '13C' : 6 , 'N' : -4 , '15N' : 4 } )  
-        EpyroGlu        = Modification('E'      ,   'E[111]',  27,  '[PGE]',    False,    {'H' : -2, 'O' : -1 })  
-        QpyroGlu        = Modification('Q'      ,   'Q[111]',  28,  '[PGQ]',    False,    {'H' : -3, 'N' : -1 })
-        CcarboxiMet     = Modification('C'      ,   'C[143]',  26,  '[PCm]',    False,    {'C' : 2, 'O' : 1})
-        NtermCarbamyl   = Modification('N-term' ,   'n[43]',    5,  '[CRM]',    False,    {'C' : 1, 'H' : 1,'N' : 1,'O' : 1 })
-        SPho            = Modification('S'      ,   'S[167]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        TPho            = Modification('T'      ,   'T[181]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        YPho            = Modification('Y'      ,   'Y[243]',  21,  '[Pho]',    False,  {'H' : 1, 'O' : 3, 'P' : 1})
-        NDea            = Modification('N'      ,   'N[115]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
-        QDea            = Modification('Q'      ,   'Q[129]',   7,  '[Dea]',    False,  {'H' : -1, 'N': -1, "O": 1})
-        C149            = Modification('C'      ,   'C[149]',  39,  '[XXX]',    False,  {'H' : 2, 'C' : 1, "S" : 1})
-        D131            = Modification('D'      ,   'D[131]',  35,  '[Oxi]',    False,    {'O': 1 })
-        K144            = Modification('K'      ,   'K[144]',  35,  '[Oxi]',    False,    {'O': 1 })
-        Y179            = Modification('Y'      ,   'Y[179]',  35,  '[Oxi]',    False,    {'O': 1 })
-        R172            = Modification('R'      ,   'R[172]',  35,  '[Oxi]',    False,    {'O': 1 })
-        N130            = Modification('N'      ,   'N[130]',  35,  '[Oxi]',    False,    {'O': 1 })
-        P113            = Modification('P'      ,   'P[113]',  35,  '[Oxi]',    False,    {'O': 1 })
-        C119            = Modification('C'      ,   'C[119]',  35,  '[Oxi]',    False,    {'O': 1 })
-        N317            = Modification('N'      ,   'N[317]',  43,  '[XXX]',    False,    {'C': 8, 'H': 15, 'N' : 1, 'O' : 6 })
-        N349            = Modification('N'      ,   'N[349]',  142,  '[XXX]',    False,    {'C': 14, 'H': 23, 'N' : 1, 'O' : 9 })
-
-        self.appendModification(CAM)
-        self.appendModification(Ox)
-        self.appendModification(WOx)
-        self.appendModification(HOx)
-        self.appendModification(heavyK)
-        self.appendModification(heavyR)
-        self.appendModification(EpyroGlu)
-        self.appendModification(QpyroGlu)
-        self.appendModification(CcarboxiMet)
-        self.appendModification(NtermCarbamyl)
-        self.appendModification(SPho)
-        self.appendModification(TPho)
-        self.appendModification(YPho)
-        self.appendModification(NDea)
-        self.appendModification(QDea)
-        self.appendModification(C149)
-        self.appendModification(D131)
-        self.appendModification(K144)
-        self.appendModification(Y179)
-        self.appendModification(R172)
-        self.appendModification(N130)
-        self.appendModification(P113)
-        self.appendModification(C119)
-        self.appendModification(N317)
-        self.appendModification(N349)
-    
     def appendModification(self, modification) :
         self.list.append(modification)
         self.mods_TPPcode[modification.TPP_Mod] = modification
@@ -124,26 +75,29 @@ class Modifications:
         for mymod in self.list:
             print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
         
-    def readModificationsFile(self, modificationsfile) :
+    def readModificationsFile(self, modificationsfile):
         '''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications 
         of this class.
         Tsv file headers & an example:
         modified-AA    TPP-nomenclature    Unimod-Accession    ProteinPilot-nomenclature    is_a_labeling    composition-dictionary
         S    S[167]    21    [Pho]    False    {'H' : 1,'O' : 3, 'P' : 1}
         '''
+
+        # sys.stderr.write("reading modifications file: %s \n" % modificationsfile)
         reader = csv.reader(open(modificationsfile,'r'),dialect="excel-tab")
-        headers = ['modified-AA'   , 'TPP-nomenclature' ,   'Unimod-Accession'  ,  'ProteinPilot-nomenclature'  ,  'is_a_labeling' ,   
+        headers = ['modified-AA', 'TPP-nomenclature',   'Unimod-Accession',  'ProteinPilot-nomenclature', 'is_a_labeling',
                    'composition-dictionary']
          
         header_found = False    
          
-        for row in reader : 
+        for row in reader:
             if row[0] in headers : 
                 header_found = True
-                header_d = dict([ (l,i) for i,l in enumerate(row)])
+                header_d = dict([(l, i) for i, l in enumerate(row)])
                 continue
            
-            if not header_found : continue
+            if not header_found:
+                continue
         
             mod = Modification(row[header_d['modified-AA']], row[header_d['TPP-nomenclature']], int(row[header_d['Unimod-Accession']]), 
                                row[header_d['ProteinPilot-nomenclature']], self.is_bool(row[header_d['is_a_labeling']]), 
@@ -158,7 +112,7 @@ class Modifications:
         
         if code not in Modification.codes : 
             #Throw an Exception
-            print "The following nomenclature (code) is not recognized : " , code
+            print "The following nomenclature (code) is not recognized : ", code
             sys.exit(5)
         
         aminoacides_with_mods = []

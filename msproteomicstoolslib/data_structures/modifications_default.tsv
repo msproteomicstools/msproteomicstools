@@ -1,0 +1,26 @@
+modified-AA	TPP-nomenclature	Unimod-Accession	ProteinPilot-nomenclature	is_a_labeling	composition-dictionary
+C	C[160]	4	[CAM]	FALSE	"{'H': 3 ,'C': 2 ,'N':1 , 'O': 1 }"
+M	M[147]	35	[Oxi]	FALSE	{'O': 1 }
+W	W[202]	35	[Oxi]	FALSE	{'O': 1 }
+H	H[153]	35	[Oxi]	FALSE	{'O': 1 }
+K	K[136]	259	[+08]	TRUE	"{'C' : -6 , '13C' : 6 , 'N' : -2 , '15N' : 2 }"
+R	R[166]	267	[+10]	TRUE	"{'C' : -6 , '13C' : 6 , 'N' : -4 , '15N' : 4 }"
+E	E[111]	27	[PGE]	FALSE	"{'H' : -2, 'O' : -1 }"
+Q	Q[111]	28	[PGQ]	FALSE	"{'H' : -3, 'N' : -1 }"
+C	C[143]	26	[PCm]	FALSE	"{'C' : 2, 'O' : 1}"
+N-term	n[43]	5	[CRM]	FALSE	"{'C' : 1, 'H' : 1,'N' : 1,'O' : 1 }"
+S	S[167]	21	[Pho]	FALSE	"{'H' : 1, 'O' : 3, 'P' : 1}"
+T	T[181]	21	[Pho]	FALSE	"{'H' : 1, 'O' : 3, 'P' : 1}"
+Y	Y[243]	21	[Pho]	FALSE	"{'H' : 1, 'O' : 3, 'P' : 1}"
+N	N[115]	7	[Dea]	FALSE	"{'H' : -1, 'N': -1, ""O"": 1}"
+Q	Q[129]	7	[Dea]	FALSE	"{'H' : -1, 'N': -1, ""O"": 1}"
+C	C[149]	39	[XXX]	FALSE	"{'H' : 2, 'C' : 1, ""S"" : 1}"
+D	D[131]	35	[Oxi]	FALSE	{'O': 1 }
+K	K[144]	35	[Oxi]	FALSE	{'O': 1 }
+Y	Y[179]	35	[Oxi]	FALSE	{'O': 1 }
+R	R[172]	35	[Oxi]	FALSE	{'O': 1 }
+N	N[130]	35	[Oxi]	FALSE	{'O': 1 }
+P	P[113]	35	[Oxi]	FALSE	{'O': 1 }
+C	C[119]	35	[Oxi]	FALSE	{'O': 1 }
+N	N[317]	43	[XXX]	FALSE	"{'C': 8, 'H': 15, 'N' : 1, 'O' : 6 }"
+N	N[349]	142	[XXX]	FALSE	"{'C': 14, 'H': 23, 'N' : 1, 'O' : 9 }"
