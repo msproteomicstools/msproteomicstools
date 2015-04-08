@@ -45,6 +45,7 @@ import csv
 import ast
 import re
 import pkg_resources
+import sys
 
 class Modifications:
     """
