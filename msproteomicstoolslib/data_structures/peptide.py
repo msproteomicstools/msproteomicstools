@@ -97,12 +97,12 @@ class Peptide:
                                         break
                         if not lossgainOK : continue
                                 
-                        frg_mass = self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain)
+                        frg_mz = self.getMZfragment(ion_type, ion_number, ion_charge, label='', fragmentlossgain = lossgain)
                         if mass_limits : 
-                            if frg_mass < mass_limits[0] : continue 
-                            if frg_mass > mass_limits[1] : continue 
-                        annotated.append( ( ion_type, ion_number, ion_charge, lossgain, frg_mass ) ) 
-                        ionmasses_only.append(frg_mass)
+                            if frg_mz < mass_limits[0] : continue
+                            if frg_mz > mass_limits[1] : continue
+                        annotated.append( ( ion_type, ion_number, ion_charge, lossgain, frg_mz ) )
+                        ionmasses_only.append(frg_mz)
         
         return ( annotated, ionmasses_only )
 

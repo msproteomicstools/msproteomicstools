@@ -52,14 +52,15 @@ class Modifications:
     A collection of modifications
     """
     
-    def __init__(self):
+    def __init__(self, default_mod_file=None):
         self.list= []
         self.mods_TPPcode = {}   # a more confortable way to store the modifications, if you want just to declare them elsewhere in a sequence
         self.mods_unimods = {}
-        self._initModifications()
+        self._initModifications(default_mod_file)
     
-    def _initModifications(self):
-        default_mod_file = pkg_resources.resource_filename(__name__, "modifications_default.tsv")
+    def _initModifications(self, default_mod_file):
+        if not default_mod_file:
+            default_mod_file = pkg_resources.resource_filename(__name__, "modifications_default.tsv")
         self.readModificationsFile(default_mod_file)
 
     def appendModification(self, modification) :
