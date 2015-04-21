@@ -71,7 +71,7 @@ class TestUnitRun(unittest.TestCase):
         self.assertIsNone( r.getPrecursorGroup("9_dummy"))
 
         ids = sorted([p.id_ for p in r])
-        self.assertEqual( ids, range(5))
+        self.assertEqual( ids, list(range(5)))
 
     def test_get_best_peaks(self):
         r = Run([], {}, "run1", "file1.txt", filename="file1.csv", aligned_filename="file1.tsv")

@@ -35,13 +35,19 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import os
+from __future__ import print_function
+import os, sys
 import numpy
 import scipy.stats
 import random
 
 from msproteomicstoolslib.format.MatrixWriters import getwriter
 import msproteomicstoolslib.math.Smoothing as smoothing
+
+if (sys.version_info > (3, 0)):
+    xrange = range
+else:
+    pass
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
                           style="none", write_requant=True, aligner_mscore_treshold=1.0):
@@ -63,12 +69,12 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
         matrix_writer.write(i)
     matrix_writer.newline()
 
-    for multipep in multipeptides:
+    for multipep in sorted(multipeptides, key=lambda x: str(x)):
 
         # Retrieve all transition group ids available for this precursor group
         # Iterate through all ids and write one line per transition group id
         trgr_ids = set([ trgr.get_id() for prgr in multipep.getPrecursorGroups() for trgr in prgr ])
-        for trgr_id in trgr_ids:
+        for trgr_id in sorted(trgr_ids):
 
             # Get all selected peakgroups that correspond to the current
             # transition group id and ensure we do not have any twice.
@@ -131,7 +137,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
             # independent measurements, we multiply the p-values to compute a
             # peakgroup p-value.
             # We use norm.sf (1-cdf) on the vector of z-scores.
-            pvals = [float(pg.get_dscore()) for k,pg in selected_peakgroups.iteritems() if
+            pvals = [float(pg.get_dscore()) for k,pg in selected_peakgroups.items() if
                      not pg is None and not pg.get_dscore() is None]
             pvalue = numpy.prod(scipy.stats.norm.sf(pvals))
 
@@ -196,7 +202,7 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
         stdev_0_1 = numpy.std(numpy.array(data_1_s) - numpy.array(data0_aligned))
         data1_aligned = sm_1_0.predict(data_1_s)
         stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
-        print "stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s)
+        print("stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s))
 
     # Add data
     tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)

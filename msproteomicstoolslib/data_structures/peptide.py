@@ -35,9 +35,15 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-from aminoacides import Aminoacides
-from elements import Elements
-from elements import Formulas
+from __future__ import print_function
+try:
+    from aminoacides import Aminoacides
+    from elements import Elements
+    from elements import Formulas
+except ImportError:
+    from .aminoacides import Aminoacides
+    from .elements import Elements
+    from .elements import Formulas
 
 #from spectrum import Spectrum
 from types import *
@@ -88,7 +94,7 @@ class Peptide:
                     for lossgain in fragmentlossgains :
                         frg_seq = self.fragmentSequence(ion_type, ion_number)
                         lossgainOK = True
-                        for mass, constrain in self.lossConstraints.iteritems() :
+                        for mass, constrain in self.lossConstraints.items() :
                             if abs(mass-lossgain) < 0.02 :
                                 lossgainOK = False 
                                 for aa in constrain : 
@@ -116,7 +122,7 @@ class Peptide:
         
         all_UIS = [] #   all_UIS = [ [UIS1] , [UIS2] ,[UIS3]  ]
         all_UIS_annotated = {} # all_UIS_annotated = { UIS1 : [annotation(s)] , ... }
-        print fragmentlossgains
+        print (fragmentlossgains)
         selfPep_annotated , selfPep_masses = self.all_ions( ionseries = ionseries, frg_z_list = frg_z_list, 
                                                         fragmentlossgains = fragmentlossgains , mass_limits = mass_limits, 
                                                         label = '' )
@@ -218,7 +224,7 @@ class Peptide:
         #Count the number of switching modifications 
         num_of_switchMods = 0
         fixed_modifications = {}
-        for key, mod in self.modifications.iteritems() :
+        for key, mod in self.modifications.items() :
             if mod.unimodAccession == switchingModification.unimodAccession : num_of_switchMods += 1
             else : fixed_modifications[key] = mod
             
@@ -231,7 +237,7 @@ class Peptide:
                     if mod.aminoacid == aa : modSites.append(site)  
         
         for subset in itertools.combinations(modSites, num_of_switchMods) :
-            newmods = dict([ (key, mod) for key, mod in fixed_modifications.iteritems() ])  #Keep the fixed modifications!
+            newmods = dict([ (key, mod) for key, mod in fixed_modifications.items() ])  #Keep the fixed modifications!
             for idx in subset : newmods[idx+1] = switchingModification
             isoform = Peptide(self.sequence, newmods, aminoacidLib = self.aaList)
             peptide_family.append(isoform)
@@ -262,7 +268,7 @@ class Peptide:
         mass += Formulas.mass(Formulas.H2O) #(1.007825032 *2 + 15.99491462) 
         
         #Adding modifications deltamass
-        for aaPosMod in self.modifications.iterkeys() :
+        for aaPosMod in self.modifications.keys() :
             mass += self.modifications[aaPosMod].deltamass
 
         return mass
@@ -351,8 +357,8 @@ class Peptide:
                         else:
                             composition[elem] += num
                         
-        for aaModified, modification in self.modifications.iteritems() :
-            for elem,numAtoms in modification.composition.iteritems() :
+        for aaModified, modification in self.modifications.items() :
+            for elem,numAtoms in modification.composition.items() :
                 if elem not in composition : composition[elem] = numAtoms
                 else : composition[elem] += numAtoms
         
@@ -372,7 +378,7 @@ class Peptide:
                             composition[elem] += num
 
         for modification in modifications :
-            for elem,numAtoms in modification.composition.iteritems() :
+            for elem,numAtoms in modification.composition.items() :
                 if elem not in composition : composition[elem] = numAtoms
                 else : composition[elem] += numAtoms
         
@@ -403,7 +409,7 @@ class Peptide:
         
         #Check label
         if len(label) > 0 and label not in self.labelings : 
-            print "Coding error: this labeling is not reported!! %s" % label
+            print("Coding error: this labeling is not reported!! %s" % label)
             sys.exit(2)
             
         
@@ -489,7 +495,7 @@ class Peptide:
     def getMZfragment(self, ion_type, ion_number, ion_charge, label='', fragmentlossgain=0.0):
         #Check label
         if len(label) > 0 and label not in self.labelings : 
-            print "Coding error: this labeling is not reported!! %s" % label
+            print("Coding error: this labeling is not reported!! %s" % label)
             sys.exit(2)
         
         #Check ion type
@@ -530,7 +536,7 @@ class Peptide:
             mzfragment = self.getDeltaMassFromSequence(frg_seq)
             mzfragment -= (massC + massO)
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if aaPosMod <= frg_number: mzfragment += self.modifications[aaPosMod].deltamass
 
         #b series
@@ -538,7 +544,7 @@ class Peptide:
             frg_seq = self.sequence[:frg_number] 
             mzfragment = self.getDeltaMassFromSequence(frg_seq)
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if aaPosMod <= frg_number: mzfragment += self.modifications[aaPosMod].deltamass
         
         #c series
@@ -547,7 +553,7 @@ class Peptide:
             mzfragment = self.getDeltaMassFromSequence(frg_seq)
             mzfragment += massNH3
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if aaPosMod <= frg_number: mzfragment += self.modifications[aaPosMod].deltamass
         
         #x series
@@ -556,7 +562,7 @@ class Peptide:
             mzfragment = self.getDeltaMassFromSequence(frg_seq)
             mzfragment += massCO2
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if (len(self.sequence) - frg_number) < aaPosMod : mzfragment += self.modifications[aaPosMod].deltamass
 
 
@@ -566,7 +572,7 @@ class Peptide:
             mzfragment = self.getDeltaMassFromSequence(frg_seq)
             mzfragment += massH2O
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if (len(self.sequence) - frg_number) < aaPosMod : mzfragment += self.modifications[aaPosMod].deltamass
 
         #z series
@@ -576,7 +582,7 @@ class Peptide:
             mzfragment += massH2O
             mzfragment -= massNH3
             #Adding modifications deltamass
-            for aaPosMod in self.modifications.iterkeys() :
+            for aaPosMod in self.modifications.keys() :
                 if (len(self.sequence) - frg_number) < aaPosMod : mzfragment += self.modifications[aaPosMod].deltamass
 
             
@@ -641,7 +647,12 @@ class Peptide:
 
 
 def test():
-    from modifications import Modifications
+
+    try:
+        from modifications import Modifications
+    except ImportError:
+        from .modifications import Modifications
+
 
     mods = Modifications()
     mypep2  = Peptide('LMGPTSVVMGR', modifications={ 9: mods.mods_TPPcode['M[147]']}) #M[147]
@@ -659,43 +670,43 @@ def test():
     theOtherIsoforms.remove(isof_target)
     
     for isof in theOtherIsoforms : 
-        print isof.getSequenceWithMods('unimod')
+        print(isof.getSequenceWithMods('unimod'))
         annot , ion_masses =  isof.all_ions(ionseries = ['y',], frg_z_list = [1,], fragmentlossgains = [0,] , mass_limits = [300,1500], label = '' )
         
-    print isof_target.getSequenceWithMods('unimod')
+    print(isof_target.getSequenceWithMods('unimod'))
     annot , ion_masses = isof_target.all_ions(ionseries = ['y',], frg_z_list = [1,], fragmentlossgains = [0,] , mass_limits = [300,1500], label = '' )
     
     UISmass , UISannot = isof_target.cal_UIS(theOtherIsoforms, UISorder = 2,  ionseries = ['y',], fragmentlossgains = [0,], precision = 1e-5, frg_z_list = [1,], mass_limits = [300,1500])
-    for UIS in UISannot.itervalues() :
-        print UIS
+    for UIS in UISannot.values() :
+        print (UIS)
     
     matched , unmatched = mypep.comparePeptideFragments([mypep2,], ['y','b'], precision = 1e-2)
-    print "Matched ions : " , matched
-    print "Unmatched ions : ", unmatched
+    print("Matched ions : " , matched)
+    print("Unmatched ions : ", unmatched)
     
     my_isoforms = mypep2.calIsoforms(mods.mods_TPPcode['M[147]'], mods)
-    print "isoforms of %s" % mypep2.getSequenceWithMods('unimod') 
+    print("isoforms of %s" % mypep2.getSequenceWithMods('unimod') )
     for iso in my_isoforms :
-        print  iso.getSequenceWithMods('unimod')
+        print (iso.getSequenceWithMods('unimod'))
     
     for pep in [mypep, mypep2] : 
             
-        print pep.sequence, pep.mass, pep.modifications
-        print pep._getComposition()
-        print pep._getAminoacidList(True)
-        print pep.getSequenceWithMods("ProteinPilot")
-        print pep.getMZ(1)
-        
-        print '#,' , ", ".join(pep.iontypes)
+        print(pep.sequence, pep.mass, pep.modifications)
+        print(pep._getComposition())
+        print(pep._getAminoacidList(True))
+        print(pep.getSequenceWithMods("ProteinPilot"))
+        print(pep.getMZ(1))
+             
+        print('#,' , ", ".join(pep.iontypes))
         masses = []
         for v in range(1, len(pep.sequence) + 1) :
             masses.append(str(v))
             for ionserie in pep.iontypes :
                 masses.append(str(pep.getMZfragment(ionserie, v, 1)))
-            print ", ".join(masses)
+            print(", ".join(masses))
             masses = []
             
-            #for property, value in vars(pep).iteritems() :
+            #for property, value in vars(pep).items() :
             #    print property , " : " , value
         
         

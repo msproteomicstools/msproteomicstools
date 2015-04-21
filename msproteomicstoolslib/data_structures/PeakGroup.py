@@ -116,6 +116,12 @@ class MinimalPeakGroup(PeakGroupBase):
       self.peptide = peptide
       self.intensity_ = intensity
       self.dscore_ = dscore
+
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        return self.id_ > other.id_
   
     ## Print
     def print_out(self):
@@ -163,6 +169,12 @@ class GuiPeakGroup(PeakGroupBase):
       self.rightWidth_ = rightWidth
       self.peptide = peptide
   
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        return self.id_ > other.id_
+
     def get_value(self, value):
         if value == "m_score":
             return self.fdr_score
@@ -188,6 +200,13 @@ class GeneralPeakGroup(PeakGroupBase):
       self.row = row
       self.run = run
       self.peptide = peptide
+
+    def __lt__(self, other):
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        # TODO what should we use to compare ? 
+        return self.get_dscore() > other.get_dscore()
 
     def get_value(self, value):
         return self.row[self.run.header_dict[value]]

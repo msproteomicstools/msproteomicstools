@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import re
 
 """
@@ -137,7 +138,7 @@ class Peptide:
             re.sub( 'T\*', 'T[181]', 
             re.sub( 'Y\*', 'Y[243]', 
                     sequence ))) #)))
-        else: raise ValueError, 'cannot set other format than bracket and SEQUEST'
+        else: raise ValueError('cannot set other format than bracket and SEQUEST')
 
     @property
     def sequence(self):
@@ -160,7 +161,7 @@ class Peptide:
             re.sub( '\[181\]', '*', 
             re.sub( '\[243\]', '*', 
                     self._sequence ))) )))
-        else: raise ValueError, 'format %s not supported' % format
+        else: raise ValueError('format %s not supported' % format)
 
     def has_phospho(self):
         tmp = self.get_modified_sequence( 'SEQUEST' )
@@ -376,13 +377,14 @@ def test_fragmentation():
 
     peptide.set_sequence('GAGHSPHHVNGADTALQK')
     peptide.create_fragmentation_pattern(R, bions=True, yions=False, aions=False)
-    print peptide.b_series
+    print (peptide.b_series)
     return 1
 
     peptide.set_sequence('GAGHSPHHVNGADTALQK')
     peptide.create_fragmentation_pattern(R, bions=True, yions=False, aions=True)
-    print peptide.allseries
+    print (peptide.allseries)
     ch = 2
     charged =  [ ( pred + (ch -1)*R.mass_H)/ch for pred in peptide.allseries]
-    print "==="
-    print charged
+    print ("===")
+    print (charged)
+

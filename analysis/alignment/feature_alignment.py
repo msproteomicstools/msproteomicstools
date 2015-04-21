@@ -185,36 +185,36 @@ class Experiment(MRExperiment):
         #
         ###########################################################################
         #
-        print "="*75
-        print "="*75
-        print "Total we have", len(self.runs), "runs with", alignment.nr_good_precursors, \
+        print("="*75)
+        print("="*75)
+        print("Total we have", len(self.runs), "runs with", alignment.nr_good_precursors, \
                 "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
-                "giving maximally nr peakgroups", max_pg
-        print "We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned
-        print "  The order of", alignment.nr_changed, "peakgroups was changed,", max_pg - alignment.nr_quantified, \
+                "giving maximally nr peakgroups", max_pg)
+        print("We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
+                alignment.nr_aligned)
+        print("  The order of", alignment.nr_changed, "peakgroups was changed,", max_pg - alignment.nr_quantified, \
                 "could not be aligned and %s were removed. Ambigous cases: %s, multiple suitable peakgroups: %s" % (
-                    alignment.nr_removed, self.nr_ambiguous, self.nr_multiple_align)
-        print "We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
-          alignment.nr_quant_precursors, alignment.nr_good_precursors, min_nrruns, nr_precursors_in_all, precursors_in_all_runs_wo_align)
-        print "We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
-          len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target)
-        print "We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
-          len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target)
-        print "  Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins)
+                    alignment.nr_removed, self.nr_ambiguous, self.nr_multiple_align))
+        print("We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
+          alignment.nr_quant_precursors, alignment.nr_good_precursors, min_nrruns, nr_precursors_in_all, precursors_in_all_runs_wo_align))
+        print("We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
+          len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target))
+        print("We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
+          len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target))
+        print("  Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins))
 
         # Get decoy estimates
         decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
         if len(precursors_in_all_runs) > 0:
-            print "Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
-                dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100)
+            print("Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
+                dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100))
 
-            print "Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
-                dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100)
+            print("Decoy percentage of peakgroups that are partially aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
+                dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100))
 
-            print "There were", decoy_precursors, "decoy precursors identified out of", \
+            print("There were", decoy_precursors, "decoy precursors identified out of", \
                     alignment.nr_quant_precursors + decoy_precursors, "precursors which is %0.4f %%" % (
-                        decoy_precursors *100.0 / (alignment.nr_quant_precursors + decoy_precursors))
+                        decoy_precursors *100.0 / (alignment.nr_quant_precursors + decoy_precursors)))
 
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
@@ -265,7 +265,7 @@ class Experiment(MRExperiment):
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
             id_writer = csv.writer(fh, delimiter="\t")
-            for pg in selected_pgs:
+            for pg in sorted(selected_pgs):
                 id_writer.writerow([pg.get_feature_id()])
             fh.close()
             del id_writer
@@ -331,13 +331,13 @@ class Experiment(MRExperiment):
                   filehandler = open(f)
 
               reader = csv.reader(filehandler, delimiter="\t")
-              header = reader.next()
+              header = next(reader)
               for i,n in enumerate(header):
                 header_dict[n] = i
 
               for row in reader:
                   f_id = row[ header_dict[name_of_id_col]]
-                  if selected_ids_dict.has_key(f_id):
+                  if f_id in selected_ids_dict:
                       # Check the "id" and "transition_group_id" field.
                       # Unfortunately the id can be non-unique, there we check both.
                       trgroup_id = selected_ids_dict[f_id].peptide.get_id()
@@ -385,7 +385,7 @@ class Experiment(MRExperiment):
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
-    print "Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100)
+    print("Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100))
 
     for aligned_fdr_cutoff in fdr_range:
         # Do the alignment and annotate chromatograms without identified features 
@@ -400,7 +400,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
         alignment = align_features(multipeptides, options.rt_diff_cutoff, options.fdr_cutoff, options.aligned_fdr_cutoff, options.method)
         est_fdr = this_exp.estimate_real_fdr(multipeptides, options.min_frac_selected).est_real_fdr
 
-        print "Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff
+        print("Estimated FDR: %0.4f %%" % (est_fdr * 100), "at position aligned fdr cutoff ", aligned_fdr_cutoff)
         if est_fdr > options.target_fdr:
             # Unselect the peptides again ...
             for m in multipeptides:
@@ -417,7 +417,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
     tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
-    print "Computed Tree:", tree
+    print("Computed Tree:", tree)
     
     # Get alignments
     tr_data = LightTransformationData()
@@ -452,11 +452,11 @@ def doParameterEstimation(options, this_exp, multipeptides):
     """
 
     start = time.time()
-    print "-"*35
-    print "Do Parameter estimation"
+    print("-"*35)
+    print("Do Parameter estimation")
     p = ParamEst(min_runs=options.nr_high_conf_exp,verbose=True)
     decoy_frac = p.compute_decoy_frac(multipeptides, options.target_fdr)
-    print "Found target decoy fraction overall %0.4f%%" % (decoy_frac*100)
+    print("Found target decoy fraction overall %0.4f%%" % (decoy_frac*100))
     try:
         fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
     except UnboundLocalError:
@@ -466,7 +466,7 @@ def doParameterEstimation(options, this_exp, multipeptides):
         # Re-read the multipeptides with the new cutoff (since the cutoff might
         # be higher than before, we might have to consider more peptides now).
         multipeptides = this_exp.get_all_multipeptides(fdr_cutoff_calculated, verbose=True)
-        print "Re-parse the files!"
+        print("Re-parse the files!")
         try:
             fdr_cutoff_calculated = p.find_iterate_fdr(multipeptides, decoy_frac)
         except UnboundLocalError:
@@ -484,10 +484,10 @@ def doParameterEstimation(options, this_exp, multipeptides):
             options.aligned_fdr_cutoff = 2*fdr_cutoff_calculated
 
     options.fdr_cutoff = fdr_cutoff_calculated
-    print "Using an m_score (q-value) cutoff of %0.7f%%" % (fdr_cutoff_calculated*100)
-    print "For the aligned values, use a cutoff of %0.7f%%" % (options.aligned_fdr_cutoff*100)
+    print("Using an m_score (q-value) cutoff of %0.7f%%" % (fdr_cutoff_calculated*100))
+    print("For the aligned values, use a cutoff of %0.7f%%" % (options.aligned_fdr_cutoff*100))
     print("Parameter estimation took %0.2fs" % (time.time() - start) )
-    print "-"*35
+    print("-"*35)
     return multipeptides
 
 def doReferenceAlignment(options, this_exp, multipeptides):
@@ -526,7 +526,7 @@ def doReferenceAlignment(options, this_exp, multipeptides):
                             "one of ('auto_2medianstdev', 'auto_3medianstdev', " + \
                             "'auto_4medianstdev', 'auto_maxstdev'). Found instead: '%s'" % options.rt_diff_cutoff)
 
-    print "Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff
+    print("Will calculate with aligned_fdr cutoff of", options.aligned_fdr_cutoff, "and an RT difference of", options.rt_diff_cutoff)
     start = time.time()
     AlignmentAlgorithm().align_features(multipeptides, 
                     options.rt_diff_cutoff, options.fdr_cutoff,
@@ -579,7 +579,7 @@ def handle_args():
 
     # deprecated
     if args.realign_runs or args.use_external_r:
-        print "WARNING, deprecated --realign_runs or --use_external_r used! Please use --realign_method instead"
+        print("WARNING, deprecated --realign_runs or --use_external_r used! Please use --realign_method instead")
         args.realign_method = "splineR_external"
 
     if args.min_frac_selected < 0.0 or args.min_frac_selected > 1.0:

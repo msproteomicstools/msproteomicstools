@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import unittest
 import subprocess as sub
 import os
+from nose.plugins.attrib import attr
 
 class TestDAMReader(unittest.TestCase):
 
@@ -56,7 +57,6 @@ class TestDAMReader(unittest.TestCase):
                     self.assertAlmostEqual(float(field1),float(field2) )
                 except ValueError:
                     self.assertEqual(field1,field2)
-
 
     def test_damReader(self):
         script = os.path.join(os.path.join(self.scriptdir, ""), "methodDamReader.py")

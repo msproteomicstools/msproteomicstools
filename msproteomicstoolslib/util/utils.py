@@ -34,7 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
-
+from __future__ import print_function
 
 """
 Doc :
@@ -69,7 +69,7 @@ class Lists:
         """Returns the elements of smallList not contained in bigList"""
         
         if len(bigList)<len(smallList):
-            print "bad lists provided!"
+            print("bad lists provided!")
             sys.exit()
             
         resultingList = list(smallList)
@@ -170,7 +170,7 @@ class db_table:
             row = self.c.fetchone()
             if row == None: break
             gr_name = row[ self.desc[ name ] ]
-            if resHash.has_key(gr_name): resHash[gr_name].append(row)
+            if gr_name in resHash: resHash[gr_name].append(row)
             else: resHash[gr_name] = [row]
         return resHash
 

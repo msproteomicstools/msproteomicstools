@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from sys import stdout
 import csv
 
@@ -118,7 +119,7 @@ class SWATHScoringReader:
       unique run id, we can directly use the previous alignment id.
       """
 
-      print "Parsing input files"
+      print("Parsing input files")
       from sys import stdout
       import csv
       skipped = 0; read = 0
@@ -134,7 +135,7 @@ class SWATHScoringReader:
         else:
             filehandler = open(f)
         reader = csv.reader(filehandler, delimiter="\t")
-        header = reader.next()
+        header = next(reader)
         for i,n in enumerate(header):
           header_dict[n] = i
         if verbosity >= 10:
@@ -142,7 +143,7 @@ class SWATHScoringReader:
             stdout.flush()
 
         # Check if runs are already aligned (only one input file and correct header)
-        already_aligned = (len(self.infiles) == 1 and header_dict.has_key(self.aligned_run_id_name))
+        already_aligned = (len(self.infiles) == 1 and self.aligned_run_id_name in header_dict)
 
         for this_row in reader:
             if already_aligned:
@@ -156,13 +157,13 @@ class SWATHScoringReader:
             if len(current_run) == 0:
                 orig_fname = None
                 aligned_fname = None
-                if header_dict.has_key("align_origfilename"):
+                if "align_origfilename" in header_dict:
                     aligned_fname = this_row[header_dict[ "align_origfilename"] ]
-                if header_dict.has_key("filename"):
+                if "filename" in header_dict:
                     orig_fname = this_row[header_dict[ "filename"] ]
                 current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname)
                 runs.append(current_run)
-                print current_run, "maps to ", orig_fname
+                print(current_run, "maps to ", orig_fname)
             else: 
                 assert len(current_run) == 1
                 current_run = current_run[0]
@@ -173,13 +174,13 @@ class SWATHScoringReader:
 
             read += 1
             # Unfortunately, since we are using csv, tell() will not work...
-            # print "parse row at", filehandler.tell()
+            # print("parse row at", filehandler.tell())
             self.parse_row(current_run, this_row, read_exp_RT)
 
       # Here we check that each run indeed has a unique id
       assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
       if verbosity >= 10: stdout.write("\r\r\n") # clean up
-      print "Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped)
+      print("Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped))
       return runs
 
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
@@ -262,7 +263,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
         # Optional attributes
         intensity = -1
-        if run.header_dict.has_key(intensity_name):
+        if intensity_name in run.header_dict:
             intensity = float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
@@ -346,7 +347,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
         fdr_score = float(this_row[run.header_dict[fdr_score_name]])
         unique_peakgroup_id = this_row[run.header_dict[unique_peakgroup_id_name]]
         intensity = -1
-        if run.header_dict.has_key(intensity_name):
+        if intensity_name in run.header_dict:
             intensity = float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
@@ -449,11 +450,11 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
           p.sequence = sequence
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
-          if verb: print "add peptide", trgr_id
+          if verb: print("add peptide", trgr_id)
 
         # Only minimal reading is implemented
         if self.readmethod == "minimal":
-          if verb: print "append tuple", peakgroup_tuple
+          if verb: print("append tuple", peakgroup_tuple)
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
@@ -547,7 +548,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
 
         # Optional attributes
         intensity = -1
-        if run.header_dict.has_key(intensity_name):
+        if intensity_name in run.header_dict:
             intensity = float(this_row[run.header_dict[intensity_name]])
         if "Decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
@@ -632,10 +633,10 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
     try:
         import pyopenms
     except ImportError as e:
-        print "\nError!"
-        print "Could not import pyOpenMS while trying to load a TraML file - please make sure pyOpenMS is installed."
-        print "pyOpenMS is available from https://pypi.python.org/pypi/pyopenms"
-        print 
+        print("\nError!")
+        print("Could not import pyOpenMS while trying to load a TraML file - please make sure pyOpenMS is installed.")
+        print("pyOpenMS is available from https://pypi.python.org/pypi/pyopenms")
+        print()
         raise e
 
     assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
@@ -702,19 +703,19 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
         else:
             filehandler = open(f)
         reader = csv.reader(filehandler, delimiter="\t")
-        header = reader.next()
+        header = next(reader)
         for i,n in enumerate(header):
             header_dict[n] = i
-        if not header_dict.has_key("align_origfilename") or not header_dict.has_key("align_runid"):
-            print header_dict
+        if not "align_origfilename" in header_dict or not "align_runid" in header_dict:
+            print (header_dict)
             raise Exception("need column header align_origfilename and align_runid")
 
         for this_row in reader:
 
             # Get the mapping ... 
-            if header_dict.has_key("FullPeptideName") and \
-              header_dict.has_key("Charge") and \
-              header_dict.has_key("aggr_Fragment_Annotation"):
+            if "FullPeptideName" in header_dict and \
+              "Charge" in header_dict and \
+              "aggr_Fragment_Annotation" in header_dict:
                 transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
                 if len(transitions[-1]) == 0:
                     transitions = transitions[:-1]
@@ -764,16 +765,16 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
                     if verbose: 
-                        print "- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ])
+                        print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
                     mapping[aligned_id] = [rfile]
 
             if not aligned_id in mapping:
                 if verbose or throwOnMismatch:
-                    print "- No match found for :", aligned_fname, "in any of", \
-                            [os.path.basename(rfile) for rfile in rawdata_files]
-                    print "- This is generally a very bad sign and you might have " +\
+                    print("- No match found for :", aligned_fname, "in any of", \
+                            [os.path.basename(rfile) for rfile in rawdata_files])
+                    print("- This is generally a very bad sign and you might have " +\
                             "to either rename your files to have matching filenames " +\
-                            "or provide an input yaml file describing the matching in detail"
+                            "or provide an input yaml file describing the matching in detail")
                 if throwOnMismatch:
                     raise Exception("Mismatch, alignemnt filename could not be matched to input chromatogram")
 

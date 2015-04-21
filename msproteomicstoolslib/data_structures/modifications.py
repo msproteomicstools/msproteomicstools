@@ -35,11 +35,15 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
-
-#from elements       import Elements
-from elements       import Formulas        
-from aminoacides    import Aminoacides
-from peptide        import Peptide
+from __future__ import print_function
+try:
+    from elements       import Formulas        
+    from aminoacides    import Aminoacides
+    from peptide        import Peptide
+except ImportError:
+    from .elements       import Formulas        
+    from .aminoacides    import Aminoacides
+    from .peptide        import Peptide
 
 import csv
 import ast
@@ -74,7 +78,7 @@ class Modifications:
     def printModifications(self) :
         
         for mymod in self.list:
-            print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
+            print(["%s : %s" % (prop,val) for prop,val in vars(mymod).items() ])
         
     def readModificationsFile(self, modificationsfile):
         '''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications 
@@ -113,7 +117,7 @@ class Modifications:
         
         if code not in Modification.codes : 
             #Throw an Exception
-            print "The following nomenclature (code) is not recognized : ", code
+            print("The following nomenclature (code) is not recognized : ", code)
             sys.exit(5)
         
         aminoacides_with_mods = []
@@ -141,9 +145,9 @@ class Modifications:
                         modification_found = True
                 if not modification_found :
                     #Throw an Exception
-                    print "This modification has not been recognized : " , aa
-                    print "Found in the following sequence : " , sequence
-                    print "The code used to interpret it was : " , code
+                    print("This modification has not been recognized : " , aa)
+                    print("Found in the following sequence : " , sequence)
+                    print("The code used to interpret it was : " , code)
                     sys.exit(4) 
         
         for i, mod in enumerate(terminal_mods) :
@@ -155,9 +159,9 @@ class Modifications:
                     if modif.is_Cterminal : mods_peptide[len(sequence_no_mods)+1] = modif
             if not modification_found :
                 #Throw an Exception
-                print "This modification has not been recognized : " , aa
-                print "Found in the following sequence : " , sequence
-                print "The code used to interpret it was : " , code
+                print("This modification has not been recognized : " , aa)
+                print("Found in the following sequence : " , sequence)
+                print("The code used to interpret it was : " , code)
                 sys.exit(4) 
         
         return Peptide(sequence_no_mods, mods_peptide, aminoacidLib = aaLib)
@@ -188,8 +192,8 @@ class Modification:
 
     def getcode(self, code):
         if code not in Modification.codes :
-            print "Can't process the requested modification code : " , code
-            print "Available codes are: " , Modification.codes
+            print("Can't process the requested modification code : " , code)
+            print("Available codes are: " , Modification.codes)
             sys.exit(5)
         
         if code == 'TPP' :             return self.TPP_Mod
@@ -197,7 +201,7 @@ class Modification:
         if code == 'ProteinPilot' :    return "%s%s" % (self.aminoacid, self.peakviewAccession)
         
 
-def test(args):
+def test(args = []):
     mods = Modifications()
 
     if len(args) > 0 :
@@ -205,20 +209,19 @@ def test(args):
             mods.readModificationsFile(arg)
 
     for mymod in mods.list:
-        print ["%s : %s" % (prop,val) for prop,val in vars(mymod).iteritems() ]
+        print(["%s : %s" % (prop,val) for prop,val in vars(mymod).items() ])
 
         
     #Translate some peptide sequences
-    from peptide import Peptide
     sequences =['PEPTIMEK' , 'PEPTIM[147]EK', 'n[43]PEPTIMEK']
     peptides = []
     for sequence in sequences :
         peptide = mods.translateModificationsFromSequence(sequence, "TPP")
-        print "peptide sequence : " , peptide.sequence
-        print "peptide modifications :" 
-        for mod in peptide.modifications.itervalues() :
-            print mod.id , mod.deltamass
-        print "peptide mass : " , peptide.mass
+        print("peptide sequence : " , peptide.sequence)
+        print("peptide modifications :" )
+        for mod in peptide.modifications.values() :
+            print(mod.id , mod.deltamass)
+        print("peptide mass : " , peptide.mass)
 
         
 

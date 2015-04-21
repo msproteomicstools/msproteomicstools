@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
 class PrecursorBase(object):
@@ -118,7 +119,10 @@ class GeneralPrecursor(PrecursorBase):
         best_score = self.peakgroups[0].get_fdr_score()
         result = self.peakgroups[0]
         for peakgroup in self.peakgroups:
-            if peakgroup.get_fdr_score() <= best_score:
+            # TODO this is not well done !!! 
+            if best_score is None or \
+               peakgroup.get_fdr_score() is None or \
+            peakgroup.get_fdr_score() <= best_score:
                 # print "better: ", peakgroup.get_fdr_score(),  best_score
                 best_score = peakgroup.get_fdr_score()
                 result = peakgroup
@@ -250,7 +254,7 @@ class Precursor(PrecursorBase):
     def _fixSelectedPGError(self, fixMethod="Exception"):
       selected = [i for i,pg in enumerate(self.cluster_ids_) if pg == 1]
       if len(selected) > 1:
-          print "Potential error detected in %s:\nWe have more than one selected peakgroup found. Starting error handling by using method '%s'." % (self, fixMethod)
+          print("Potential error detected in %s:\nWe have more than one selected peakgroup found. Starting error handling by using method '%s'." % (self, fixMethod))
           best_score = self.peakgroups_[0][1]
           best_pg = 0
           for s in selected:

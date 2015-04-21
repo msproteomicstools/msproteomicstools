@@ -34,6 +34,8 @@ $Maintainer: Lorenz Blum$
 $Authors: Pedro Navarro, Lorenz Blum$
 --------------------------------------------------------------------------
 """
+
+from __future__ import print_function
 import shutil
 import sys
 import getopt
@@ -46,14 +48,14 @@ def pseudoreverse(seq, cleavage_rule):
 
 
 def usage():
-    print """Usage: python pseudoreverseDB [options]
+    print("""Usage: python pseudoreverseDB [options]
 Options:
 -i   input.fasta input fasta file
 -o   output.fasta output file with decoys
 [-t] tag for decoys (optional, default 'DECOY_')
 [-c] cleavage rule (optional, default '[KR](?!P)' =trypsin)
 Creates pseudo-reversed decoys (peptide level reversion). If no cleavage site is found protein is simply reversed.
-See http://dx.doi.org/10.1038/nmeth1019 Figure 6"""
+See http://dx.doi.org/10.1038/nmeth1019 Figure 6""")
     sys.exit(1)
 
 

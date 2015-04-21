@@ -224,14 +224,14 @@ class Peak:
         if len(peak_annotations) > 1 : self.multiple_interpretation    = True
     
         #So far, we pick only the first interpretation
-        first_interp = peak_annotations[0]
+        first_interp = str(peak_annotations[0])
         
         #is_not_unique
         if '[' in first_interp :
             self.is_not_unique = True
             first_interp = filter(lambda x: x not in ['[',']'], first_interp)
             
-        if first_interp[0] == 'I' :
+        if str(first_interp)[0] == 'I':
             self.is_immonium = True
             self.immonium_aa = first_interp[1]
             self.frg_serie   = 'immonium'
@@ -240,16 +240,16 @@ class Peak:
     
         
         #frg_serie
-        self.frg_serie = first_interp[0]
+        self.frg_serie = str(first_interp)[0]
         
         #is_precursor
         if self.frg_serie == 'p' : self.is_precursor = True
         
         #frg_nr (it works until 99, enough!)
-        if first_interp[1].isdigit() : 
-            if first_interp[2].isdigit()    : 
-                self.frg_nr = int(first_interp[1:3])
-            else                            : self.frg_nr = int(first_interp[1])
+        if str(first_interp)[1].isdigit() : 
+            if str(first_interp)[2].isdigit()    : 
+                self.frg_nr = int(str(first_interp)[1:3])
+            else                            : self.frg_nr = int(str(first_interp)[1])
         
         #frg_is_isotope
         if 'i' in first_interp : self.frg_is_isotope = True

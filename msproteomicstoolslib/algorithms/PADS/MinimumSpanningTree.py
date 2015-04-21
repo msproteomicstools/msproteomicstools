@@ -5,7 +5,11 @@ Kruskal's algorithm for minimum spanning trees. D. Eppstein, April 2006.
 http://www.ics.uci.edu/~eppstein/PADS/.git/ (Public Domain)
 """
 
-from UnionFind import UnionFind
+try:
+    from UnionFind import UnionFind
+except ImportError:
+    # Python 3
+    from .UnionFind import UnionFind
 
 def MinimumSpanningTree(G):
     """
