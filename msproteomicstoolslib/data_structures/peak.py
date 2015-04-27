@@ -229,7 +229,7 @@ class Peak:
         #is_not_unique
         if '[' in first_interp :
             self.is_not_unique = True
-            first_interp = filter(lambda x: x not in ['[',']'], first_interp)
+            first_interp = first_interp.strip("[]")
             
         if str(first_interp)[0] == 'I':
             self.is_immonium = True
