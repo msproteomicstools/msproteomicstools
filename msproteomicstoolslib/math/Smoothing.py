@@ -676,7 +676,7 @@ class LocalKernel:
 
             # This lower bound will actually get the element that is just larger
             # than the search parameter
-            lb = abs(lower_bound( data1, xhat))-1
+            lb = abs(numpy.searchsorted(data1, xhat)) - 1
             if lb - topN < 0:
                 lb = topN
             if lb >= len(data1):
