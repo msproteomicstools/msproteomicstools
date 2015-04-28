@@ -42,7 +42,6 @@ import csv
 import math
 import random
 from numpy import median, absolute
-from msproteomicstoolslib.algorithms.shared.bounds import lower_bound, upper_bound
 
 def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
   if use_linear: 
