@@ -177,7 +177,7 @@ class SmoothingRExtern:
         fname = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_pred = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_out = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
-        Rscript = TMPDIR + "/tmp.R"
+        Rscript = TMPDIR + "/tmp"+int(random.random() * 100000)+".R"
 
         # Input file with datapoints
         fh = open(fname, "w")
@@ -203,7 +203,7 @@ class SmoothingRExtern:
         df = read.csv(infile,header=TRUE, sep="\t")
         predict_on = read.csv(predictionfile,header=TRUE, sep="\t")
         sm = smooth.spline(df$data1,df$data2,cv=T)
-        prediction = predict(sm,predict_on[,1])$y 
+        prediction = predict(sm,predict_on[,1])$y
         write.table(data.frame(predict_on, prediction), outfile, sep="\t", row.names=FALSE)
         """)
         fh.close()
