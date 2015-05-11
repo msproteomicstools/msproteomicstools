@@ -177,7 +177,7 @@ class SmoothingRExtern:
         fname = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_pred = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
         fname_out = TMPDIR + "/datafile_feature_align_%s" % int(random.random() * 100000)
-        Rscript = TMPDIR + "/tmp"+int(random.random() * 100000)+".R"
+        Rscript = TMPDIR + "/tmp"+str(int(random.random() * 100000))+".R"
 
         # Input file with datapoints
         fh = open(fname, "w")
