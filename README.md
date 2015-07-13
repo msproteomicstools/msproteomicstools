@@ -16,7 +16,7 @@ TAPIR is a software that allows visualization of targeted proteomics data. See
 [the TAPIR install instructions](INSTALL-TAPIR) for further information on
 installation.
 
-Please also see the [project homepage](http://proteomics.ethz.ch/tapir/ TAPIR)
+Please also see the [project homepage](http://proteomics.ethz.ch/tapir/)
 for further information.  Binaries are available for Windows and Mac OS X. For
 a source installation of the package, see below.
 
