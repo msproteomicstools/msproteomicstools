@@ -1,0 +1,6 @@
+# Labeling file, contains AA and mass shift as well as an option third column
+# specifying the name of the label such that it can be added to the appropriate
+# AA in the peptide sequence.
+K	8.014199	13C(6) 15N(2) Silac label
+R	10.008269	13C(6) 15N(4) Silac label
+
