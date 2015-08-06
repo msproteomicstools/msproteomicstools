@@ -663,12 +663,14 @@ class LocalKernel:
         if self.removeOutliers:
             pass
 
-    def _getLocalDatapoints(self, data1, data2, topN, max_diff, xhat):
+    def _getLocalDatapoints(self, data1, data2, topN_, max_diff, xhat):
             """ Return all datapoints that are within max_diff of xhat
 
             If there are less than 2 * topN datapoints within max_diff of xhat,
             returns the 2 * topN datpoints around xhat.
             """
+
+            topN = int(topN_) # ensure that topN is integer
 
             if len(data1) < 2*topN:
                 return data1, data2
@@ -706,7 +708,9 @@ class LocalKernel:
 
             # Check if we have enough datapoints
             if len(source_d) < 2*topN:
-                return data1[lb-topN:lb+topN], data2[lb-topN:lb+topN]
+                lower = lb-topN if lb-topN >= 0 else 0
+                upper = lb+topN if lb+topN < len(data1) else len(data1)
+                return data1[lower:upper], data2[lower:upper]
             else:
                 return source_d, target_d
 
