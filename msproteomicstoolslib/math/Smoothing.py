@@ -718,13 +718,32 @@ class WeightedNearestNeighbour(LocalKernel):
     """Class for weighted interpolation using local linear differences
     """
 
-    def __init__(self, topN, max_diff, min_diff, removeOutliers):
+    def __init__(self, topN, max_diff, min_diff, removeOutliers, exponent=1.0):
+        """ Initialize WNN
+
+        Each neighboring point is given a weight equal to 
+
+                   1
+        --------------------------
+          abs( distance ) ** exp 
+
+
+        up to a minimal distance min_diff after which the weight cannot increase any more.
+
+        Args:
+            topN(integer): how many datapoints should be included for nearest neighbor
+            max_diff(float): maximal difference in x to be included for nearest neighbor
+            min_diff(float): minimal difference in x to still give proportional weight
+            removeOutliers(bool): no effect
+            exponent(float): exponent to be used
+        """
         assert topN is not None 
 
         self.topN = topN
         self.max_diff = max_diff
         self.min_diff = min_diff
         self.removeOutliers = removeOutliers
+        self.EXP = exponent
 
     def predict(self, xhat):
 
@@ -741,7 +760,7 @@ class WeightedNearestNeighbour(LocalKernel):
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
             # EXP = 0.65 # produces slightly better results
-            EXP = 1.0
+            EXP = self.EXP
             expected_targ = numpy.average(target_data_transf, weights=
                                           [ 1/(abs(s)**EXP) if abs(s) > self.min_diff else 1/(abs(self.min_diff)**EXP) for s in source_d_diff])
 
