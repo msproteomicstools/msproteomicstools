@@ -168,7 +168,6 @@ class TestUnitSmoothing(unittest.TestCase):
         for a,b in zip(expected,r):
             self.assertTrue( abs(1.0-a/b) < 0.1)
 
-    @attr("python2")
     def test_smooth_nn(self):
         """Test the univariate spline using local kernel smoothing"""
 
