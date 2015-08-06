@@ -170,23 +170,33 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_smooth_nn(self):
         """Test the univariate spline using local kernel smoothing"""
+        sm = smoothing.WeightedNearestNeighbour(2, 5, 0.5, False)
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict( [ 5 ] )
+        self.assertAlmostEqual(r[0], 4.85378590078)
+
+        r = sm.predict( [ 15 ] )
+        self.assertAlmostEqual(r[0], 14.472485768500951)
+
         sm = smoothing.WeightedNearestNeighbour(3, 5, 0.5, False)
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data1)
         self.assertEqual(len(r), 8)
 
         # This is slightly better than the NoCV variation
-        expected = [5.2723735408560302, 7.5434782608695654, 8.6875, 9.5625, 10.75, 15.6, 7.6671586996151504, 6.2922201138519931]
+        expected = [4.85378590078329, 7.3181818181818183, 8.6853448275862046, 10.054730258014073, 11.044451654769629, 14.497816294331514, 7.4375518352136076, 6.2364096080910238]
+
         for a,b in zip(expected,r):
             self.assertAlmostEqual(a, b)
 
+        # Try with smaller mindiff => more weight on close neighbors
         sm = smoothing.WeightedNearestNeighbour(3, 5, 0.1, False)
         sm.initialize(self.data1, self.data2)
         r = sm.predict(self.data1)
         self.assertEqual(len(r), 8)
 
         # This is slightly better than the NoCV variation
-        expected = [5.4637421665174575, 8.0223880597014929, 9.2750000000000004, 9.78125, 10.750000000000002, 15.6, 8.1320351120742185, 6.4280968201233994]
+        expected = [4.3099526066350711, 7.0999999999999996, 8.8596153846153847, 10.610377054463424, 11.015838150289017, 14.1233812970026, 7.2064265084789056, 6.3871142393069835]
         for a,b in zip(expected,r):
             self.assertAlmostEqual(a, b)
 
