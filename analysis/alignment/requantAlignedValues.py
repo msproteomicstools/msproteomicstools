@@ -669,6 +669,20 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     integrated_sum = 0
     chrom_ids = template_pg.get_value("aggr_Fragment_Annotation").split(";")
     peak_areas = []
+
+    # Sanity check: there should be the same number of fragment ion /
+    #               chromatogram ids as there are peak areas. If this fails
+    #               then the data is inconsistent and it is likely something
+    #               went wrong, for example the fragment ids may have ";" in
+    #               them.
+    try:
+        old_peak_areas = template_pg.get_value("aggr_Peak_Area").split(";")
+        if len(old_peak_areas) != len(chrom_ids):
+            print "WARNING: something is wrong, got %s fragment ids but %s fragment peak areas" % (len(chrom_ids), len(old_peak_areas))
+    except:
+        # Caught the exception
+        pass
+
     for chrom_id in chrom_ids:
         chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         # Check if we got a chromatogram with at least 1 peak: 
