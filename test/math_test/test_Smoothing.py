@@ -170,6 +170,8 @@ class TestUnitSmoothing(unittest.TestCase):
 
     def test_smooth_nn(self):
         """Test the univariate spline using local kernel smoothing"""
+
+        # Test with regular parameters
         sm = smoothing.WeightedNearestNeighbour(2, 5, 0.5, False)
         sm.initialize(self.data1, self.data2)
         r = sm.predict( [ 5 ] )
@@ -177,6 +179,15 @@ class TestUnitSmoothing(unittest.TestCase):
 
         r = sm.predict( [ 15 ] )
         self.assertAlmostEqual(r[0], 14.472485768500951)
+
+        # Test with exponent
+        sm = smoothing.WeightedNearestNeighbour(2, 5, 0.5, False, exponent=2.0)
+        sm.initialize(self.data1, self.data2)
+        r = sm.predict( [ 5 ] )
+        self.assertAlmostEqual(r[0], 4.4223582231809182)
+
+        r = sm.predict( [ 15 ] )
+        self.assertAlmostEqual(r[0], 14.04993649085635)
 
         sm = smoothing.WeightedNearestNeighbour(3, 5, 0.5, False)
         sm.initialize(self.data1, self.data2)
