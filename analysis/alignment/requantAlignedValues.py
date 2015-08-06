@@ -678,7 +678,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     try:
         old_peak_areas = template_pg.get_value("aggr_Peak_Area").split(";")
         if len(old_peak_areas) != len(chrom_ids):
-            print "WARNING: something is wrong, got %s fragment ids but %s fragment peak areas" % (len(chrom_ids), len(old_peak_areas))
+            print("WARNING: something is wrong, got %s fragment ids but %s fragment peak areas" % (len(chrom_ids), len(old_peak_areas)))
     except:
         # Caught the exception
         pass
