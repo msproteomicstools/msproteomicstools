@@ -739,7 +739,7 @@ class WeightedNearestNeighbour(LocalKernel):
             # EXP = 0.65 # produces slightly better results
             EXP = 1.0
             expected_targ = numpy.average(target_data_transf, weights=
-                                          [ 1/(abs(s)**EXP) if s > self.min_diff else 1/(abs(self.min_diff)**EXP) for s in source_d_diff])
+                                          [ 1/(abs(s)**EXP) if abs(s) > self.min_diff else 1/(abs(self.min_diff)**EXP) for s in source_d_diff])
 
             # Compute a measurement of dispersion, standard deviation
             self.last_dispersion = numpy.std(target_data_transf)
