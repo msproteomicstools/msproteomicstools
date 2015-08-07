@@ -663,12 +663,14 @@ class LocalKernel:
         if self.removeOutliers:
             pass
 
-    def _getLocalDatapoints(self, data1, data2, topN, max_diff, xhat):
+    def _getLocalDatapoints(self, data1, data2, topN_, max_diff, xhat):
             """ Return all datapoints that are within max_diff of xhat
 
             If there are less than 2 * topN datapoints within max_diff of xhat,
             returns the 2 * topN datpoints around xhat.
             """
+
+            topN = int(topN_) # ensure that topN is integer
 
             if len(data1) < 2*topN:
                 return data1, data2
@@ -706,40 +708,63 @@ class LocalKernel:
 
             # Check if we have enough datapoints
             if len(source_d) < 2*topN:
-                return data1[lb-topN:lb+topN], data2[lb-topN:lb+topN]
+                lower = lb-topN if lb-topN >= 0 else 0
+                upper = lb+topN if lb+topN < len(data1) else len(data1)
+                return numpy.asarray(data1[lower:upper]), numpy.asarray(data2[lower:upper])
             else:
-                return source_d, target_d
+                return numpy.asarray(source_d), numpy.asarray(target_d)
 
 class WeightedNearestNeighbour(LocalKernel):
     """Class for weighted interpolation using local linear differences
     """
 
-    def __init__(self, topN, max_diff, min_diff, removeOutliers):
+    def __init__(self, topN, max_diff, min_diff, removeOutliers, exponent=1.0):
+        """ Initialize WNN
+
+        Each neighboring point is given a weight equal to 
+
+                   1
+        --------------------------
+          abs( distance ) ** exp 
+
+
+        up to a minimal distance min_diff after which the weight cannot increase any more.
+
+        Args:
+            topN(integer): how many datapoints should be included for nearest neighbor
+            max_diff(float): maximal difference in x to be included for nearest neighbor
+            min_diff(float): minimal difference in x to still give proportional weight
+            removeOutliers(bool): no effect
+            exponent(float): exponent to be used
+        """
         assert topN is not None 
 
         self.topN = topN
         self.max_diff = max_diff
         self.min_diff = min_diff
         self.removeOutliers = removeOutliers
+        self.EXP = exponent
 
     def predict(self, xhat):
 
         res = []
         for xhat_ in xhat:
 
-            source_d, target_d = self._getLocalDatapoints(self.data1, self.data2, self.topN, self.max_diff, xhat_)
+            source_d, target_d = self._getLocalDatapoints(
+                self.data1, self.data2, self.topN, self.max_diff, xhat_)
 
             # Transform target data:
             #   Compute a difference array from the source and apply it to the target
             #   (local linear differences)
-            source_d_diff = [s - xhat_ for s in source_d]
-            target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
+            source_d_diff = source_d - xhat_
+            target_data_transf = target_d - source_d_diff
 
             # Use transformed target data to compute expected RT in target domain (weighted average)
             # EXP = 0.65 # produces slightly better results
-            EXP = 1.0
-            expected_targ = numpy.average(target_data_transf, weights=[ 1/abs(s) if s > self.min_diff else self.min_diff for s in source_d_diff])
-            expected_targ = numpy.average(target_data_transf, weights=[ 1/(abs(s)**EXP) if s > self.min_diff else self.min_diff for s in source_d_diff])
+            EXP = self.EXP
+            weights = numpy.clip( numpy.abs(source_d_diff), self.min_diff, numpy.inf)
+            weights = 1. / weights**EXP
+            expected_targ = numpy.average(target_data_transf, weights=weights)
 
             # Compute a measurement of dispersion, standard deviation
             self.last_dispersion = numpy.std(target_data_transf)
