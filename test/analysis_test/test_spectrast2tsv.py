@@ -54,7 +54,6 @@ class TestSpectrast2TSV(unittest.TestCase):
         for l1,l2 in zip(f1,f2):
             self.assertEqual(l1,l2, "Different files %s %s\n Offending \n%s \n!= \n%s" %(name1,name2,l1,l2) )
 
-    @attr("python2")
     def test_spectrast2tsv_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "spectral_libs"), "spectrast2tsv.py")
         filename = os.path.join(self.datadir, "testlib.sptxt")
@@ -70,7 +69,6 @@ class TestSpectrast2TSV(unittest.TestCase):
 
         os.remove(tmpfilename)
 
-    @attr("python2")
     def test_spectrast2tsv_openswath_heavy_light(self):
         script = os.path.join(os.path.join(self.scriptdir, "spectral_libs"), "spectrast2tsv.py")
         filename = os.path.join(self.datadir, "testlib.sptxt")

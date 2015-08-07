@@ -20,5 +20,5 @@ install:
   - travis_retry python setup.py develop
 script: 
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then nosetests -a '!python2' test; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then nosetests -w test/; fi
 cache: pip
