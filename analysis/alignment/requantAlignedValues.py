@@ -474,6 +474,12 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 continue
 
             for rid in [r.get_id() for r in new_exp.runs]:
+
+                # Skip if we should not extract from this run
+                if not onlyExtractFromRun is None:
+                    if onlyExtractFromRun != rid:
+                        continue
+
                 if m.hasPrecursorGroup(rid):
                     prgr = m.getPrecursorGroup(rid)
                     pgs = [(pg_.get_fdr_score(), pg_) for prec_ in prgr for pg_ in prec_.peakgroups if pg_.get_cluster_id() == cl] 
