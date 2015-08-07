@@ -716,19 +716,23 @@ class LocalKernel:
 
 class WeightedNearestNeighbour(LocalKernel):
     """Class for weighted interpolation using local linear differences
+
+    This function uses the weighted mean of the k nearest neighbors to
+    calculate the transformation.  This method may be affected by single
+    outlier close to the transformation point.
+
+    Each neighboring point is given a weight equal to 
+
+               1
+    --------------------------
+      abs( distance ) ** exp 
+
+
+    up to a minimal distance min_diff after which the weight cannot increase any more.
     """
 
     def __init__(self, topN, max_diff, min_diff, removeOutliers, exponent=1.0):
         """ Initialize WNN
-
-        Each neighboring point is given a weight equal to 
-
-                   1
-        --------------------------
-          abs( distance ) ** exp 
-
-
-        up to a minimal distance min_diff after which the weight cannot increase any more.
 
         Args:
             topN(integer): how many datapoints should be included for nearest neighbor
@@ -775,6 +779,12 @@ class WeightedNearestNeighbour(LocalKernel):
 
 class SmoothLLDMedian(LocalKernel):
     """Class for local median interpolation using local linear differences
+
+    This function uses the median of the k nearest neighbors to calculate the
+    transformation.  This is robust, unweighted method as a single outlier will
+    not substantially affect the result.
+
+    This method assumes that the data is locally smooth and linear
     """
 
     def __init__(self, topN, max_diff, min_diff, removeOutliers):
@@ -805,7 +815,7 @@ class SmoothLLDMedian(LocalKernel):
             source_d_diff = [s - xhat_ for s in source_d]
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
 
-            # Use transformed target data to compute expected RT in target domain (weighted average)
+            # Use transformed target data to compute expected RT in target domain (median)
             expected_targ = numpy.median(target_data_transf)
 
             # Compute a (robust) measurement of dispersion, median absolute deviation (MAD)
