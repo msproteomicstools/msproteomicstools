@@ -52,12 +52,17 @@ class TestNoiseIntegration(unittest.TestCase):
         """ Check whether two (csv/tsv) files are almost equal, allowing for numerical inaccuracies only."""
         f1 = open(name1, "r")
         f2 = open(name2, "r")
-        for l1,l2 in zip(f1,f2):
-            for field1,field2 in zip(l1.split(),l2.split()):
-                try:
-                    self.assertAlmostEqual(float(field1),float(field2) )
-                except ValueError:
-                    self.assertEqual(field1,field2)
+        try:
+            for l1,l2 in zip(f1,f2):
+                for field1,field2 in zip(l1.split(),l2.split()):
+                    try:
+                        self.assertAlmostEqual(float(field1),float(field2) )
+                    except ValueError:
+                        self.assertEqual(field1,field2)
+        except AssertionError as e:
+            print("Found non-identical files, for investigation please use:")
+            print("  diff %s %s" % (name1, name2))
+            raise e
 
     @attr('slow')
     def test_1_requantAlignedValues(self):

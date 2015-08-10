@@ -74,7 +74,7 @@ do
 	echo
 done | parallel --halt 2 -j $threads
 
-awk "NR==1 || FNR!=1" $uniqtmpdir/* $peakgroups_infile > $out
+awk "NR==1 || FNR!=1" $uniqtmpdir/* > $out
 rm -r $uniqtmpdir
 
 if [ ! -z "$out_matrix" ]; then
