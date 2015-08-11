@@ -22,7 +22,7 @@ for line in csvf:
     fas = line["aggr_Fragment_Annotation"].split(";")
     pas = line["aggr_Peak_Area"].split(";")
     for fa, pa in zip(fas, pas):
-        out.write("%s,%s,%s,%s,NA,light,%s,%s,%s,%s\n" % (line["ProteinName"], line["FullPeptideName"], line["Charge"], fa, pa, line["Condition"], line["BioReplicate"], name))
+        out.write("%s,%s,%s,%s,NA,light,%s,%s,%s,%s\n" % (line["ProteinName"], line["FullPeptideName"], line["Charge"], fa, pa, line.get("Condition",""), line.get("BioReplicate",""), name))
 
 f.close()
 out.close()
