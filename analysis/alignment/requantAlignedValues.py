@@ -475,6 +475,12 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 continue
 
             for rid in [r.get_id() for r in new_exp.runs]:
+
+                # Skip if we should not extract from this run
+                if not onlyExtractFromRun is None:
+                    if onlyExtractFromRun != rid:
+                        continue
+
                 if m.hasPrecursorGroup(rid):
                     prgr = m.getPrecursorGroup(rid)
                     pgs = [(pg_.get_fdr_score(), pg_) for prec_ in prgr for pg_ in prec_.peakgroups if pg_.get_cluster_id() == cl] 
@@ -715,6 +721,10 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
 def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
     """ Write the result to disk 
+
+    This writes all peakgroups to disk (newly imputed ones as previously found
+    ones) as even some "previously good" peakgroups may have changed location
+    due to isotopic_transfer.
     """
     # write out the complete original files 
     writer = csv.writer(open(outfile, "w"), delimiter="\t")
@@ -729,14 +739,11 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
         for p in m.getAllPeptides():
             for selected_pg in sorted(p.peakgroups):
-                if single_outfile:
-                    # Only write the newly imputed ones ... 
-                    if float(selected_pg.get_value("m_score")) > 1.0:
-                        row_to_write = selected_pg.row
-                        writer.writerow(row_to_write)
-                else:
-                    row_to_write = selected_pg.row
-                    writer.writerow(row_to_write)
+                # if float(selected_pg.get_value("m_score")) > 1.0:
+                #     row_to_write = selected_pg.row
+                #     writer.writerow(row_to_write)
+                row_to_write = selected_pg.row
+                writer.writerow(row_to_write)
 
     if len(matrix_outfile) > 0:
         helper.write_out_matrix_file(matrix_outfile, new_exp.runs, multipeptides, 0.0, style=options.matrix_output_method)
