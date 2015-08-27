@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import unittest
 import os
 
@@ -62,6 +63,19 @@ class TestUnitPeptide(unittest.TestCase):
         self.isoform4_4  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 14 : self.phospho })
         self.notisoform4 = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 14 : self.phospho })
         
+    def assertAlmostIn(self, tpl, other, msg, epsilon=1e-10):
+        """
+        Check whether the given tpl is in the list of tuples "other"
+        """
+        any_tuple_equal = False
+        for other_tpl in other:
+            tuple_equal = True
+            for a,b in zip(sorted(tpl), sorted(other_tpl)):
+                if abs(a-b) > epsilon:
+                    tuple_equal = False
+            any_tuple_equal = any_tuple_equal | tuple_equal
+        self.assertTrue(any_tuple_equal, msg)
+
     def test_create_peptide(self):
         p = peptide.Peptide('PEPTIDE')
 
@@ -142,13 +156,14 @@ class TestUnitPeptide(unittest.TestCase):
         self.theOtherIsoforms = [ self.isoform4_1 , self.isoform4_3 , self.isoform4_4 ]
         self.UISmass , self.UISannot = self.isoform4_2.cal_UIS(self.theOtherIsoforms, UISorder = 2,  ionseries = ['y'], fragmentlossgains = [0,], precision = 1e-5, frg_z_list = [1], mass_limits = [300,1500])
         self.assertEqual(len(self.UISmass), 7,  "wrong number of UIS. They should be 7!")
-        self.assertIn((646.3406318939999,928.365933736), self.UISmass, "The UIS (646 , 928) is not in the UIS list!")
-        self.assertIn((646.3406318939999,1373.5984528780002), self.UISmass, "The UIS (646 , 1373) is not in the UIS list!")
-        self.assertIn((646.3406318939999,813.338990706), self.UISmass, "The UIS (646 , 813) is not in the UIS list!")
-        self.assertIn((646.3406318939999,1316.5769891520001), self.UISmass, "The UIS (646 , 1316) is not in the UIS list!")
-        self.assertIn((646.3406318939999,1169.508575234), self.UISmass, "The UIS (646 , 1169) is not in the UIS list!")
-        self.assertIn((646.3406318939999,1098.471461444), self.UISmass, "The UIS (646 , 1098) is not in the UIS list!")
-        self.assertIn((646.3406318939999,1041.449997718), self.UISmass, "The UIS (646 , 1041) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,928.365933736), self.UISmass, "The UIS (646 , 928) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1373.5984528780002), self.UISmass, "The UIS (646 , 1373) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1373.5984528780002), self.UISmass, "The UIS (646 , 1373) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,813.338990706), self.UISmass, "The UIS (646 , 813) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1316.5769891520001), self.UISmass, "The UIS (646 , 1316) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1169.508575234), self.UISmass, "The UIS (646 , 1169) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1098.471461444), self.UISmass, "The UIS (646 , 1098) is not in the UIS list!")
+        self.assertAlmostIn((646.3406318939999,1041.449997718), self.UISmass, "The UIS (646 , 1041) is not in the UIS list!")
         
         
     def test_comparePeptideFragments(self):
@@ -216,7 +231,7 @@ class TestUnitPeptide(unittest.TestCase):
     def test_getAminoacidList(self):
         #def _getAminoacidList(self, fullList=False):
         pass
-        print self.mypep._getAminoacidList()
+        print(self.mypep._getAminoacidList())
 
     def test_getMZ(self):
         self.assertAlmostEqual(self.mypep.getMZ(1), 1145.63470545)

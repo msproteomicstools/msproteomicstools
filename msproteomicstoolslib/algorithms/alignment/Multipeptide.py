@@ -48,7 +48,8 @@ class Multipeptide():
 
     def __str__(self):
         if len(self.getPrecursorGroups()) > 0:
-            return "Precursors of %s runs, identified by %s." % (self._nr_runs, self.getPrecursorGroups()[0].getPeptideGroupLabel())
+            return "Precursors of %s runs, identified by %s." % (
+                self._nr_runs, list(self.getPrecursorGroups())[0].getPeptideGroupLabel())
         else:
             return "Empty set of precursors."
   
@@ -63,7 +64,7 @@ class Multipeptide():
 
     def has_peptide(self, runid):
         raise Exception("This doesnt do what you want")
-        return self._peptides.has_key(runid)
+        return runid in self._peptides
 
     def get_peptide(self, runid):
         raise Exception("This doesnt do what you want")
@@ -94,7 +95,7 @@ class Multipeptide():
         precursor_group: list of :class:`.PrecursorGroup`
             All Precursor group from the corresponding run
         """
-        return self._peptides.values()
+        return sorted(self._peptides.values())
 
     def hasPrecursorGroup(self, runid):
         """
@@ -108,7 +109,7 @@ class Multipeptide():
         check : bool
             Whether the given run has a precursor group
         """
-        return self._peptides.has_key(runid)
+        return runid in self._peptides
 
     def getAllPeptides(self):
       return [p for prgr in self.getPrecursorGroups() for p in prgr]

@@ -35,6 +35,7 @@ $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import unittest
 import os
 
@@ -64,12 +65,12 @@ class TestMultiProcessingLog(unittest.TestCase):
         self.description = self.P31946.description
         self.sequence = self.P31946.sequence
 
-        print self.code1
-        print self.code2
-        print self.modres
-        print self.ncbi_tax_id
-        print self.description
-        print self.sequence
+        print(self.code1)
+        print(self.code2)
+        print(self.modres)
+        print(self.ncbi_tax_id)
+        print(self.description)
+        print(self.sequence)
 
 
     def test_get_proteins_containing_peptide(

@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import os, sys, csv, time
 import numpy
 import argparse
@@ -73,9 +74,9 @@ class ImputeValuesHelper(object):
         swath_window_low = int(mz / 25) *25
         swath_window_high = int(mz / 25) *25 + 25
         res = {}
-        for k,v in swath_chromatograms.iteritems():
+        for k,v in swath_chromatograms.items():
             # TODO smarter selection here
-            selected = [vv for prec_mz,vv in v.iteritems() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
+            selected = [vv for prec_mz,vv in v.items() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
             if len(v) == 1: 
                 # We have merged chrom.mzML file (only one file)
                 selected = v.values()
@@ -106,7 +107,7 @@ class SwathChromatogramRun(object):
 
     def getChromatogram(self, chromid):
         for cfile in self.chromfiles:
-            if cfile.info["offsets"].has_key(chromid):
+            if chromid in cfile.info["offsets"]:
                 return cfile[chromid]
         return None
 
@@ -136,7 +137,7 @@ class SwathChromatogramCollection(object):
 
         import copy
         for run in self.allruns[runid].chromfiles:
-            for chromid, value in run.info['offsets'].iteritems():
+            for chromid, value in run.info['offsets'].items():
               if value is None: continue
               self.cache[ chromid ] = copy.copy(run[chromid])
 
@@ -148,7 +149,7 @@ class SwathChromatogramCollection(object):
         if runid == self.cached_run:
             return self._getChromatogramCached(runid, chromid)
 
-        if not self.allruns.has_key(runid):
+        if not runid in self.allruns:
             return None
         return self.allruns[runid].getChromatogram(chromid)
 
@@ -163,7 +164,7 @@ class SwathChromatogramCollection(object):
             # get the run id
             start = time.time()
             f = open(filename, "r")
-            header = f.next().split("\t")
+            header = next(f).split("\t")
             f.close()
             all_swathes = {}
             runid = header[1]
@@ -174,7 +175,7 @@ class SwathChromatogramCollection(object):
             swathrun = SwathChromatogramRun()
             swathrun.parse(runid, files)
             self.allruns[runid] = swathrun
-            print "Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start)
+            print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
     def parseFromMzML(self, mzML_files, runIdMapping):
         """ Parse a set of different experiments.
@@ -190,7 +191,7 @@ class SwathChromatogramCollection(object):
             swathrun = SwathChromatogramRun()
             swathrun.parse(runid, [filename])
             self.allruns[runid] = swathrun
-            print "Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start)
+            print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
     def getRunIDs(self):
         return self.allruns.keys()
@@ -235,9 +236,9 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     sequences_mapping = {}
     protein_mapping = {}
     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
-    mapping_inv = dict([(v[0],k) for k,v in mapping.iteritems()])
+    mapping_inv = dict([(v[0],k) for k,v in mapping.items()])
     if VERBOSE:
-        print mapping
+        print (mapping)
 
     # Do only a single run : read only one single file
     start = time.time()
@@ -245,7 +246,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
     assert len(swath_chromatograms.getRunIDs() ) == 1
-    rid = swath_chromatograms.getRunIDs()[0]
+    rid = list(swath_chromatograms.getRunIDs())[0]
 
     start = time.time()
     initial_alignment_cutoff = 0.0001
@@ -356,9 +357,9 @@ def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
 
     if options.dry_run:
-        print "Dry Run only"
-        print "Found multipeptides:", len(multipeptides)
-        print "Found swath chromatograms:", swath_chromatograms
+        print("Dry Run only")
+        print("Found multipeptides:", len(multipeptides))
+        print("Found swath chromatograms:", swath_chromatograms)
         return [], []
 
     start = time.time()
@@ -415,12 +416,12 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
     cnt.imputation_succ = 0
     cnt.peakgroups = 0
 
-    print "Will work on %s peptides" % (len(multipeptides))
+    print("Will work on %s peptides" % (len(multipeptides)))
     for i,m in enumerate(multipeptides):
         if i % 500 == 0: 
-            print "Done with %s out of %s" % (i, len(multipeptides))
+            print("Done with %s out of %s" % (i, len(multipeptides)))
         if VERBOSE:
-            print "Do group of peptides", m.getPrecursorGroups()[0].getPeptideGroupLabel()
+            print("Do group of peptides", m.getPrecursorGroups()[0].getPeptideGroupLabel())
 
 
         # Ensure that each run has either exactly one peakgroup (or zero):
@@ -433,7 +434,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                     m.get_id() ))
 
         clusters = set( [pg.get_cluster_id() for p in m.getAllPeptides() for pg in p.get_all_peakgroups()])
-        if VERBOSE: print "Shall work on clusters ", clusters
+        if VERBOSE: print("Shall work on clusters ", clusters)
         for cl in clusters:
 
             # Retrieve all transition group ids available for this precursor group
@@ -450,10 +451,10 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 if len(selected_pg) > 0:
                     fdr_trgr_mapping.append( (min(selected_pg), trgr_id) )
 
-            if VERBOSE: print "mapping", sorted(fdr_trgr_mapping), "vs", trgr_ids
+            if VERBOSE: print("mapping", sorted(fdr_trgr_mapping), "vs", trgr_ids)
             for fdr, trgr_id in sorted(fdr_trgr_mapping):
-                if VERBOSE: print "================================================"
-                if VERBOSE: print "Shall work on transition group", trgr_id, "with cluster", cl
+                if VERBOSE: print("================================================")
+                if VERBOSE: print("Shall work on transition group", trgr_id, "with cluster", cl)
 
                 # Get all selected peakgroups that correspond to the current transition group id 
                 selected_pg = [pg for p in m.getAllPeptides() for pg in p.get_all_peakgroups()
@@ -509,9 +510,9 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                 for pg in p.get_all_peakgroups():
                     pg.select_this_peakgroup()
 
-    print "Imputations:", cnt.imputations, "Successful:", cnt.imputation_succ, "Still missing", cnt.imputations - cnt.imputation_succ
-    print "WARNING: %s times: Chromatogram does not cover full range"  % (cnt.integration_bnd_warnings)
-    print "Peakgroups:", cnt.peakgroups
+    print("Imputations:", cnt.imputations, "Successful:", cnt.imputation_succ, "Still missing", cnt.imputations - cnt.imputation_succ)
+    print("WARNING: %s times: Chromatogram does not cover full range"  % (cnt.integration_bnd_warnings))
+    print("Peakgroups:", cnt.peakgroups)
     return multipeptides 
 
 def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms, 
@@ -519,7 +520,7 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                           onlyExtractFromRun=None, tree=None, mat=None, is_test=False):
 
         for rid in [r.get_id() for r in new_exp.runs]:
-            if VERBOSE: print "Shall work on run ", rid
+            if VERBOSE: print("Shall work on run ", rid)
             cnt.peakgroups += 1
 
             # Check whether we have a peakgroup for this run id, if yes we mark
@@ -538,8 +539,8 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                 rmap = dict([(r.get_id(),i) for i,r in enumerate(new_exp.runs) ])
 
                 if VERBOSE:
-                    print "Will try to fill NA in run", current_run.get_id(), "for peptide", selected_pg[0].peptide.get_id()
-                    print tree, mat
+                    print("Will try to fill NA in run", current_run.get_id(), "for peptide", selected_pg[0].peptide.get_id())
+                    print(tree, mat)
 
                 inferred_from_isotope = False
                 if current_mpep.hasPrecursorGroup(current_run.get_id()):
@@ -557,13 +558,13 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                         inferred_from_isotope = True
 
                         if VERBOSE:
-                            print "Will try to infer from isotopically modified version of the same run!"
-                            print "Precursor is", prgr
+                            print("Will try to infer from isotopically modified version of the same run!")
+                            print("Precursor is", prgr)
                             for prec in prgr:
-                                print " --", prec
+                                print(" --", prec)
                                 for pg in prec.peakgroups:
-                                    print "  * ", pg
-                            print "Min fdr pg", best_pg, " border %s / %s" % (border_l, border_r)
+                                    print("  * ", pg)
+                            print("Min fdr pg", best_pg, " border %s / %s" % (border_l, border_r))
 
                 if inferred_from_isotope:
                     # All good
@@ -584,8 +585,8 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                                              border_l, border_r, cnt, is_test)
                 if newpg != "NA": 
                     if VERBOSE: 
-                        print "Managed to fill NA in run", current_run.get_id(), \
-                          "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r #, "for cluster", newpg.get_value("align_clusterid")
+                        print("Managed to fill NA in run", current_run.get_id(), \
+                          "with value", newpg.get_value("Intensity"), "/ borders", border_l, border_r)#, "for cluster", newpg.get_value("align_clusterid")
                     cnt.imputation_succ += 1
                     transition_group_id = newpg.get_value("transition_group_id")
                     try:
@@ -683,7 +684,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     try:
         old_peak_areas = template_pg.get_value("aggr_Peak_Area").split(";")
         if len(old_peak_areas) != len(chrom_ids):
-            print "WARNING: something is wrong, got %s fragment ids but %s fragment peak areas" % (len(chrom_ids), len(old_peak_areas))
+            print("WARNING: something is wrong, got %s fragment ids but %s fragment peak areas" % (len(chrom_ids), len(old_peak_areas)))
     except:
         # Caught the exception
         pass
@@ -692,11 +693,11 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
         chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         # Check if we got a chromatogram with at least 1 peak: 
         if chromatogram is None:
-            print "chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid)
-            return "NA"
+            print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
+            return("NA")
         if len(chromatogram.peaks) == 0:
-            print "chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid)
-            return "NA"
+            print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
+            return("NA")
 
         # Check whether we even have data between left_start and right_end ... 
         if chromatogram.peaks[0][0] > left_start or chromatogram.peaks[-1][0] < right_end:
@@ -732,12 +733,12 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile):
         assert header_first == run.header
     writer.writerow(header_first)
 
-    print "number of precursors quantified:", len(multipeptides)
-    for m in multipeptides:
+    print("number of precursors quantified:", len(multipeptides))
+    for m in sorted(multipeptides, key=lambda x: str(x)):
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
         for p in m.getAllPeptides():
-            for selected_pg in p.peakgroups:
+            for selected_pg in sorted(p.peakgroups):
                 # if float(selected_pg.get_value("m_score")) > 1.0:
                 #     row_to_write = selected_pg.row
                 #     writer.writerow(row_to_write)

@@ -77,7 +77,7 @@ class Run():
   
     def get_best_peaks(self):
         result = []
-        for k, precursor_group in self.all_precursor_groups_.iteritems():
+        for k, precursor_group in self.all_precursor_groups_.items():
             for peptide in precursor_group:
                 result.append(peptide.get_best_peakgroup())
         return result
@@ -93,7 +93,7 @@ class Run():
           return None
 
     def hasPrecursor(self, peptide_group_label, trgr_id):
-        return self.all_precursor_groups_.has_key(peptide_group_label) and \
+        return peptide_group_label in self.all_precursor_groups_ and \
                 not self.getPrecursorGroup(peptide_group_label).getPrecursor(trgr_id) is None
 
     def getPrecursor(self, peptide_group_label, trgr_id):
@@ -105,7 +105,7 @@ class Run():
         return None
 
     def addPrecursor(self, precursor, peptide_group_label):
-        if self.all_precursor_groups_.has_key(peptide_group_label):
+        if peptide_group_label in self.all_precursor_groups_:
             self.getPrecursorGroup(peptide_group_label).addPrecursor(precursor)
         else:
             prec_gr = PrecursorGroup(peptide_group_label, self)

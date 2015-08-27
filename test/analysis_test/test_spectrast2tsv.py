@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 import unittest
 import subprocess as sub
 import os
+from nose.plugins.attrib import attr
 
 class TestSpectrast2TSV(unittest.TestCase):
 

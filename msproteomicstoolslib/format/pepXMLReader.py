@@ -167,7 +167,7 @@ class SearchHit:
     @property
     def retention_time(self):
         res = self.spectrum_query.retTime
-        if res == -1: raise ValueError, "Retention time not in pepXML"
+        if res == -1: raise ValueError("Retention time not in pepXML")
         return res
 
     def get_retention_time(self):

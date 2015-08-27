@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 from sys import stdout
 
 import csv, os
@@ -94,14 +95,24 @@ class MRExperiment(object):
         union_transition_groups = []
         union_proteins = []
         union_target_transition_groups = []
+
         for i,r in enumerate(self.runs):
             if verbose or verbosity >= 10: 
                 stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
                 stdout.flush()
-            union_target_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
-            union_transition_groups.append( [peak.peptide.precursor_group.getPeptideGroupLabel() for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
-            union_proteins.append( list(set([peak.peptide.protein_name for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()])) )
-        if verbose or verbosity >= 10: stdout.write("\r\r\n") # clean up
+            union_target_transition_groups.append( 
+              [peak.peptide.precursor_group.getPeptideGroupLabel() 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+            union_transition_groups.append( 
+              [peak.peptide.precursor_group.getPeptideGroupLabel() 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
+            union_proteins.append( list(set(
+              [peak.peptide.protein_name 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) 
+                    if not peak.peptide.get_decoy()])) )
+
+        if verbose or verbosity >= 10: 
+            stdout.write("\r\r\n") # clean up
 
         union_target_transition_groups_set = set(union_target_transition_groups[0])
         self.union_transition_groups_set = set(union_transition_groups[0])
@@ -117,13 +128,13 @@ class MRExperiment(object):
         target_prec = sum([len(s) for s in union_target_transition_groups])
 
         if verbose or verbosity >= 1:
-            print "==================================="
-            print "Finished parsing, number of precursors and peptides per run"
-            print "All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set)
-            print "All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set)
-            print "All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set)
+            print("===================================")
+            print("Finished parsing, number of precursors and peptides per run")
+            print("All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set))
+            print("All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set))
+            print("All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set))
             if all_prec > 0:
-                print "Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec )
+                print("Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec ))
 
         self.initial_fdr_cutoff = fdr_cutoff
         if all_prec > 0 and all_prec - target_prec != 0:
@@ -139,6 +150,8 @@ class MRExperiment(object):
                 m.insert(r.get_id(), precursor_group)
             m.set_nr_runs(len(self.runs))
             multipeptides.append(m)
-        return multipeptides
+
+        # Return sorted multipeptides for consistency across all Python versions
+        return(sorted(multipeptides, key=lambda x: str(x)))
 
 

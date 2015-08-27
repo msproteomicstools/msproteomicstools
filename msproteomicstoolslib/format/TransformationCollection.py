@@ -35,6 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import msproteomicstoolslib.math.Smoothing as smoothing
 import numpy
 
@@ -156,10 +157,10 @@ class TransformationCollection():
     def initialize_from_data(self, reverse=False, smoother="lowess"):
 
         # use the data in self.transformation_data to create the trafos
-        for s_from, darr in self.transformation_data.iteritems():
+        for s_from, darr in self.transformation_data.items():
             self.transformations[s_from] = {}
             import time
-            for s_to, data in darr.iteritems():
+            for s_to, data in darr.items():
                 start = time.time()
                 if not self.getTransformedData(s_from, s_to) is None:
                     sm = smoothing.SmoothingInterpolation()
@@ -177,7 +178,7 @@ class TransformationCollection():
                         sm_rev = smoothing.getSmoothingObj(smoother)
                         sm_rev.initialize(data[1], data[0])
                         self._addTransformation(sm_rev, s_to, s_from)
-                print "Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from)
+                print("Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from))
 
     def addTransformationData(self, data, s_from, s_to):
       """ Add raw data points to the collection 
@@ -231,7 +232,7 @@ class TransformationCollection():
     def printTransformationData(self, s_from, s_to):
       r = self.getTransformationData(s_from, s_to)
       if r is None: return
-      print "This data is able to transform from %s to %s" % (s_from, s_to)
+      print("This data is able to transform from %s to %s" % (s_from, s_to))
 
     def writeTransformationData(self, filename, s_from, s_to):
       """Write the transformation s_from to s_to to a file.
@@ -249,7 +250,8 @@ class TransformationCollection():
 
       f = open(filename, "w")
       f.write("#Transformation Data\t%s\tto\t%s\treference_id\t%s\n" % (s_from, s_to, self._reference_run_id) )
-      if self._transformed_data.has_key(s_from) and self._transformed_data[s_from].has_key(s_to):
+      if s_from in self._transformed_data \
+         and s_to in self._transformed_data[s_from]:
           tr = self._transformed_data[s_from][s_to]
           for a,b,c in zip(r[0],r[1], tr):
               f.write("%s\t%s\t%s\n" % (a,b,c) )
@@ -266,7 +268,7 @@ class TransformationCollection():
           #Transformation Data "from_id" to "to_id" reference_id "ref_id"
       """
       f = open(filename, "r")
-      header = f.next().split("\t")
+      header = next(f).split("\t")
       if header[0].startswith( "#Transformation Null" ):
           # read the (or a) null transformation
           return
@@ -285,7 +287,7 @@ class TransformationCollection():
           data2.append(float(d[1]))
           if len(d) == 3:
             transformed_data.append(float(d[2]))
-      # print "read data from %s to %s " %(s_from, s_to), [data1, data2]
+      # print("read data from %s to %s " %(s_from, s_to), [data1, data2])
       self.addTransformationData([data1, data2], s_from, s_to)
       if len(transformed_data) > 0: self.addTransformedData(transformed_data, s_from, s_to)
 

@@ -35,13 +35,13 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
 import numpy
 import os
 import csv
 import math
 import random
 from numpy import median, absolute
-from msproteomicstoolslib.algorithms.shared.bounds import lower_bound, upper_bound
 
 def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
   if use_linear: 
@@ -61,7 +61,7 @@ def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = F
     scikits_present = True
     return SmoothingPy()
   except ImportError:
-    print "No smoothing operator is available, please install either rpy2 or scikits with datasmooth."
+    print("No smoothing operator is available, please install either rpy2 or scikits with datasmooth.")
   return None
 
 def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOutliers=False, tmpdir=None):
@@ -135,9 +135,9 @@ class SmoothingR:
         try:
           import rpy2.robjects as robjects
         except ImportError:
-            print "==================================="
-            print "rpy2 package, please install it first\n (see https://pypi.python.org/pypi/rpy2/)." 
-            print "==================================="
+            print("===================================")
+            print("rpy2 package, please install it first\n (see https://pypi.python.org/pypi/rpy2/)." )
+            print("===================================")
 
     def initialize(self, data1, data2):
         import rpy2.robjects as robjects
@@ -214,14 +214,14 @@ class SmoothingRExtern:
 
         try:
             r = csv.reader(open(fname_out), delimiter="\t")
-            r.next()
+            next(r)
             arr = numpy.array([ (float(line[0]),float(line[1])) for line in r ])
         except IOError:
-            print "Something went wrong, I cannot find the file at ", fname_out
-            print "Debug output:"
-            print "Input data length (d1, d2):", len(data1), len(data2)
-            print "Input data length:", len(predict_data)
-            print "Temporary directory :", TMPDIR
+            print("Something went wrong, I cannot find the file at ", fname_out)
+            print("Debug output:")
+            print("Input data length (d1, d2):", len(data1), len(data2))
+            print("Input data length:", len(predict_data))
+            print("Temporary directory :", TMPDIR)
             raise IOError
 
 
@@ -261,9 +261,9 @@ class SmoothingPy:
         try:
           from scikits import datasmooth as ds
         except ImportError:
-            print "==================================="
-            print "Cannot import the module datasmooth from scikits, \nplease download it from https://github.comtickel/scikit-datasmooth.git"
-            print "==================================="
+            print("===================================")
+            print("Cannot import the module datasmooth from scikits, \nplease download it from https://github.comtickel/scikit-datasmooth.git")
+            print("===================================")
 
     def de_duplicate_array(self, arr):
         arr_fixed = [] 
@@ -303,9 +303,9 @@ class SmoothingPy:
         try:
           from scikits import datasmooth as ds
         except ImportError:
-            print "==================================="
-            print "Cannot import the module datasmooth from scikits, \nplease download it from https://github.comtickel/scikit-datasmooth.git"
-            print "==================================="
+            print("===================================")
+            print("Cannot import the module datasmooth from scikits, \nplease download it from https://github.comtickel/scikit-datasmooth.git")
+            print("===================================")
             import sys; sys.exit(1)
         import operator
 
@@ -398,9 +398,9 @@ class LowessSmoothingBiostats(LowessSmoothingBase):
         try:
             from Bio.Statistics.lowess import lowess
         except ImportError:
-            print "==================================="
-            print "Cannot import the module lowess from Biopython, \nplease install 'biopython' from https://pypi.python.org/pypi/biopython"
-            print "==================================="
+            print("===================================")
+            print("Cannot import the module lowess from Biopython, \nplease install 'biopython' from https://pypi.python.org/pypi/biopython")
+            print("===================================")
 
         old_settings = numpy.seterr(all='ignore')
 
@@ -424,9 +424,9 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
             import statsmodels.api as sm
             lowess = sm.nonparametric.lowess
         except ImportError:
-            print "==================================="
-            print "Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'"
-            print "==================================="
+            print("===================================")
+            print("Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'")
+            print("===================================")
 
         # Input data is y/x -> needs switch
         result = lowess(numpy.array(data2), numpy.array(data1))
@@ -444,9 +444,9 @@ class LowessSmoothingCyLowess(LowessSmoothingBase):
             import cylowess
             lowess = cylowess.lowess
         except ImportError:
-            print "==================================="
-            print "Cannot import the module lowess from 'cylowess', \nplease install the cylowess package according to http://slendermeans.org/lowess-speed.html (see also README)"
-            print "==================================="
+            print("===================================")
+            print("Cannot import the module lowess from 'cylowess', \nplease install the cylowess package according to http://slendermeans.org/lowess-speed.html (see also README)")
+            print("===================================")
 
         delta = (max(data1) - min(data1)) * 0.01
         # Input data is y/x -> needs switch
@@ -491,7 +491,7 @@ class UnivarSplineCV:
         from scipy.interpolate import UnivariateSpline
 
         if verb: 
-            print " --------------------" 
+            print(" --------------------" )
         
         # Random subsetting of parts of the data
         train_idx = random.sample(range(len(data1)), int(len(data1)*frac_training_data) )
@@ -533,9 +533,9 @@ class UnivarSplineCV:
             train_data1_aligned = self.sp(train_data1)
             tr_stdev = numpy.std(numpy.array(train_data2) - numpy.array(train_data1_aligned))
             tr_median = numpy.median(numpy.array(train_data2) - numpy.array(train_data1_aligned))
-            print "  Lin:Computed stdev", stdev_lin
-            print "  Train Computed stdev", tr_stdev, "and median", tr_median
-            print "  Test Computed stdev", test_stdev, "and median", test_median
+            print("  Lin:Computed stdev", stdev_lin)
+            print("  Train Computed stdev", tr_stdev, "and median", tr_median)
+            print("  Test Computed stdev", test_stdev, "and median", test_median)
 
         stdev_prev = test_stdev
         s_prev = self.s
@@ -547,7 +547,7 @@ class UnivarSplineCV:
             test_data1_aligned = self.sp(test_data1)
             stdev = numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned))
             if verb:
-                print " == Iter", s_iter, "\tstdev",  numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned))
+                print(" == Iter", s_iter, "\tstdev",  numpy.std(numpy.array(test_data2) - numpy.array(test_data1_aligned)))
 
             # Stop if stdev does not improve significantly any more
             #if stdev_prev - stdev < 0 or (i > 5 and (stdev_prev - stdev < 0.5)):
@@ -558,7 +558,7 @@ class UnivarSplineCV:
             s_prev = s_iter
             
         if verb:
-            print " == Done ", s_prev
+            print(" == Done ", s_prev)
 
         # Final spline
         self.s = s_prev
@@ -583,9 +583,9 @@ class SmoothingEarth:
         try:
             import pyearth
         except ImportError:
-            print "==================================="
-            print "Cannot import pyearth, \nplease install it from https://github.com/jcrudy/py-earth/"
-            print "==================================="
+            print("===================================")
+            print("Cannot import pyearth, \nplease install it from https://github.com/jcrudy/py-earth/")
+            print("===================================")
 
         self.model = pyearth.Earth()
         X = numpy.array(data1)
@@ -677,7 +677,7 @@ class LocalKernel:
 
             # This lower bound will actually get the element that is just larger
             # than the search parameter
-            lb = abs(lower_bound( data1, xhat))-1
+            lb = abs(numpy.searchsorted(data1, xhat)) - 1
             if lb - topN < 0:
                 lb = topN
             if lb >= len(data1):
@@ -716,19 +716,23 @@ class LocalKernel:
 
 class WeightedNearestNeighbour(LocalKernel):
     """Class for weighted interpolation using local linear differences
+
+    This function uses the weighted mean of the k nearest neighbors to
+    calculate the transformation.  This method may be affected by single
+    outlier close to the transformation point.
+
+    Each neighboring point is given a weight equal to 
+
+               1
+    --------------------------
+      abs( distance ) ** exp 
+
+
+    up to a minimal distance min_diff after which the weight cannot increase any more.
     """
 
     def __init__(self, topN, max_diff, min_diff, removeOutliers, exponent=1.0):
         """ Initialize WNN
-
-        Each neighboring point is given a weight equal to 
-
-                   1
-        --------------------------
-          abs( distance ) ** exp 
-
-
-        up to a minimal distance min_diff after which the weight cannot increase any more.
 
         Args:
             topN(integer): how many datapoints should be included for nearest neighbor
@@ -775,6 +779,12 @@ class WeightedNearestNeighbour(LocalKernel):
 
 class SmoothLLDMedian(LocalKernel):
     """Class for local median interpolation using local linear differences
+
+    This function uses the median of the k nearest neighbors to calculate the
+    transformation.  This is robust, unweighted method as a single outlier will
+    not substantially affect the result.
+
+    This method assumes that the data is locally smooth and linear
     """
 
     def __init__(self, topN, max_diff, min_diff, removeOutliers):
@@ -805,7 +815,7 @@ class SmoothLLDMedian(LocalKernel):
             source_d_diff = [s - xhat_ for s in source_d]
             target_data_transf = [t - s for t,s in zip(target_d, source_d_diff)]
 
-            # Use transformed target data to compute expected RT in target domain (weighted average)
+            # Use transformed target data to compute expected RT in target domain (median)
             expected_targ = numpy.median(target_data_transf)
 
             # Compute a (robust) measurement of dispersion, median absolute deviation (MAD)
