@@ -355,7 +355,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
             transformation_collection_, options.border_option, 
             onlyExtractFromRun=rid, disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
         print("Analyzing the runs took %ss" % (time.time() - start) )
-        return new_exp, multipeptides
+        return new_exp, multipeptides, rid
 
     swath_chromatograms = SwathChromatogramCollection()
     swath_chromatograms.parseFromTrafoFiles(trafo_fnames)
@@ -365,7 +365,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
         print("Dry Run only")
         print("Found multipeptides:", len(multipeptides))
         print("Found swath chromatograms:", swath_chromatograms)
-        return [], []
+        return [], [], rid
 
     start = time.time()
     if options.cache_in_memory:
