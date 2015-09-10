@@ -67,7 +67,7 @@ then
 fi
 
 #add decoys
-OpenSwathDecoyGenerator -in $temptraml -out $2 -threads 2 -method shuffle -append -exclude_similar
+OpenSwathDecoyGenerator -in $temptraml -out $2 -threads 2 -method shuffle -append -exclude_similar -remove_unannotated
 echo
 echo "CREATED $2"
 
