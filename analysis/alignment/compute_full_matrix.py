@@ -36,8 +36,6 @@ $Authors: Hannes Roest$
 """
 
 from __future__ import print_function
-from builtins import next
-from builtins import object
 import os, sys, csv
 import numpy
 import argparse
@@ -378,4 +376,3 @@ def main(options):
 if __name__=="__main__":
     options = handle_args()
     main(options)
-

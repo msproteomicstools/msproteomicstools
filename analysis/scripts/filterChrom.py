@@ -35,8 +35,6 @@ $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import str
 
 
 import sys, re
@@ -100,7 +98,6 @@ except ImportError:
 
 # Sort chromatograms and store again
 print("Retrieved", len(chroms_out), "chromatograms.")
-chroms_out.sort(lambda x,y: cmp(x.getNativeID(), y.getNativeID()))
+chroms_out.sort(key=lambda x: x.getNativeID())
 exp2.setChromatograms(chroms_out)
 pyopenms.MzMLFile().store(outfile, exp2)
-

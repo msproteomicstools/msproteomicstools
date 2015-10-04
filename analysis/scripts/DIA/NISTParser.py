@@ -35,9 +35,6 @@ $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import range
-from builtins import object
 
 # This program takes a spectral library in NIST format and converts it to csv
 #
@@ -84,7 +81,7 @@ def handle_stack(stack):
     peaks = [Peak(it.split()[0], it.split()[1], it.split()[2]) for it in stack[4:] if len(it.strip()) > 0]
     print("Spectrum", Name, MW, "Nr peaks", len(peaks), npeaks)
     peaks = [p for p in peaks if p.mz > 400]
-    peaks.sort(lambda x,y: -cmp(x.intensity, y.intensity))
+    peaks.sort(key=lambda x: x.intensity, reverse=True)
     sequence = Name.split("/")[0]
     charge = Name.split("/")[1]
     for i in range(6):

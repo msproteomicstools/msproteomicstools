@@ -35,7 +35,6 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 from __future__ import print_function
-from past.builtins import cmp
 
 
 import csv, sys
@@ -61,10 +60,7 @@ except KeyError:
 
 print("Sort by '%s' (position %s) and reverse %s" % (sort_by, sort_pos, reverse))
 lines = list(reader)
-if reverse:
-  lines.sort( lambda x,y: -cmp( float(x[sort_pos]), float(y[sort_pos]) ) )
-else:
-  lines.sort( lambda x,y: cmp( float(x[sort_pos]), float(y[sort_pos]) ) )
+lines.sort(key=lambda x: float(x[sort_pos]), reverse=reverse)
 
 # try to estimate an empirical FDR and only keep those lines above the fdr
 decoys_ = 0
@@ -93,5 +89,3 @@ header.append('FDREstimate')
 writer = csv.writer(open(filename_out, 'w'), delimiter='\t')
 writer.writerow(header)
 writer.writerows(above_cutoff)
-
-

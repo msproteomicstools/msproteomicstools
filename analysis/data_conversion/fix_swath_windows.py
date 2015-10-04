@@ -36,9 +36,10 @@ $Authors: Hannes Roest$
 """
 from __future__ import division
 from __future__ import print_function
-from past.utils import old_div
 
-import re, csv, sys
+import re
+import csv
+import sys
 
 """
 This program intends to fix SWATH mzXML files by adding the precursor isolation
@@ -98,7 +99,7 @@ def estimateCorrectSwathScan(center):
     result = []
     for entry in paramfile:
         if center >= float(entry[0]) and center <= float(entry[1]):
-            result.append( [float(entry[0]), float(entry[1]) ] )
+            result.append([float(entry[0]), float(entry[1])])
     
     if len(result) > 2:
         raise Exception("More than one entry in the param file match the center", center)
@@ -110,9 +111,9 @@ def estimateCorrectSwathScan(center):
 def rewrite_single_scan(mybuffer, swathscan):
     # use middle point
     try:
-        start = float(paramfile[ scanwindow ][0])
-        end = float(paramfile[ scanwindow ][1])
-        middle = old_div((start + end),2.0)
+        start = float(paramfile[scanwindow][0])
+        end = float(paramfile[scanwindow][1])
+        middle = (start + end) / 2.0
         width = end - start
     except IndexError:
         # Catch error condition
@@ -129,7 +130,7 @@ def rewrite_single_scan(mybuffer, swathscan):
               "did not fall inside the expected SWATH window %s to %s." % (start, end))
             start, end = estimateCorrectSwathScan(old_center)
             print("  Will replace it with a window from %s to %s" % (start, end))
-            middle = old_div((start + end),2.0)
+            middle = (start + end) / 2.0
             width = end - start
 
     mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %
@@ -177,4 +178,3 @@ for line in source:
 
 outfile.write('  </msRun>\n</mzXML>')
 outfile.close()
-

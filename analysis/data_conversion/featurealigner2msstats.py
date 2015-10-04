@@ -1,7 +1,6 @@
+#!/usr/bin/env python
 from __future__ import print_function
-from builtins import zip
-#!/usr/bin/env python2.7
-import sys,gzip,csv
+import sys, gzip, csv
 
 if len(sys.argv) < 3:
     print("Usage: align2msstats.py input_feature_alignment.tsv[.gz] output_msstats_compatible.csv")

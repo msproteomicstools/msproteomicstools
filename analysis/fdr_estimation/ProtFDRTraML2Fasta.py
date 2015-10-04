@@ -1,5 +1,3 @@
-from builtins import object
-
 # convert a TSV that was converted from a TraML file into a FASTA concatenated
 # decoy database as Mayu input.
 
@@ -42,4 +40,3 @@ for k in protein_dic:
     outfile.write(">%s\n" % protein.name)
     outfile.write(protein.get_concat_peptides())
     outfile.write("\n")
-

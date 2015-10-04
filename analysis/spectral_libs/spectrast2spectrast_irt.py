@@ -27,12 +27,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-from __future__ import division
 from __future__ import print_function
-from builtins import str
-from builtins import range
-from builtins import object
-from past.utils import old_div
 import sys
 import os
 import csv
@@ -50,9 +45,9 @@ from msproteomicstoolslib.math.chauvenet import *
 def lmedian(valarr):
   vals = sorted(valarr)
   if len(vals) % 2 == 1:
-    return vals[old_div((len(vals)+1),2)-1]
+    return vals[(len(vals) + 1) // 2) - 1]
   else:
-    return vals[old_div(len(vals),2)-1]
+    return vals[len(vals) // 2 - 1]
 
 def all_indices(value, qlist):
   indices = []
@@ -141,13 +136,13 @@ class sptxtio(object):
       report = csv.writer(report_outfile, delimiter=',')
       report.writerow(['peptide','rt','irt','rt_lmedian','rt_mean','rt_sd','irt_lmedian','irt_mean','irt_sd','rt_run_lmedian','rt_run_mean','rt_run_sd'])
       ind = {}
-      for spectrum in list(self.irt.keys()):
+      for spectrum in self.irt:
         for peptide in self.irt[spectrum]:
           if peptide not in ind:
             ind[peptide] = []
           ind[peptide].append(spectrum)
 
-      for peptide in list(ind.keys()):
+      for peptide in ind:
         rt = []
         irt = []
         rt_run_median = []
@@ -194,7 +189,7 @@ class sptxtio(object):
     self.header = header
   
   def merge(self,rmout):
-    for rawspectrum in list(self.rt_all.keys()):
+    for rawspectrum in self.rt_all:
       for peptide in self.rt_all[rawspectrum]:
         rt = []
         for idx in all_indices(sorted(self.prob_all[rawspectrum][peptide], reverse=True)[0],self.prob_all[rawspectrum][peptide]):
@@ -216,7 +211,7 @@ class sptxtio(object):
       print("run\tpeptide\trt\tirt")
       for peptide in self.rt[rawspectrum]:
         peptide_sequence = self.spectrum_block_map[rawspectrum][peptide].sequence
-        if peptide_sequence in list(rtkit.keys()):
+        if peptide_sequence in rtkit:
           if rawspectrum in outliers:
             if peptide_sequence not in outliers[rawspectrum]:
               rt_calibration.append(self.rt[rawspectrum][peptide])
@@ -231,7 +226,7 @@ class sptxtio(object):
         missingirt.append(rawspectrum)
 
       if len(rt_calibration) >= 2:
-        if rawspectrum in list(linregs.keys()):
+        if rawspectrum in linregs:
           print("Replacing iRT normalization of run " + rawspectrum + " with c: " + str(linregs[rawspectrum]['b']) + " m: " + str(linregs[rawspectrum]['a']) + ".")
           self.a[rawspectrum] = linregs[rawspectrum]['a']
           self.b[rawspectrum] = linregs[rawspectrum]['b']
@@ -246,7 +241,7 @@ class sptxtio(object):
           plt.plot(rt_calibration,irt_calibration, 'b.',rt_calibration,fit_fn(rt_calibration),'-r')
           plt.savefig(rawspectrum+'.png')
 
-    for host in list(surrogates.keys()):
+    for host in surrogates:
       print("Replacing iRT normalization of run " + host + " with " + surrogates[host] + ".")
       self.a[host] = self.a[surrogates[host]]
       self.b[host] = self.b[surrogates[host]]
@@ -266,14 +261,14 @@ class sptxtio(object):
 
   def transform(self,rmout):
     irt = {}
-    for rawspectrum in list(self.rt.keys()):
-      for peptide in list(self.rt[rawspectrum].keys()):
+    for rawspectrum in self.rt:
+      for peptide in self.rt[rawspectrum]:
         self.irt[rawspectrum][peptide] = scipy.polyval([self.a[rawspectrum],self.b[rawspectrum]],self.rt[rawspectrum][peptide])
-        if peptide not in list(irt.keys()):
+        if peptide not in irt:
           irt[peptide] = []
         irt[peptide].append(self.irt[rawspectrum][peptide])
 
-    for peptide in list(irt.keys()):
+    for peptide in irt:
       if len(irt) == 1:
         self.irt_merged[peptide] = round(irt[peptide][0],5)
       else:
@@ -326,7 +321,7 @@ class pepidxio(object):
   def output(self,pepidx_outfile):
     try:
       pepidx_out = open(pepidx_outfile, 'w')
-      for key in sorted(self.pepindex.keys()):
+      for key in self.pepindex:
         line = key + ' '.join(str(x) for x in self.pepindex[key]) + "\n"
         pepidx_out.write(line)
     except IOError:
@@ -433,4 +428,3 @@ def main(argv):
 #profile.run('main()')
 if __name__ == "__main__":
   main(sys.argv[1:])
-

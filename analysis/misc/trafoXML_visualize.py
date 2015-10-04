@@ -1,10 +1,8 @@
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import zip
 # Useage: python trafoXML_visualize.py input.trafoXML output_dir
 import re, numpy, sys
-from matplotlib.mlab import * 
-from matplotlib.pyplot import * 
+from matplotlib.mlab import *
+from matplotlib.pyplot import *
 
 resdir = ''
 file_in =  'small_002.trafoXML'
@@ -41,9 +39,8 @@ plot( [min(x), max(x)] , [0,0])
 savefig(resdir+ 'trafo_residues_plot.pdf', format='pdf')
 clf()
 
-predicted.sort( lambda x,y: -cmp(x[0], y[0]))
+predicted.sort(key=lambda x: x[0], reverse=True)
 plot(x,y, 'ro' )
 plot( [xx[0] for xx in predicted], [yy[1] for yy in predicted] )
 savefig(resdir+ 'rt_correlation.pdf', format='pdf')
 clf()
-

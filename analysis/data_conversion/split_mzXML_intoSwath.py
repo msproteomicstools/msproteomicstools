@@ -54,9 +54,11 @@ Author: Hannes Roest loblum
 ###########################################################################
 """
 from __future__ import print_function
-from builtins import range
 
-import re, sys, os, gzip
+import re
+import sys
+import os
+import gzip
 
 if len(sys.argv) < 3 or sys.argv[1] == '-h':
     print("Usage: split.py file.mzXML[.gz] windowSize [outputdir [noms1map]]]")

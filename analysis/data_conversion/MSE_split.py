@@ -63,4 +63,3 @@ for l in fh:
     fh_writer.write(l)
 
 fh_writer.close()
-

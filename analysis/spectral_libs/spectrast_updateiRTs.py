@@ -36,14 +36,11 @@ $Authors: Pedro Navarro$
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import str
-from builtins import range
-from past.utils import old_div
 
 import sys, csv
 import os
 import getopt, glob
-from configobj        import ConfigObj
+from configobj import ConfigObj
 
 from msproteomicstoolslib.math.LinearRegression import SimpleLinearRegression
 
@@ -68,11 +65,14 @@ def read_irtmodels(file, useMinutes = False) :
     fs = csv.reader(open(file), delimiter="\t")
 
     for cnt, srow in enumerate(fs):
-        if '#' in srow[0]   : continue
-        if not useMinutes   : irtmodels[srow[0]] = (  float(srow[1])    , float(srow[2]) )    
-        else                : irtmodels[srow[0]] = (  float(srow[1])    , old_div(float(srow[2]), 60.0) )   
+        if '#' in srow[0]:
+            continue
+        if not useMinutes:
+            irtmodels[srow[0]] = (float(srow[1]), float(srow[2]))
+        else:
+            irtmodels[srow[0]] = (float(srow[1]), srow[2] / 60.0)
     
-    print("iRT models : " , irtmodels)
+    print("iRT models : ", irtmodels)
     
     return irtmodels
 
