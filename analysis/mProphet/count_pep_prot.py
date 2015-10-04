@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import csv, sys
 
@@ -44,7 +45,7 @@ import csv, sys
 filename = sys.argv[1]
 
 reader = csv.reader(open(filename), delimiter='\t')
-header = reader.next()
+header = next(reader)
 header_d = dict( [ (h,i) for i,h in enumerate(header)] )
 
 #print header
@@ -58,12 +59,12 @@ pep_per_prot = {}
 for i,line in enumerate(lines):
     peptides[ line[header_d['Sequence'] ]] = 0
     proteins[ line[header_d['ProteinName'] ]] = 0
-    if not pep_per_prot.has_key( line[header_d['ProteinName'] ]):
+    if line[header_d['ProteinName'] ] not in pep_per_prot:
       pep_per_prot[  line[header_d['ProteinName'] ] ] = {}
     pep_per_prot[  line[header_d['ProteinName'] ] ][ line[header_d['Sequence'] ]] = 0
 
-single_hits = len([0 for k,v in pep_per_prot.iteritems() if len(v) == 1])
-print "Found precursors" , i, " and peptides", len(peptides), " and proteins", len(proteins), "(single hits", single_hits, "multiple hits", len(proteins) - single_hits, ")"
+single_hits = len([0 for k,v in pep_per_prot.items() if len(v) == 1])
+print("Found precursors" , i, " and peptides", len(peptides), " and proteins", len(proteins), "(single hits", single_hits, "multiple hits", len(proteins) - single_hits, ")")
 
 
 

@@ -34,6 +34,10 @@ $Maintainer: Hannes Roest $
 $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import range
+from builtins import object
 
 # This program takes a spectral library in NIST format and converts it to csv
 #
@@ -44,10 +48,10 @@ import numpy as np
 import sys, csv
 
 if len(sys.argv) < 3:
-    print "Please use filename as the first argument"
+    print("Please use filename as the first argument")
     exit()
 
-print "Running NIST Parser"
+print("Running NIST Parser")
 fname = sys.argv[1]
 outname = sys.argv[2]
 fh = open(fname)
@@ -61,7 +65,7 @@ csv_headers = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name',
 writer = csv.writer(open(outname,'w'), dialect='excel-tab')
 writer.writerow( csv_headers )
 
-class Peak:
+class Peak(object):
     def __init__(self, mz, intens, annot):
         self.mz = float(mz)
         self.intensity = float(intens)
@@ -78,7 +82,7 @@ def handle_stack(stack):
     npeaks = stack[3]
     comments = dict([com.split("=") for com in comments_.split() if len(com.split("=")) == 2])
     peaks = [Peak(it.split()[0], it.split()[1], it.split()[2]) for it in stack[4:] if len(it.strip()) > 0]
-    print "Spectrum", Name, MW, "Nr peaks", len(peaks), npeaks
+    print("Spectrum", Name, MW, "Nr peaks", len(peaks), npeaks)
     peaks = [p for p in peaks if p.mz > 400]
     peaks.sort(lambda x,y: -cmp(x.intensity, y.intensity))
     sequence = Name.split("/")[0]

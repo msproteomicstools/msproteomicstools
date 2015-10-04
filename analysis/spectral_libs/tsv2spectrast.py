@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import time, sys
 from string import Template
@@ -55,7 +56,7 @@ infile = sys.argv[1]
 outfile = sys.argv[2]
 
 reader = csv.reader(open(infile), delimiter='\t')
-header = reader.next()
+header = next(reader)
 header_d = dict( [ (h,i) for i,h in enumerate(header)] )
 lines = list(reader)
 
@@ -148,6 +149,6 @@ for key in tr_group:
     spectrum.compress_spectra = peaks
     l.add_spectra(spectrum)
 
-print "wrote ", cnt, "transitions from a total of ", len(tr_group), "peptides"
+print("wrote ", cnt, "transitions from a total of ", len(tr_group), "peptides")
 l.write(outfile)
 

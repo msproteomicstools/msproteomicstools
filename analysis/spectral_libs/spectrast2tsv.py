@@ -36,6 +36,11 @@ $Authors: Pedro Navarro$
 """
 
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import sys
 import os
 import csv
@@ -228,7 +233,7 @@ def removeSimilarDuplicates(seq, tolerance , idfun=None) :
         marker = idfun(item)
         if not is_number(idfun(item)) : raise "comparison values are supposed to be numbers!"
 
-        for cp in seen.keys() :
+        for cp in list(seen.keys()) :
             if abs( marker - cp ) <= tolerance : catchup = True
 
         if catchup : continue
@@ -257,7 +262,7 @@ def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
     if not parameter_thresholds['id'] in searchEngineInfo :
         return True
 
-    for parameter,threshold in parameter_thresholds.iteritems() :
+    for parameter,threshold in parameter_thresholds.items() :
         if parameter in ('id') : continue
         if parameter in searchEngineInfo[parameter_thresholds['id']] :
             if float( searchEngineInfo[parameter_thresholds['id']][parameter][0] ) < float(threshold) :
@@ -295,7 +300,7 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = 
         if len(pep.modifications) == 0 : continue
         #Count the number of switching mods
         num_of_swmods = 0
-        for pos,mod in pep.modifications.iteritems() :
+        for pos,mod in pep.modifications.items() :
             if mod.unimodAccession == switchingModification : num_of_swmods += 1
         #Count the number of modification sites in the peptide
         aaTargets = [ m.aminoacid for m in modificationsLib.list if m.unimodAccession == switchingModification ]
@@ -330,9 +335,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
     precursor_cnt = 0   # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes. 
     transition_cnt = 0  # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes.
     fut_progress = 0.05
-    for pepfamily , isoforms in isobaric_species.iteritems() :
+    for pepfamily , isoforms in isobaric_species.items() :
         pepfamily_cnt += 1
-        progress = float(pepfamily_cnt) / float(len(isobaric_species))
+        progress = old_div(float(pepfamily_cnt), float(len(isobaric_species)))
         if progress >= fut_progress and progress > 0.005 : 
             print("process id:", os.getpid() , ", ", fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.05 
@@ -343,7 +348,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
         protein_desc  = pepfamily
         #for isoform, offset in isoforms.iteritems() :
         #    print "%s : %s"  % (isoform , offset)
-        for isoform_,offset in isoforms.iteritems() :
+        for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
             
@@ -354,7 +359,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                 if lock : lock.release()
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.keys() : 
+            for isof in list(isoforms.keys()) : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
             shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
@@ -369,9 +374,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
                 if spectrum.RetTime_detected:
-                    RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                    RT_experimental = old_div(spectrum.RetTime, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
                 if spectrum.iRT_detected:
-                    iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                    iRT_experimental = old_div(spectrum.iRT, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
                 else:
                     iRT_experimental = RT_experimental
                 if not useMinutes : iRT_experimental = iRT_experimental * 60
@@ -449,7 +454,7 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     # Each process will get 'chunksize' nums and a queue to put his out
     # dict into
     #out_q = multiprocessing.Queue()
-    chunksize = int(math.ceil(len(isobaric_species) / float(nprocs)))
+    chunksize = int(math.ceil(old_div(len(isobaric_species), float(nprocs))))
     print("%s peptide families divided into %s chunks of %s" % (len(isobaric_species) , nprocs, chunksize) )
     procs = []
     lock = multiprocessing.Lock()
@@ -458,13 +463,13 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     dict_chunks = {}
     last_chunk = 0
     dict_chunks[last_chunk] = {}
-    for idx, (pepf, value) in enumerate(isobaric_species.iteritems()) : #divide the dictionary into nprocs different dictionaries
-        if int(idx/chunksize) > last_chunk : 
+    for idx, (pepf, value) in enumerate(isobaric_species.items()) : #divide the dictionary into nprocs different dictionaries
+        if int(old_div(idx,chunksize)) > last_chunk : 
             last_chunk += 1
             dict_chunks[last_chunk] = {}
         dict_chunks[last_chunk][pepf] = value
 
-    for i in dict_chunks.itervalues():
+    for i in dict_chunks.values():
         p = multiprocessing.Process(
                 target=worker,
                 args=(i, lock, sptxtfile, modLibrary, aaLib, 
@@ -515,10 +520,10 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         print("done!")
         sys.exit()
     
-    for pepfamily , isoforms in isobaric_species.iteritems() :
+    for pepfamily , isoforms in isobaric_species.items() :
         #print pepfamily, [ isof for isof in isoforms]
         pepfamily_cnt += 1
-        progress = float(pepfamily_cnt) / float(len(isobaric_species))
+        progress = old_div(float(pepfamily_cnt), float(len(isobaric_species)))
         if progress >= fut_progress and progress > 0.005 : 
             print(fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.01 
@@ -529,14 +534,14 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         protein_desc  = pepfamily
         #for isoform, offset in isoforms.iteritems() :
         #    print "%s : %s"  % (isoform , offset)
-        for isoform_,offset in isoforms.iteritems() :
+        for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
             
             if offset > 0 :  _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.keys() : 
+            for isof in list(isoforms.keys()) : 
                 if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
             uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
@@ -552,9 +557,9 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             if spectrum : 
                 z_parent = float(spectrum.name.split('/')[1])
                 if spectrum.RetTime_detected:
-                    RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                    RT_experimental = old_div(spectrum.RetTime, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
                 if spectrum.iRT_detected:
-                    iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                    iRT_experimental = old_div(spectrum.iRT, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
                 else:
                     iRT_experimental = RT_experimental
                 if not useMinutes : iRT_experimental = iRT_experimental * 60
@@ -572,7 +577,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 
             if searchenginefiltered : peaks = []
             #print uis_annotated_list
-            for uis_masses, uis in uis_annotated_list.iteritems() :
+            for uis_masses, uis in uis_annotated_list.items() :
                 for uis_unit in uis :
                     # uis_annotated_list = [('y', 6, 1, 0, 646.3406318939999), ('y', 8, 1, 0, 928.365933736)]
                     #print uis_unit
@@ -796,7 +801,7 @@ def main(argv) :
     modificationsLib = Modifications()     #None
     if len(modificationsfile) > 0 :
         modificationsLib.readModificationsFile(modificationsfile)
-    print("Modifications used : ",modificationsLib.mods_TPPcode.keys())
+    print("Modifications used : ",list(modificationsLib.mods_TPPcode.keys()))
     
     
     #If a fasta file is provided, read and store it into a dictionary
@@ -884,9 +889,9 @@ def main(argv) :
             iRT_experimental = 0.0
             RT_experimental = 0.0
             if spectrum.RetTime_detected:
-                RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                RT_experimental = old_div(spectrum.RetTime, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
             if spectrum.iRT_detected:
-                iRT_experimental = spectrum.iRT / 60.0   #PeakView expect minutes, and spectraST reports seconds.
+                iRT_experimental = old_div(spectrum.iRT, 60.0)   #PeakView expect minutes, and spectraST reports seconds.
             else:
                 iRT_experimental = RT_experimental
 
@@ -966,7 +971,7 @@ def main(argv) :
                         #print mz, peak.frg_loss, abs(mz + peak.frg_loss[0] )
                         if abs(mz + peak.frg_loss[0]) < 0.05 :
                             objfound = True
-                            if useexactmass : fragment_mz += (mz / peak.frg_z )
+                            if useexactmass : fragment_mz += (old_div(mz, peak.frg_z) )
                             peak.frg_serie = peak.frg_serie + str(int(round(mz)))
                     if not objfound : continue
                 if peak.is_frg_gain :
@@ -974,7 +979,7 @@ def main(argv) :
                     for mz in gain_or_loss_mz :
                         if abs(mz - peak.frg_gain[0]) < 0.05 :
                             objfound = True
-                            if useexactmass : fragment_mz += ( mz / peak.frg_z )
+                            if useexactmass : fragment_mz += ( old_div(mz, peak.frg_z) )
                             peak.frg_serie = peak.frg_serie + '+' + str(int(round(mz)))
                     if not objfound : continue
 
@@ -1095,7 +1100,7 @@ def main(argv) :
 
 
                     for aa in sequence_heavy :
-                        if aa in labeling : precursorMZ_heavy += labeling[aa].deltamass / z_parent
+                        if aa in labeling : precursorMZ_heavy += old_div(labeling[aa].deltamass, z_parent)
 
                     frg_seq = sequence_heavy
                     #b series
@@ -1104,15 +1109,15 @@ def main(argv) :
                     if frg_serie == 'y': frg_seq = sequence_heavy[-frg_number:]
 
                     for aa in frg_seq :
-                        if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
+                        if aa in labeling : fragment_mz_heavy += old_div(labeling[aa].deltamass, frg_z)
 
                     #Check for C- and N-terminal labelings
                     if 'C-term' in labeling :
-                        precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
-                        if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
+                        precursorMZ_heavy += old_div(labeling['C-term'].deltamass, z_parent)
+                        if frg_serie == 'y' : fragment_mz_heavy += old_div(labeling['C-term'].deltamass,frg_z)
                     if 'N-term' in labeling :
-                        precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
-                        if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
+                        precursorMZ_heavy += old_div(labeling['N-term'].deltamass, z_parent)
+                        if frg_serie == 'b' : fragment_mz_heavy += old_div(labeling['N-term'].deltamass,frg_z)
 
 
                     #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.
@@ -1214,7 +1219,7 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
 
 
             for aa in sequence_heavy :
-                if aa in labeling : precursorMZ_heavy += labeling[aa].deltamass / z_parent
+                if aa in labeling : precursorMZ_heavy += old_div(labeling[aa].deltamass, z_parent)
 
             frg_seq = sequence_heavy
             #b series
@@ -1223,15 +1228,15 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
             if frg_serie == 'y': frg_seq = sequence_heavy[-frg_number:]
 
             for aa in frg_seq :
-                if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
+                if aa in labeling : fragment_mz_heavy += old_div(labeling[aa].deltamass, frg_z)
 
             #Check for C- and N-terminal labelings
             if 'C-term' in labeling :
-                precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
-                if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
+                precursorMZ_heavy += old_div(labeling['C-term'].deltamass, z_parent)
+                if frg_serie == 'y' : fragment_mz_heavy += old_div(labeling['C-term'].deltamass,frg_z)
             if 'N-term' in labeling :
-                precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
-                if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
+                precursorMZ_heavy += old_div(labeling['N-term'].deltamass, z_parent)
+                if frg_serie == 'b' : fragment_mz_heavy += old_div(labeling['N-term'].deltamass,frg_z)
 
 
             #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.

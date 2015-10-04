@@ -1,3 +1,6 @@
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import zip
 # Useage: python trafoXML_visualize.py input.trafoXML output_dir
 import re, numpy, sys
 from matplotlib.mlab import * 
@@ -23,7 +26,7 @@ for pair in pair_re.finditer(text):
 A = np.vstack([x, np.ones(len(x))]).T
 m, c = numpy.linalg.lstsq(A,y)[0]
 
-print "Use linear fit", m, c
+print("Use linear fit", m, c)
 
 # calculate resides
 residues = []

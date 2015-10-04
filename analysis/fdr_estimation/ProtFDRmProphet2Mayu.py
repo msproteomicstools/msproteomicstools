@@ -49,7 +49,7 @@ if __name__=="__main__":
     infile = csv.reader(filehandler, delimiter="\t")
 
     # Inputheader
-    header = infile.next()
+    header = next(infile)
     header_dict = dict([(h, i) for i,h in enumerate(header)])
 
     write_output(infile, outfile)

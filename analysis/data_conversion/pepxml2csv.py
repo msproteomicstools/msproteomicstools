@@ -34,6 +34,9 @@ $Maintainer: Pedro Navarro$
 $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
+from builtins import str
+from builtins import range
 
 import sys
 import os.path
@@ -207,13 +210,13 @@ for hit in reader :
 	if not 'search_hit' in hit : continue
 	
 	if not headerset : #read the elements the header is going to contain
-		non_iterable_search_hit = [ i for i in hit['search_hit'][0].iterkeys() ]
+		non_iterable_search_hit = [ i for i in hit['search_hit'][0].keys() ]
 		for el in iterable_items : 
 			if el in non_iterable_search_hit : non_iterable_search_hit.remove(el)
 			non_iterable_search_hit.extend(hit['search_hit'][0][el])
 		for el in iterable_listdict_items :
 			if el in non_iterable_search_hit : non_iterable_search_hit.remove(el)
-			non_iterable_search_hit.extend([i for i in hit['search_hit'][0][el][0].iterkeys()])
+			non_iterable_search_hit.extend([i for i in hit['search_hit'][0][el][0].keys()])
 		header.extend(non_iterable_search_hit)
 		#Generate a header dictionary
 		header_dict = dict([ (l,i) for i,l in enumerate(header)])
@@ -223,7 +226,7 @@ for hit in reader :
 	new_row = []
 	for element in hit :
 		if element in header_dict : new_row.append( (header_dict[element] , hit[element]) )
-	for id, element in hit['search_hit'][0].iteritems() :
+	for id, element in hit['search_hit'][0].items() :
 		if id == 'modifications' : 
 			#Pass the list of dictionaries as a string
 			mods = ','.join(str(x) for x in element)
@@ -231,15 +234,15 @@ for hit in reader :
 			continue
 		if id in header_dict : new_row.append( (header_dict[id], element) )
 	for itelement in iterable_items : 
-		for id,element in hit['search_hit'][0][itelement].iteritems() :
+		for id,element in hit['search_hit'][0][itelement].items() :
 			if id in header_dict : new_row.append( (header_dict[id], element) )
 	for itelement in iterable_listdict_items :
 		dict_elements = {}
 		for d in hit['search_hit'][0][itelement] :
-			for id,el in d.iteritems() :
+			for id,el in d.items() :
 				if id in dict_elements : dict_elements[id] += "#" + str(el)
 				else : dict_elements[id] = str(el)
-		for id, element in dict_elements.iteritems() :
+		for id, element in dict_elements.items() :
 			if id in header_dict : new_row.append( (header_dict[id], element) )
 	
 	
@@ -252,7 +255,7 @@ for hit in reader :
 
 	writer.writerow(new_row_formatted)
 
-print "...file %s written." % outfile
+print("...file %s written." % outfile)
 
 	
 	

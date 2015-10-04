@@ -34,6 +34,9 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import division
+from __future__ import print_function
+from past.utils import old_div
 
 import re, csv, sys
 
@@ -71,7 +74,7 @@ outfilename = sys.argv[3]
 
 filename = full_filename.split(".mzXML")
 if len(filename) != 2:
-    print "Error, first parameter needs to be an mzXML file, was", full_filename
+    print("Error, first parameter needs to be an mzXML file, was", full_filename)
     sys.exit()
 
 filename = filename[0]
@@ -109,7 +112,7 @@ def rewrite_single_scan(mybuffer, swathscan):
     try:
         start = float(paramfile[ scanwindow ][0])
         end = float(paramfile[ scanwindow ][1])
-        middle = (start + end)/2.0
+        middle = old_div((start + end),2.0)
         width = end - start
     except IndexError:
         # Catch error condition
@@ -122,11 +125,11 @@ def rewrite_single_scan(mybuffer, swathscan):
         # Ensure that the center of the window is inside the SWATH 
         old_center = float(precursor_match.group(2))
         if not (old_center > start and old_center < end):
-            print "WARNING: previous precursorMz", old_center, \
-              "did not fall inside the expected SWATH window %s to %s." % (start, end)
+            print("WARNING: previous precursorMz", old_center, \
+              "did not fall inside the expected SWATH window %s to %s." % (start, end))
             start, end = estimateCorrectSwathScan(old_center)
-            print "  Will replace it with a window from %s to %s" % (start, end)
-            middle = (start + end)/2.0
+            print("  Will replace it with a window from %s to %s" % (start, end))
+            middle = old_div((start + end),2.0)
             width = end - start
 
     mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %

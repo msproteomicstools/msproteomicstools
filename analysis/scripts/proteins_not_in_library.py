@@ -76,7 +76,7 @@ def map_fasta_identifier(fasta_file):
 mpr = open(options.csv_file)
 mapping = map_fasta_identifier(options.fasta_file)
 r = csv.reader(mpr, delimiter="\t")
-header = r.next()
+header = next(r)
 header_d = dict([(c,i) for i,c in enumerate(header)])
 
 # Collect all the proteins that were found

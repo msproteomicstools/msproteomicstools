@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest $
 $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import pyopenms
 import numpy as np
@@ -47,7 +48,7 @@ import sys
 # Output: output in mzML format
 
 if len(sys.argv) < 3:
-    print "Please use filename as the first argument and the outputname as the second argument"
+    print("Please use filename as the first argument and the outputname as the second argument")
     exit()
 
 fname = sys.argv[1]
@@ -71,11 +72,11 @@ def handle_stack(stack, mslevel):
         mz = [float(it[0]) for it in pairs]
         intensity = [float(it[1]) for it in pairs]
     except ValueError:
-        print "Could not convert", len(stack), "with pairs" , len(pairs)
+        print("Could not convert", len(stack), "with pairs" , len(pairs))
         return
     assert len(mz) == len(intensity)
     #
-    print "Handle scan at rt", rt
+    print("Handle scan at rt", rt)
     peaks = np.ndarray(shape=(len(mz), 2), dtype=np.float32)
     peaks[:,0] = mz
     peaks[:,1] = intensity

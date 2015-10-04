@@ -27,6 +27,12 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import sys
 import os
 import csv
@@ -44,9 +50,9 @@ from msproteomicstoolslib.math.chauvenet import *
 def lmedian(valarr):
   vals = sorted(valarr)
   if len(vals) % 2 == 1:
-    return vals[(len(vals)+1)/2-1]
+    return vals[old_div((len(vals)+1),2)-1]
   else:
-    return vals[len(vals)/2-1]
+    return vals[old_div(len(vals),2)-1]
 
 def all_indices(value, qlist):
   indices = []
@@ -59,7 +65,7 @@ def all_indices(value, qlist):
       break
   return indices
 
-class sptxtio:
+class sptxtio(object):
   def __init__(self):
     self.header = []
     self.spectra = []
@@ -84,7 +90,7 @@ class sptxtio:
       sptxt_lines = sptxt_infile.readlines()
       sptxt_infile.close()
     except IOError:
-      print file, "not readable"
+      print(file, "not readable")
     
     sptxt_header = []
     sptxt_block = []
@@ -126,7 +132,7 @@ class sptxtio:
         newblocks.append(block)
       self.blocks = newblocks
     except IOError:
-      print file, "not readable"
+      print(file, "not readable")
     sptxt_outfile.close()
 
   def report(self,file):
@@ -135,13 +141,13 @@ class sptxtio:
       report = csv.writer(report_outfile, delimiter=',')
       report.writerow(['peptide','rt','irt','rt_lmedian','rt_mean','rt_sd','irt_lmedian','irt_mean','irt_sd','rt_run_lmedian','rt_run_mean','rt_run_sd'])
       ind = {}
-      for spectrum in self.irt.keys():
+      for spectrum in list(self.irt.keys()):
         for peptide in self.irt[spectrum]:
           if peptide not in ind:
             ind[peptide] = []
           ind[peptide].append(spectrum)
 
-      for peptide in ind.keys():
+      for peptide in list(ind.keys()):
         rt = []
         irt = []
         rt_run_median = []
@@ -155,7 +161,7 @@ class sptxtio:
           rt_run_sd.append(spectrum+":"+str(std(self.rt_run[spectrum][peptide])))
         report.writerow([peptide,lmedian(rt),self.irt_merged[peptide],lmedian(rt),mean(rt),std(rt),lmedian(irt),mean(irt),std(irt),";".join(rt_run_median),";".join(rt_run_mean),";".join(rt_run_sd)])
     except IOError:
-      print file, "not readable"
+      print(file, "not readable")
     report_outfile.close()
 
   def push(self,block):
@@ -178,7 +184,7 @@ class sptxtio:
 
     self.spectrum_block_map[block.rawspectrum][block.peptide] = block
     
-    if not self.rt_all[block.rawspectrum].has_key(block.peptide):
+    if block.peptide not in self.rt_all[block.rawspectrum]:
       self.rt_all[block.rawspectrum][block.peptide] = []
       self.prob_all[block.rawspectrum][block.peptide] = []
     self.rt_all[block.rawspectrum][block.peptide].append(block.rt)
@@ -188,7 +194,7 @@ class sptxtio:
     self.header = header
   
   def merge(self,rmout):
-    for rawspectrum in self.rt_all.keys():
+    for rawspectrum in list(self.rt_all.keys()):
       for peptide in self.rt_all[rawspectrum]:
         rt = []
         for idx in all_indices(sorted(self.prob_all[rawspectrum][peptide], reverse=True)[0],self.prob_all[rawspectrum][peptide]):
@@ -206,27 +212,27 @@ class sptxtio:
     for rawspectrum in self.spectra:
       rt_calibration = []
       irt_calibration = []
-      print "RT peptides used per run:"
-      print "run\tpeptide\trt\tirt"
+      print("RT peptides used per run:")
+      print("run\tpeptide\trt\tirt")
       for peptide in self.rt[rawspectrum]:
         peptide_sequence = self.spectrum_block_map[rawspectrum][peptide].sequence
-        if peptide_sequence in rtkit.keys():
+        if peptide_sequence in list(rtkit.keys()):
           if rawspectrum in outliers:
             if peptide_sequence not in outliers[rawspectrum]:
               rt_calibration.append(self.rt[rawspectrum][peptide])
               irt_calibration.append(rtkit[peptide_sequence])
-              print rawspectrum + "\t" + peptide_sequence + "\t" + str(self.rt[rawspectrum][peptide]) + "\t" + str(rtkit[peptide_sequence])
+              print(rawspectrum + "\t" + peptide_sequence + "\t" + str(self.rt[rawspectrum][peptide]) + "\t" + str(rtkit[peptide_sequence]))
           else:
             rt_calibration.append(self.rt[rawspectrum][peptide])
             irt_calibration.append(rtkit[peptide_sequence])
-            print rawspectrum + "\t" + peptide_sequence + "\t" + str(self.rt[rawspectrum][peptide]) + "\t" + str(rtkit[peptide_sequence])
+            print(rawspectrum + "\t" + peptide_sequence + "\t" + str(self.rt[rawspectrum][peptide]) + "\t" + str(rtkit[peptide_sequence]))
 
       if len(rt_calibration) < 2:
         missingirt.append(rawspectrum)
 
       if len(rt_calibration) >= 2:
-        if rawspectrum in linregs.keys():
-          print "Replacing iRT normalization of run " + rawspectrum + " with c: " + str(linregs[rawspectrum]['b']) + " m: " + str(linregs[rawspectrum]['a']) + "."
+        if rawspectrum in list(linregs.keys()):
+          print("Replacing iRT normalization of run " + rawspectrum + " with c: " + str(linregs[rawspectrum]['b']) + " m: " + str(linregs[rawspectrum]['a']) + ".")
           self.a[rawspectrum] = linregs[rawspectrum]['a']
           self.b[rawspectrum] = linregs[rawspectrum]['b']
           self.rsq[rawspectrum] = 1.0
@@ -240,18 +246,18 @@ class sptxtio:
           plt.plot(rt_calibration,irt_calibration, 'b.',rt_calibration,fit_fn(rt_calibration),'-r')
           plt.savefig(rawspectrum+'.png')
 
-    for host in surrogates.keys():
-      print "Replacing iRT normalization of run " + host + " with " + surrogates[host] + "."
+    for host in list(surrogates.keys()):
+      print("Replacing iRT normalization of run " + host + " with " + surrogates[host] + ".")
       self.a[host] = self.a[surrogates[host]]
       self.b[host] = self.b[surrogates[host]]
       self.rsq[host] = self.rsq[surrogates[host]]
-      missingirt = filter (lambda a: a != host, missingirt)
+      missingirt = [a for a in missingirt if a != host]
 
     if len(missingirt) > 0:
-      print "Did you search for the true sequences?"
-      print "Did you use a non-consensus and without best replicates summarization spectral library?"
-      print "Did you add the Biognosys RT-kit to all of your samples?"
-      print "The following runs don't contain peptides from the Biognosys RT-kit:",missingirt
+      print("Did you search for the true sequences?")
+      print("Did you use a non-consensus and without best replicates summarization spectral library?")
+      print("Did you add the Biognosys RT-kit to all of your samples?")
+      print("The following runs don't contain peptides from the Biognosys RT-kit:",missingirt)
       raise Exception("Error: At least one of your runs doesn't contain any peptides from the Biognosys RT-kit!")
 
     for rawspectrum in self.spectra:
@@ -260,14 +266,14 @@ class sptxtio:
 
   def transform(self,rmout):
     irt = {}
-    for rawspectrum in self.rt.keys():
-      for peptide in self.rt[rawspectrum].keys():
+    for rawspectrum in list(self.rt.keys()):
+      for peptide in list(self.rt[rawspectrum].keys()):
         self.irt[rawspectrum][peptide] = scipy.polyval([self.a[rawspectrum],self.b[rawspectrum]],self.rt[rawspectrum][peptide])
-        if peptide not in irt.keys():
+        if peptide not in list(irt.keys()):
           irt[peptide] = []
         irt[peptide].append(self.irt[rawspectrum][peptide])
 
-    for peptide in irt.keys():
+    for peptide in list(irt.keys()):
       if len(irt) == 1:
         self.irt_merged[peptide] = round(irt[peptide][0],5)
       else:
@@ -279,7 +285,7 @@ class sptxtio:
     for i in range(0,len(self.blocks)):
       self.blocks[i].replace(self.irt_merged[self.blocks[i].peptide])
 
-class blockio:
+class blockio(object):
   def __init__(self,libid,peptide,sequence,charge,mods,rawspectrum,rt,prob,block):
     self.libid = libid
     self.peptide = peptide
@@ -305,7 +311,7 @@ class blockio:
       block_new.append(line)
     self.block = block_new
 
-class pepidxio:
+class pepidxio(object):
   def __init__(self,blocks):
     self.blocks = blocks
     self.pepindex = {}
@@ -324,7 +330,7 @@ class pepidxio:
         line = key + ' '.join(str(x) for x in self.pepindex[key]) + "\n"
         pepidx_out.write(line)
     except IOError:
-      print pepidx_outfile, "not readable"
+      print(pepidx_outfile, "not readable")
     pepidx_out.close()
 
 # MAIN
@@ -385,26 +391,26 @@ def main(argv):
         rsq_threshold = float(arg)
 
   if help or not splib_in or not splib_out:
-    print "SpectraST RT Normalizer"
-    print "---------------------------------------------------------------------------------------------"
-    print "Usage:     spectrast2spectrast_irt.py -i non_consensus_library.[splib/sptxt] -o non_consensus_library_irt.splib"
-    print "Input:     SpectraST non_consensus_library.splib in txt format"
-    print "Output:    SpectraST non_consensus_library_irt.[splib/pepidx] and regression plots for all runs."
-    print "Argument:  -i [--in]: input file"
-    print "           -o [--out]: output file"
-    print "           (optional) -k [--kit]: specifiy RT-kit [LGGNEQVTR:-28.3083,GAGSSEPVTGLDAK:0.227424,VEATFGVDESNAK:13.1078,YILAGVENSK:22.3798,TPVISGGPYEYR:28.9999,TPVITGAPYEYR:33.6311,DGLDAASYYAPVR:43.2819,ADVTPADFSEWSK:54.969,GTFIIDPGGVIR:71.3819,GTFIIDPAAVIR:86.7152,LFLQFGAQGSPFLK:98.0897]"
-    print "           (optional) -a [--applychauvenet]: should Chavenet's criterion be used to exclude outliers?"
-    print "           (optional) -p [--precursorlevel]: should precursors instead of peptides be used for grouping?"
-    print "           (optional)    [--spectralevel]: do not merge or group any peptides or precursors (use raw spectra)"
-    print "           (optional) -r [--report]: should a csv report be written?"
-    print "           (optional) -e [--exclude]: specify peptides from the RT-kit to exclude [run_id1:LGGNEQVTR,run_id2:GAGSSEPVTGLDAK]"
-    print "           (optional) -s [--surrogate]: specify surrogate calibrations [broken_run_id1:working_run_id2]"
-    print "           (optional) -l [--linearregression]: specify surrogate linear regressions (first number: c, second number: m) [broken_run_id1:1/3]"
-    print "           (optional) -t [--rsq_threshold]: specify r-squared threshold to accept linear regression [0.95]"
-    print "Important: The splib need to be in txt format!"
-    print "           spectrast -c_BIN! -cNnon_consensus.txt non_consensus.bin.splib"
-    print "           All runs in your library further need to contain the Biognosys RT-kit peptides."
-    print "Contact:   George Rosenberger <rosenberger@imsb.biol.ethz.ch>"
+    print("SpectraST RT Normalizer")
+    print("---------------------------------------------------------------------------------------------")
+    print("Usage:     spectrast2spectrast_irt.py -i non_consensus_library.[splib/sptxt] -o non_consensus_library_irt.splib")
+    print("Input:     SpectraST non_consensus_library.splib in txt format")
+    print("Output:    SpectraST non_consensus_library_irt.[splib/pepidx] and regression plots for all runs.")
+    print("Argument:  -i [--in]: input file")
+    print("           -o [--out]: output file")
+    print("           (optional) -k [--kit]: specifiy RT-kit [LGGNEQVTR:-28.3083,GAGSSEPVTGLDAK:0.227424,VEATFGVDESNAK:13.1078,YILAGVENSK:22.3798,TPVISGGPYEYR:28.9999,TPVITGAPYEYR:33.6311,DGLDAASYYAPVR:43.2819,ADVTPADFSEWSK:54.969,GTFIIDPGGVIR:71.3819,GTFIIDPAAVIR:86.7152,LFLQFGAQGSPFLK:98.0897]")
+    print("           (optional) -a [--applychauvenet]: should Chavenet's criterion be used to exclude outliers?")
+    print("           (optional) -p [--precursorlevel]: should precursors instead of peptides be used for grouping?")
+    print("           (optional)    [--spectralevel]: do not merge or group any peptides or precursors (use raw spectra)")
+    print("           (optional) -r [--report]: should a csv report be written?")
+    print("           (optional) -e [--exclude]: specify peptides from the RT-kit to exclude [run_id1:LGGNEQVTR,run_id2:GAGSSEPVTGLDAK]")
+    print("           (optional) -s [--surrogate]: specify surrogate calibrations [broken_run_id1:working_run_id2]")
+    print("           (optional) -l [--linearregression]: specify surrogate linear regressions (first number: c, second number: m) [broken_run_id1:1/3]")
+    print("           (optional) -t [--rsq_threshold]: specify r-squared threshold to accept linear regression [0.95]")
+    print("Important: The splib need to be in txt format!")
+    print("           spectrast -c_BIN! -cNnon_consensus.txt non_consensus.bin.splib")
+    print("           All runs in your library further need to contain the Biognosys RT-kit peptides.")
+    print("Contact:   George Rosenberger <rosenberger@imsb.biol.ethz.ch>")
     sys.exit()
 
   # splib containing all spectra

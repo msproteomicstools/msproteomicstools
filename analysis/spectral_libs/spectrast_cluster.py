@@ -34,6 +34,9 @@ $Maintainer: Pedro Navarro$
 $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
+from builtins import str
+from builtins import range
 
 import sys
 import os
@@ -52,16 +55,16 @@ from sklearn.neighbors import kneighbors_graph
 import     msproteomicstoolslib.format.speclib_db_lib         as         speclib_db_lib
 
 def usage() :
-    print ""
-    print "spectrast_cluster.py"
+    print("")
+    print("spectrast_cluster.py")
     print ("-" * 20)
-    print "This script clusters by iRT peptide spectra from spectraST, and writes the clusters in separate .sptxt files"
-    print ""
-    print "Usage: "
-    print "python cluster_spectrast.py [options] spectrast_file(s)"
-    print "-h            --help        Display this help"
-    print "-d    distance        --distance        Cluster distance. Default : 1"
-    print ""
+    print("This script clusters by iRT peptide spectra from spectraST, and writes the clusters in separate .sptxt files")
+    print("")
+    print("Usage: ")
+    print("python cluster_spectrast.py [options] spectrast_file(s)")
+    print("-h            --help        Display this help")
+    print("-d    distance        --distance        Cluster distance. Default : 1")
+    print("")
 
 def clusterRT_ward(values) :
     if len(values) == 0 : return []
@@ -179,10 +182,10 @@ def main(argv) :
 
     for sptxtfile in sptxtfiles :
         transitions = []
-        print "Reading : " , sptxtfile
+        print("Reading : " , sptxtfile)
         assert sptxtfile[-6:] == '.sptxt'
         if not os.path.exists(sptxtfile):
-            print "The file: %s does not exist!" % sptxtfile
+            print("The file: %s does not exist!" % sptxtfile)
             sys.exit(2)
             
         library_key = 99
@@ -213,10 +216,10 @@ def main(argv) :
             if spectrum.iRT_detected:
               rt             = spectrum.iRT
             if not spectrum.RetTime_detected and not spectrum.iRT_detected:
-              print "No RT/iRT was detected for %s" % spectrum.name
+              print("No RT/iRT was detected for %s" % spectrum.name)
               sys.exit(2)
             
-            if sequence in peptide_spectra.keys() :
+            if sequence in list(peptide_spectra.keys()) :
                 peptide_spectra[sequence][last_offset] = rt
             else :
                 peptide_spectra[sequence] = { last_offset : rt }
@@ -225,16 +228,16 @@ def main(argv) :
         max_num_of_clusters = 0
         peptide_spectra_cl = {}
         
-        print "cluster spectra by iRTs..."
-        for sequence, spectra in peptide_spectra.iteritems() :
-            print sequence  #, spectra
-            rt_clusters = clusterRT(spectra.values(), distance, algorithm = algorithm)
+        print("cluster spectra by iRTs...")
+        for sequence, spectra in peptide_spectra.items() :
+            print(sequence)  #, spectra
+            rt_clusters = clusterRT(list(spectra.values()), distance, algorithm = algorithm)
             
             if len(rt_clusters) > max_num_of_clusters : max_num_of_clusters = len(rt_clusters)
             
             peptide_spectra_cl[sequence] = {}
             
-            for spectrum, rt in spectra.iteritems() :
+            for spectrum, rt in spectra.items() :
                 # Determine cluster number for this rt
                 cl_index = -1
                 for index, cluster in enumerate(rt_clusters) :
@@ -250,13 +253,13 @@ def main(argv) :
         splitfiles = [ open(sptxtfile[:-6]+"_"+str(x+1)+".sptxt",'w') for x in  range(max_num_of_clusters)  ]        
 
         #init the files by using the original header
-        print "%s files will be created." % max_num_of_clusters
+        print("%s files will be created." % max_num_of_clusters)
         
         original_header = spectrastlib.get_fileheader(sptxtfile)
         for file in splitfiles :
             for line in original_header : file.write(line)
                      
-        for sequence, spectra in peptide_spectra_cl.iteritems() :
+        for sequence, spectra in peptide_spectra_cl.items() :
             for spectrum in spectra :
                 sp = spectrastlib.get_rawspectrum_with_offset(sptxtfile,spectrum)  #get the spectrum
                 
@@ -276,7 +279,7 @@ def main(argv) :
         for file in splitfiles :
             file.close()
         
-        print "done."
+        print("done.")
         
 if __name__ == '__main__':
     main(sys.argv[1:])
