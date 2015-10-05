@@ -34,7 +34,6 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
-
 import os
 
 import unittest

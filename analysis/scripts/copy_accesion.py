@@ -10,7 +10,7 @@ def main(argv):
     protDB = ProteinDB()
     protDB.readFasta(fasta)
     
-    for protein in protDB.proteinDictionary.itervalues() :
+    for protein in protDB.proteinDictionary.values() :
         code1 = protein.code1
         code2 = protein.code2
         if len(code1) == 0 : code1 = code2 

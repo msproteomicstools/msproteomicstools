@@ -81,7 +81,7 @@ def map_fasta_identifier(fasta_file):
 mapping = map_fasta_identifier(options.fasta_file)
 r = csv.reader(mpr, delimiter="\t")
 we = csv.writer(out, delimiter="\t")
-header = r.next()
+header = next(r)
 header.append("ProteinDescription")
 header_d = dict([(c,i) for i,c in enumerate(header)])
 we.writerow(header)

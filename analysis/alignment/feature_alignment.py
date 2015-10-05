@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os, sys, csv, time
 import numpy
@@ -51,7 +52,7 @@ from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligne
 from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
-class AlignmentStatistics():
+class AlignmentStatistics(object):
 
     def __init__(self): 
         self.nr_aligned = 0
@@ -120,7 +121,7 @@ class Experiment(MRExperiment):
         self.transformation_collection = TransformationCollection()
 
     def estimate_real_fdr(self, multipeptides, fraction_needed_selected):
-        class DecoyStats():
+        class DecoyStats(object):
             def __init__(self):
                 self.est_real_fdr = 0.0
                 self.nr_decoys = 0
@@ -187,21 +188,21 @@ class Experiment(MRExperiment):
         #
         print("="*75)
         print("="*75)
-        print("Total we have", len(self.runs), "runs with", alignment.nr_good_precursors, \
-                "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " + \
-                "giving maximally nr peakgroups", max_pg)
-        print("We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned", \
-                alignment.nr_aligned)
-        print("  The order of", alignment.nr_changed, "peakgroups was changed,", max_pg - alignment.nr_quantified, \
-                "could not be aligned and %s were removed. Ambigous cases: %s, multiple suitable peakgroups: %s" % (
-                    alignment.nr_removed, self.nr_ambiguous, self.nr_multiple_align))
+        print("Total we have", len(self.runs), "runs with", alignment.nr_good_precursors,
+              "peakgroups quantified in at least %s run(s) below m_score (q-value) %0.4f %%" % (min_nrruns, fdr_cutoff*100) + ", " +
+              "giving maximally nr peakgroups", max_pg)
+        print("We were able to quantify", alignment.nr_quantified, "/", max_pg, "peakgroups of which we aligned",
+              alignment.nr_aligned)
+        print("  The order of", alignment.nr_changed, "peakgroups was changed,", max_pg - alignment.nr_quantified,
+              "could not be aligned and %s were removed. Ambigous cases: %s, multiple suitable peakgroups: %s" % (
+              alignment.nr_removed, self.nr_ambiguous, self.nr_multiple_align))
         print("We were able to quantify %s / %s precursors in %s runs, and %s in all runs (up from %s before alignment)" % (
           alignment.nr_quant_precursors, alignment.nr_good_precursors, min_nrruns, nr_precursors_in_all, precursors_in_all_runs_wo_align))
         print("We were able to quantify %s / %s peptides in %s runs, and %s in all runs (up from %s before alignment)" % (
-          len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target))
+              len(alignment.quant_peptides), len(alignment.good_peptides), min_nrruns, nr_peptides_target, peptides_in_all_runs_wo_align_target))
         print("We were able to quantify %s / %s proteins in %s runs, and %s in all runs (up from %s before alignment)" % (
-          len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target))
-        print("  Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins))
+              len(alignment.quant_proteins), len(alignment.good_proteins), min_nrruns, nr_proteins_target, proteins_in_all_runs_wo_align_target))
+        print("Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins))
 
         # Get decoy estimates
         decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
@@ -213,8 +214,8 @@ class Experiment(MRExperiment):
                 dstats.decoy_pcnt, dstats.nr_decoys, dstats.nr_decoys + dstats.nr_targets, dstats.est_real_fdr*100))
 
             print("There were", decoy_precursors, "decoy precursors identified out of", \
-                    alignment.nr_quant_precursors + decoy_precursors, "precursors which is %0.4f %%" % (
-                        decoy_precursors *100.0 / (alignment.nr_quant_precursors + decoy_precursors)))
+                  alignment.nr_quant_precursors + decoy_precursors, "precursors which is %0.4f %%" % (
+                      decoy_precursors * 100.0 / (alignment.nr_quant_precursors + decoy_precursors)))
 
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
@@ -678,4 +679,3 @@ def main(options):
 if __name__=="__main__":
     options = handle_args()
     main(options)
-

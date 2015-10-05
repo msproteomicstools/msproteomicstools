@@ -36,6 +36,8 @@ $Authors: Hannes Roest$
 """
 
 from __future__ import print_function
+from __future__ import division
+
 import os, sys, csv, time
 import numpy
 import argparse
@@ -71,15 +73,15 @@ class ImputeValuesHelper(object):
             mz(float): the mz value of the precursor
         """
         mz = mz + SWATH_EDGE_SHIFT
-        swath_window_low = int(mz / 25) *25
-        swath_window_high = int(mz / 25) *25 + 25
+        swath_window_low = int(mz // 25) * 25
+        swath_window_high = int(mz // 25) * 25 + 25
         res = {}
-        for k,v in swath_chromatograms.items():
+        for k, v in swath_chromatograms.items():
             # TODO smarter selection here
-            selected = [vv for prec_mz,vv in v.items() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
+            selected = [vv for prec_mz, vv in v.items() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
             if len(v) == 1: 
                 # We have merged chrom.mzML file (only one file)
-                selected = v.values()
+                selected = list(v.values())
             if len(selected) == 1: 
                 res[k] = selected[0]
         return res
@@ -194,7 +196,7 @@ class SwathChromatogramCollection(object):
             print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
     def getRunIDs(self):
-        return self.allruns.keys()
+        return list(self.allruns.keys())
 
 # Main entry points:
 # runSingleFileImputation -> for tree based, new imputation
@@ -239,7 +241,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     sequences_mapping = {}
     protein_mapping = {}
     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
-    mapping_inv = dict([(v[0],k) for k,v in mapping.items()])
+    mapping_inv = dict((v[0], k) for k, v in mapping.items())
     if VERBOSE:
         print (mapping)
 
@@ -414,7 +416,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
     """
 
     # Go through all aligned peptides
-    class CounterClass: pass
+    class CounterClass(object): pass
     cnt = CounterClass()
     cnt.integration_bnd_warnings = 0
     cnt.imputations = 0
@@ -662,7 +664,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     newpg.set_value("run_id", current_rid)
     newpg.set_value("filename", orig_filename)
     newpg.set_value("align_origfilename", aligned_filename)
-    newpg.set_value("RT", (left_start + right_end) / 2.0 )
+    newpg.set_value("RT", (left_start + right_end) / 2.0)
     newpg.set_value("leftWidth", left_start)
     newpg.set_value("rightWidth", right_end)
     newpg.set_value("m_score", 2.0)
@@ -670,8 +672,8 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
     newpg.set_value("peak_group_rank", -1)
 
     import uuid 
-    thisid = str(uuid.uuid1() )
-    newpg.set_normalized_retentiontime((left_start + right_end) / 2.0 )
+    thisid = str(uuid.uuid1())
+    newpg.set_normalized_retentiontime((left_start + right_end) / 2.0)
     newpg.set_fdr_score(2.0)
     newpg.set_feature_id(thisid)
     if not is_test:
@@ -800,4 +802,3 @@ def main(options):
 if __name__=="__main__":
     options = handle_args()
     main(options)
-

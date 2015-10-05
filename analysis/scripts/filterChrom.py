@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest $
 $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 
 import sys, re
@@ -41,9 +42,9 @@ import numpy
 import pyopenms
 
 if len(sys.argv) < 4:
-  print "A small program that will filter chromatogram mzML file by their native id" 
-  print "Usage: python filterChrom.py infile.mzML outfile.mzML chrom_id inverse" 
-  print "Note: chrom_id can be a regex; using True as 'inverse' argument allows to do inverse matching"
+  print("A small program that will filter chromatogram mzML file by their native id") 
+  print("Usage: python filterChrom.py infile.mzML outfile.mzML chrom_id inverse") 
+  print("Note: chrom_id can be a regex; using True as 'inverse' argument allows to do inverse matching")
   sys.exit()
 
 infile = sys.argv[1]
@@ -53,7 +54,7 @@ inverse = False
 if len(sys.argv) > 4:
     inverse = bool(sys.argv[4])
 
-print "Will filter with criteria ", filter_criteria, "(inverse: %s)" % inverse
+print("Will filter with criteria ", filter_criteria, "(inverse: %s)" % inverse)
 
 chroms_out = []
 try:
@@ -61,7 +62,7 @@ try:
     import pymzml
     exp2 = pyopenms.MSExperiment()
     run = pymzml.run.Reader(infile, build_index_from_scratch=True)
-    for key in run.info['offsets'].keys():
+    for key in list(run.info['offsets'].keys()):
         if key == "indexList": continue
         if key == "TIC": continue
         if (inverse and not re.search(filter_criteria, key)) \
@@ -96,8 +97,7 @@ except ImportError:
 
 
 # Sort chromatograms and store again
-print "Retrieved", len(chroms_out), "chromatograms."
-chroms_out.sort(lambda x,y: cmp(x.getNativeID(), y.getNativeID()))
+print("Retrieved", len(chroms_out), "chromatograms.")
+chroms_out.sort(key=lambda x: x.getNativeID())
 exp2.setChromatograms(chroms_out)
 pyopenms.MzMLFile().store(outfile, exp2)
-

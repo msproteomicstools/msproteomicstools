@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest $
 $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
+from __future__ import division
 
 # Script to generate a set of SWATH MS files for testing
 # 
@@ -53,8 +54,8 @@ def getSwathExperiment(nr_scans, nr_swathes, precusorsisolation):
         ms1_spec = pyopenms.MSSpectrum()
         ms1_spec.setMSLevel(1)
         ms1_spec.setRT(spec_cnt*10)
-        middle_scan = nr_scans/2
-        intensity = norm.pdf( (spec_cnt- middle_scan )/4.0 )
+        middle_scan = nr_scans // 2
+        intensity = norm.pdf((spec_cnt- middle_scan) / 4.0)
         pk_list = [ [500.01, intensity*3000], [510.05, intensity*3000] ]
         peaks = numpy.array(pk_list, dtype=numpy.float32)
         ms1_spec.set_peaks(peaks)
@@ -65,8 +66,8 @@ def getSwathExperiment(nr_scans, nr_swathes, precusorsisolation):
         # Swath 4: 504.01, 504.15, 504.25
         # Swath 5: 505.01, 505.15, 505.25
         for i in range(nr_swathes):
-            middle_scan = nr_scans/2 + i # shift the middle of the gaussian by one in each scan
-            intensity = norm.pdf( (spec_cnt - middle_scan )/4.0 )
+            middle_scan = nr_scans // 2 + i # shift the middle of the gaussian by one in each scan
+            intensity = norm.pdf((spec_cnt - middle_scan) / 4.0))
             intensity *= 1.2 # 20% higher intensity in each swath
             spec = pyopenms.MSSpectrum()
             spec.setMSLevel(2)

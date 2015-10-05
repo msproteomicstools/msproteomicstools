@@ -36,6 +36,7 @@ $Authors: Pedro Navarro$
 """
 
 from __future__ import print_function
+from __future__ import division
 import sys
 import os
 import csv
@@ -44,7 +45,8 @@ import multiprocessing
 import time
 import math
 import sys
-from configobj        import ConfigObj
+import numbers
+from configobj import ConfigObj
 
 from msproteomicstoolslib.data_structures.aminoacides     import Aminoacides
 from msproteomicstoolslib.data_structures.modifications    import Modifications
@@ -152,39 +154,32 @@ def readLabelingFile(labeling_file) :
     return labeling
 
 def read_swathsfile(swathsfile) :
-
     swaths = []
+    with open(swathsfile) as infile:
+        for count, row in enumerate(infile):
+            if not row:
+                print("Swaths file contains %s swaths" % count)
+                break
 
-    fsw = open( swathsfile , 'r')
+            if row[0] == '#':
+                continue
 
-    counterline = 0
-
-    while True:
-        row = fsw.readline()
-
-        counterline += 1
-        if len(row) == 0 :
-            print("Swaths file contains %s swaths" % counterline)
-            break
-
-        if row[0] == '#' : continue
-
-        srow = row.split("\t")
-
-        if len(srow) != 2 :
-            print("Error when reading swaths file. Are there more than two values in the same row?")
-            sys.exit(2)
-
-        for value in srow :
-            if not is_number(value) :
-                print("Error when reading swaths file. Some value(s) are not numbers!")
+            srow = row.split("\t")
+            if len(srow) != 2:
+                print("Error when reading swaths file. Are there more than two values in the same row?")
                 sys.exit(2)
 
-        swaths.append( ( float(srow[0]) , float(srow[1]) ) )
+            try:
+                swaths.append((float(srow[0]), float(srow[1])))
+            except ValueError as e:
+                print("Error while reading swaths file: Some value(s) "
+                      "are not numbers: " + str(e))
+                sys.exit(2)
 
     return swaths
+    
 
-def is_Q3_in_swath_range(q1 , q3 , swaths) :
+def is_Q3_in_swath_range(q1 , q3 , swaths):
     #determine which is the swath
     swath = []
     for sw in swaths :
@@ -215,35 +210,26 @@ def removeDuplicates(seq, idfun=None):
     return result
 
 
-def removeSimilarDuplicates(seq, tolerance , idfun=None) :
+def removeSimilarDuplicates(seq, tolerance, idfun=None):
     # order preserving
     if idfun is None:
         def idfun(x): return x
 
-    seen = {}
+    seen = set()
     result = []
 
     for item in seq:
-        catchup = False
         marker = idfun(item)
-        if not is_number(idfun(item)) : raise "comparison values are supposed to be numbers!"
+        if not isinstance(marker, numbers.Real):
+            raise ValueError("comparison values are supposed to be numbers!")
 
-        for cp in seen.keys() :
-            if abs( marker - cp ) <= tolerance : catchup = True
+        if any(abs(marker - cp) <= tolerance for cp in seen):
+            continue
 
-        if catchup : continue
-
-        seen[marker] = 1
+        seen.add(marker)
         result.append(item)
 
     return result
-
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
 
 
 def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
@@ -257,7 +243,7 @@ def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
     if not parameter_thresholds['id'] in searchEngineInfo :
         return True
 
-    for parameter,threshold in parameter_thresholds.iteritems() :
+    for parameter,threshold in parameter_thresholds.items() :
         if parameter in ('id') : continue
         if parameter in searchEngineInfo[parameter_thresholds['id']] :
             if float( searchEngineInfo[parameter_thresholds['id']][parameter][0] ) < float(threshold) :
@@ -295,7 +281,7 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = 
         if len(pep.modifications) == 0 : continue
         #Count the number of switching mods
         num_of_swmods = 0
-        for pos,mod in pep.modifications.iteritems() :
+        for pos,mod in pep.modifications.items() :
             if mod.unimodAccession == switchingModification : num_of_swmods += 1
         #Count the number of modification sites in the peptide
         aaTargets = [ m.aminoacid for m in modificationsLib.list if m.unimodAccession == switchingModification ]
@@ -330,9 +316,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
     precursor_cnt = 0   # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes. 
     transition_cnt = 0  # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes.
     fut_progress = 0.05
-    for pepfamily , isoforms in isobaric_species.iteritems() :
+    for pepfamily , isoforms in isobaric_species.items() :
         pepfamily_cnt += 1
-        progress = float(pepfamily_cnt) / float(len(isobaric_species))
+        progress = pepfamily_cnt / len(isobaric_species)
         if progress >= fut_progress and progress > 0.005 : 
             print("process id:", os.getpid() , ", ", fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.05 
@@ -343,7 +329,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
         protein_desc  = pepfamily
         #for isoform, offset in isoforms.iteritems() :
         #    print "%s : %s"  % (isoform , offset)
-        for isoform_,offset in isoforms.iteritems() :
+        for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
             
@@ -354,8 +340,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                 if lock : lock.release()
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.keys() : 
-                if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
+            for isof in isoforms:
+                if isof != isoform_:
+                    otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib=aaLib))
             
             shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
         
@@ -458,13 +445,13 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     dict_chunks = {}
     last_chunk = 0
     dict_chunks[last_chunk] = {}
-    for idx, (pepf, value) in enumerate(isobaric_species.iteritems()) : #divide the dictionary into nprocs different dictionaries
-        if int(idx/chunksize) > last_chunk : 
+    for idx, (pepf, value) in enumerate(isobaric_species.items()) : #divide the dictionary into nprocs different dictionaries
+        if idx // chunksize > last_chunk:
             last_chunk += 1
             dict_chunks[last_chunk] = {}
         dict_chunks[last_chunk][pepf] = value
 
-    for i in dict_chunks.itervalues():
+    for i in dict_chunks.values():
         p = multiprocessing.Process(
                 target=worker,
                 args=(i, lock, sptxtfile, modLibrary, aaLib, 
@@ -515,10 +502,10 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         print("done!")
         sys.exit()
     
-    for pepfamily , isoforms in isobaric_species.iteritems() :
+    for pepfamily , isoforms in isobaric_species.items() :
         #print pepfamily, [ isof for isof in isoforms]
         pepfamily_cnt += 1
-        progress = float(pepfamily_cnt) / float(len(isobaric_species))
+        progress = pepfamily_cnt / len(isobaric_species)
         if progress >= fut_progress and progress > 0.005 : 
             print(fut_progress*100 ,  "% of peptide families written.")
             fut_progress += 0.01 
@@ -529,15 +516,17 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         protein_desc  = pepfamily
         #for isoform, offset in isoforms.iteritems() :
         #    print "%s : %s"  % (isoform , offset)
-        for isoform_,offset in isoforms.iteritems() :
+        for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
             
-            if offset > 0 :  _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
+            if offset > 0:
+                _, spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
             #Get the shared and unshared ions of this isoform to all its family
             otherIsoforms = []
-            for isof in isoforms.keys() : 
-                if isof != isoform_ : otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
+            for isof in isoforms:
+                if isof != isoform_:
+                    otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
             
             uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
                                             fragmentlossgains = fragmentlossgains, precision = massTolerance, frg_z_list = frg_z_list, mass_limits = masslimits)
@@ -572,7 +561,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
 
             if searchenginefiltered : peaks = []
             #print uis_annotated_list
-            for uis_masses, uis in uis_annotated_list.iteritems() :
+            for uis_masses, uis in uis_annotated_list.items() :
                 for uis_unit in uis :
                     # uis_annotated_list = [('y', 6, 1, 0, 646.3406318939999), ('y', 8, 1, 0, 928.365933736)]
                     #print uis_unit
@@ -585,27 +574,36 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     rel_intensity = 1 #Dummy value in case there's no spectrum
                     is_in_spectrum = False
                     for peak in peaks : 
-                        if abs(float(peak.peak) - uis_mass) < precision : 
+                        if abs(float(peak.peak) - uis_mass) < precision:
                             is_in_spectrum = True 
                             rel_intensity = float(peak.intensity)
                             break
                         
                     
-                    if uis_mass < masslimits[0] : continue   # I don't think this is necessary, 
-                    if uis_mass > masslimits[1] : continue   # since UIS are already mass limited, but...
+                    if uis_mass < masslimits[0]:
+                        continue   # I don't think this is necessary,
+                    if uis_mass > masslimits[1]:
+                        continue   # since UIS are already mass limited, but...
                
                     code = 'ProteinPilot'
-                    if key == 'openswath'     : code = 'unimod'
-                    if key == 'peakview'     : code = 'ProteinPilot'
+                    if key == 'openswath':
+                        code = 'unimod'
+                    if key == 'peakview':
+                        code = 'ProteinPilot'
     
                     transition = []
                     transition_cnt += 1
-                    if key == 'peakview' :
-                        if abs(uis_lossgain) > 0.05 : 
+                    if key == 'peakview':
+                        if abs(uis_lossgain) > 0.05:
                             uis_serie = uis_serie + str(int(round(uis_lossgain)))
-                        transition = [ precursorMZ , uis_mass , iRT_experimental , protein_desc , 'light' ,
-                                        rel_intensity , isoform.sequence , isoform.getSequenceWithMods(code) , int(z_parent) ,
-                                        uis_serie , uis_frg_z , uis_nr , iRT_experimental , protein_code1 , 'FALSE', uis_order, uis_masses]
+                        transition = [
+                            precursorMZ, uis_mass, iRT_experimental,
+                            protein_desc, 'light', rel_intensity,
+                            isoform.sequence, isoform.getSequenceWithMods(code),
+                            int(z_parent), uis_serie, uis_frg_z, uis_nr,
+                            iRT_experimental, protein_code1, 'FALSE',
+                            uis_order, uis_masses
+                        ]
                     if key == 'openswath' :
                         transition = [precursorMZ, uis_mass, iRT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
                                 rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
@@ -796,7 +794,7 @@ def main(argv) :
     modificationsLib = Modifications()     #None
     if len(modificationsfile) > 0 :
         modificationsLib.readModificationsFile(modificationsfile)
-    print("Modifications used : ",modificationsLib.mods_TPPcode.keys())
+    print("Modifications used : ", list(modificationsLib.mods_TPPcode.keys()))
     
     
     #If a fasta file is provided, read and store it into a dictionary
@@ -966,7 +964,7 @@ def main(argv) :
                         #print mz, peak.frg_loss, abs(mz + peak.frg_loss[0] )
                         if abs(mz + peak.frg_loss[0]) < 0.05 :
                             objfound = True
-                            if useexactmass : fragment_mz += (mz / peak.frg_z )
+                            if useexactmass : fragment_mz += mz / peak.frg_z
                             peak.frg_serie = peak.frg_serie + str(int(round(mz)))
                     if not objfound : continue
                 if peak.is_frg_gain :
@@ -974,7 +972,7 @@ def main(argv) :
                     for mz in gain_or_loss_mz :
                         if abs(mz - peak.frg_gain[0]) < 0.05 :
                             objfound = True
-                            if useexactmass : fragment_mz += ( mz / peak.frg_z )
+                            if useexactmass : fragment_mz += mz / peak.frg_z
                             peak.frg_serie = peak.frg_serie + '+' + str(int(round(mz)))
                     if not objfound : continue
 
@@ -1107,12 +1105,14 @@ def main(argv) :
                         if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
 
                     #Check for C- and N-terminal labelings
-                    if 'C-term' in labeling :
+                    if 'C-term' in labeling:
                         precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
-                        if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
-                    if 'N-term' in labeling :
+                        if frg_serie == 'y':
+                            fragment_mz_heavy += labeling['C-term'].deltamass / frg_z
+                    if 'N-term' in labeling:
                         precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
-                        if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
+                        if frg_serie == 'b':
+                            fragment_mz_heavy += labeling['N-term'].deltamass / frg_z
 
 
                     #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.
@@ -1214,24 +1214,30 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
 
 
             for aa in sequence_heavy :
-                if aa in labeling : precursorMZ_heavy += labeling[aa].deltamass / z_parent
+                if aa in labeling:
+                    precursorMZ_heavy += labeling[aa].deltamass / z_parent
 
             frg_seq = sequence_heavy
             #b series
-            if frg_serie == 'b': frg_seq = sequence_heavy[:frg_number]
+            if frg_serie == 'b':
+                frg_seq = sequence_heavy[:frg_number]
             #y series
-            if frg_serie == 'y': frg_seq = sequence_heavy[-frg_number:]
+            if frg_serie == 'y':
+                frg_seq = sequence_heavy[-frg_number:]
 
-            for aa in frg_seq :
-                if aa in labeling : fragment_mz_heavy += labeling[aa].deltamass / frg_z
+            for aa in frg_seq:
+                if aa in labeling:
+                    fragment_mz_heavy += labeling[aa].deltamass / frg_z
 
             #Check for C- and N-terminal labelings
-            if 'C-term' in labeling :
+            if 'C-term' in labeling:
                 precursorMZ_heavy += labeling['C-term'].deltamass / z_parent
-                if frg_serie == 'y' : fragment_mz_heavy += labeling['C-term'].deltamass /frg_z
-            if 'N-term' in labeling :
+                if frg_serie == 'y':
+                    fragment_mz_heavy += labeling['C-term'].deltamass / frg_z
+            if 'N-term' in labeling:
                 precursorMZ_heavy += labeling['N-term'].deltamass / z_parent
-                if frg_serie == 'b' : fragment_mz_heavy += labeling['N-term'].deltamass /frg_z
+                if frg_serie == 'b':
+                    fragment_mz_heavy += labeling['N-term'].deltamass / frg_z
 
 
             #NOTE : if for any reason the Q3 mass has not changed (the labeling is not present in this fragment ion), it is not reported.

@@ -34,8 +34,12 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import division
+from __future__ import print_function
 
-import re, csv, sys
+import re
+import csv
+import sys
 
 """
 This program intends to fix SWATH mzXML files by adding the precursor isolation
@@ -71,7 +75,7 @@ outfilename = sys.argv[3]
 
 filename = full_filename.split(".mzXML")
 if len(filename) != 2:
-    print "Error, first parameter needs to be an mzXML file, was", full_filename
+    print("Error, first parameter needs to be an mzXML file, was", full_filename)
     sys.exit()
 
 filename = filename[0]
@@ -95,7 +99,7 @@ def estimateCorrectSwathScan(center):
     result = []
     for entry in paramfile:
         if center >= float(entry[0]) and center <= float(entry[1]):
-            result.append( [float(entry[0]), float(entry[1]) ] )
+            result.append([float(entry[0]), float(entry[1])])
     
     if len(result) > 2:
         raise Exception("More than one entry in the param file match the center", center)
@@ -107,9 +111,9 @@ def estimateCorrectSwathScan(center):
 def rewrite_single_scan(mybuffer, swathscan):
     # use middle point
     try:
-        start = float(paramfile[ scanwindow ][0])
-        end = float(paramfile[ scanwindow ][1])
-        middle = (start + end)/2.0
+        start = float(paramfile[scanwindow][0])
+        end = float(paramfile[scanwindow][1])
+        middle = (start + end) / 2.0
         width = end - start
     except IndexError:
         # Catch error condition
@@ -122,11 +126,11 @@ def rewrite_single_scan(mybuffer, swathscan):
         # Ensure that the center of the window is inside the SWATH 
         old_center = float(precursor_match.group(2))
         if not (old_center > start and old_center < end):
-            print "WARNING: previous precursorMz", old_center, \
-              "did not fall inside the expected SWATH window %s to %s." % (start, end)
+            print("WARNING: previous precursorMz", old_center, \
+              "did not fall inside the expected SWATH window %s to %s." % (start, end))
             start, end = estimateCorrectSwathScan(old_center)
-            print "  Will replace it with a window from %s to %s" % (start, end)
-            middle = (start + end)/2.0
+            print("  Will replace it with a window from %s to %s" % (start, end))
+            middle = (start + end) / 2.0
             width = end - start
 
     mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %
@@ -174,4 +178,3 @@ for line in source:
 
 outfile.write('  </msRun>\n</mzXML>')
 outfile.close()
-

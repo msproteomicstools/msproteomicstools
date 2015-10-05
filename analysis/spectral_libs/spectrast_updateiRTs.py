@@ -34,28 +34,30 @@ $Maintainer: Pedro Navarro$
 $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
+from __future__ import division
+from __future__ import print_function
 
 import sys, csv
 import os
 import getopt, glob
-from configobj        import ConfigObj
+from configobj import ConfigObj
 
 from msproteomicstoolslib.math.LinearRegression import SimpleLinearRegression
 
 def usage() :
-    print ""
-    print "spectrast_updateiRTs.py"
+    print("")
+    print("spectrast_updateiRTs.py")
     print ("-" * 23)
-    print "This script updates the RetTime values of a spectraST files with different values (i.e. iRTs) calculated with a linear model."
-    print ""
-    print "Usage: "
-    print "python spectrast_updateiRTs.py [options] spectrast_file(s)"
-    print "-a            --auto-align  Calculates automatically the alignment models based on the internal identifications of the calibration peptides"
-    print "-h            --help        Display this help"
-    print "-i    iRT_models_file    --irtmodel    File with the iRT models"
-    print "-p    iRT_peptides_file    --irtpeptides File containing the peptides and their iRTs to do the linear model alignment."
-    print "-t   time-scale            Options: minutes, seconds. Default: seconds."
-    print ""
+    print("This script updates the RetTime values of a spectraST files with different values (i.e. iRTs) calculated with a linear model.")
+    print("")
+    print("Usage: ")
+    print("python spectrast_updateiRTs.py [options] spectrast_file(s)")
+    print("-a            --auto-align  Calculates automatically the alignment models based on the internal identifications of the calibration peptides")
+    print("-h            --help        Display this help")
+    print("-i    iRT_models_file    --irtmodel    File with the iRT models")
+    print("-p    iRT_peptides_file    --irtpeptides File containing the peptides and their iRTs to do the linear model alignment.")
+    print("-t   time-scale            Options: minutes, seconds. Default: seconds.")
+    print("")
 
 def read_irtmodels(file, useMinutes = False) :
     irtmodels = {}  # { file1 : (a1,b1) , file2 : (a2,b2), ...  }
@@ -63,11 +65,14 @@ def read_irtmodels(file, useMinutes = False) :
     fs = csv.reader(open(file), delimiter="\t")
 
     for cnt, srow in enumerate(fs):
-        if '#' in srow[0]   : continue
-        if not useMinutes   : irtmodels[srow[0]] = (  float(srow[1])    , float(srow[2]) )    
-        else                : irtmodels[srow[0]] = (  float(srow[1])    , float(srow[2]) / 60.0 )   
+        if '#' in srow[0]:
+            continue
+        if not useMinutes:
+            irtmodels[srow[0]] = (float(srow[1]), float(srow[2]))
+        else:
+            irtmodels[srow[0]] = (float(srow[1]), srow[2] / 60.0)
     
-    print "iRT models : " , irtmodels
+    print("iRT models : ", irtmodels)
     
     return irtmodels
 
@@ -88,7 +93,7 @@ def cal_irtmodels(irts_in_samples) :
     irtmodels       = {}  # { file1 : (a1,b1) , file2 : (a2,b2), ...  }
     
     for sample in irts_in_samples : 
-        data = [(RT, iRT) for (iRT,RT,Int) in irts_in_samples[sample].itervalues()]  # Retrieve the data in the format [ (x1,y1) , (x2,y2) , ... ]
+        data = [(RT, iRT) for (iRT,RT,Int) in irts_in_samples[sample].values()]  # Retrieve the data in the format [ (x1,y1) , (x2,y2) , ... ]
 
         linRegr = SimpleLinearRegression(data)
         if not linRegr.run():
@@ -108,7 +113,7 @@ def cal_irtmodels(irts_in_samples) :
                     if dist >= max_dist :
                         max_dist = dist
                         curr_outlier = (x, y)
-                print "Removing outlier (%f, %f)..." % ( x , y )
+                print("Removing outlier (%f, %f)..." % ( x , y ))
                 data.remove(curr_outlier)
                 linRegr = SimpleLinearRegression(data)
                 if not linRegr.run():
@@ -180,7 +185,7 @@ def update_iRTs(file, models) :
         #Get which model to use
         modelkey = ''
         curr_model =  ( 0.0 , 0.0 )
-        for key, model in models.iteritems() :
+        for key, model in models.items() :
             #print key, model
             keym = 'RawSpectrum=' + key + '.'
             if keym in row : curr_model = model
@@ -243,7 +248,7 @@ def read_irtPeptides(filename) :
             headerset = True
             
             if irt_header not in header_d :
-                print "Error: the irt peptides file does not contain a header 'iRT' !! Check the format of the irt peptides file. It should be a two columns file with the headers : sequence , iRT"
+                print("Error: the irt peptides file does not contain a header 'iRT' !! Check the format of the irt peptides file. It should be a two columns file with the headers : sequence , iRT")
                 sys.exit(2)
             continue
         
@@ -301,7 +306,7 @@ def main(argv) :
             if arg in ["minutes","seconds"] :
                 if arg in ["minutes"] : useMinutes = True
             else :
-                print "Choose a right time-scale. Options are: minutes, seconds"
+                print("Choose a right time-scale. Options are: minutes, seconds")
                 sys.exit(10)
             argsUsed += 2
         
@@ -318,14 +323,14 @@ def main(argv) :
 
 
     for sptxtfile in sptxtfiles :
-        print "Reading : " , sptxtfile
+        print("Reading : " , sptxtfile)
         assert sptxtfile[-6:] == '.sptxt'
         if not os.path.exists(sptxtfile):
-            print "The file: %s does not exist!" % sptxtfile
+            print("The file: %s does not exist!" % sptxtfile)
             sys.exit(2)
 
         if useIrtPeptides :
-            print "Calibration peptides :" , irtPeptides
+            print("Calibration peptides :" , irtPeptides)
             irts_in_samples = search_irtPeptides(sptxtfile, irtPeptides)
             irtmodels = cal_irtmodels(irts_in_samples)
 
@@ -333,9 +338,9 @@ def main(argv) :
         #Calculate iRTs
         if len(irtmodels) > 0 : update_iRTs(sptxtfile,irtmodels)
         else :
-            print "There are no models!! Review your model file."
+            print("There are no models!! Review your model file.")
         
-        print "done."
+        print("done.")
 
 if __name__ == '__main__':
     main(sys.argv[1:])

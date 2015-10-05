@@ -53,11 +53,15 @@ Author: Hannes Roest loblum
 
 ###########################################################################
 """
+from __future__ import print_function
 
-import re, sys, os, gzip
+import re
+import sys
+import os
+import gzip
 
 if len(sys.argv) < 3 or sys.argv[1] == '-h':
-    print "Usage: split.py file.mzXML[.gz] windowSize [outputdir [noms1map]]]"
+    print("Usage: split.py file.mzXML[.gz] windowSize [outputdir [noms1map]]]")
     sys.exit(1)
 
 full_filename = sys.argv[1]
@@ -65,19 +69,19 @@ window_size = int(sys.argv[2])
 
 if len(sys.argv) >= 4:
     out_dir = sys.argv[3] + "/"
-    print "Set outdir to " + out_dir
+    print("Set outdir to " + out_dir)
 else:
         out_dir = "./"
 
 if len(sys.argv) >= 5 and sys.argv[4] == 'noms1map':
     writeMs1 = False
-    print "Skipping ms1map output"
+    print("Skipping ms1map output")
 else:
     writeMs1 = True
 
 filename = full_filename.split(".mzXML")
 if len(filename) != 2:
-    print "Error, first parameter needs to be an mzXML file, was", full_filename
+    print("Error, first parameter needs to be an mzXML file, was", full_filename)
     sys.exit()
 
 filename = os.path.basename(filename[0])
@@ -112,7 +116,7 @@ header = ''
 header_done = False
 mybuffer = ''
 if full_filename.endswith('.gz'):
-    print "Opening compressed file"
+    print("Opening compressed file")
     source = gzip.open(full_filename,'rb')
 else:
     source = open(full_filename)

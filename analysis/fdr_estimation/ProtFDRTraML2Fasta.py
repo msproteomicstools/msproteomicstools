@@ -1,4 +1,3 @@
-
 # convert a TSV that was converted from a TraML file into a FASTA concatenated
 # decoy database as Mayu input.
 
@@ -8,13 +7,13 @@ import sys, csv
 infile = csv.reader(open(sys.argv[1]), delimiter="\t")
 outfile = open(sys.argv[2], "w")
 
-header = infile.next()
+header = next(infile)
 header_dict = dict([(h, i) for i,h in enumerate(header)])
 
 pepseq_pos = header_dict["PeptideSequence"]
 prot_pos = header_dict["ProteinName"]
 
-class Protein:
+class Protein(object):
     def __init__(self, name):
         self.peptides = set()
         self.name = name
@@ -29,7 +28,7 @@ protein_dic = {}
 for line in infile:
     peptide = line[pepseq_pos]
     protein = line[prot_pos]
-    if not protein_dic.has_key(protein):
+    if protein not in protein_dic:
         p = Protein(protein)
         protein_dic[protein] = p
     protein_dic[protein].add_peptide(peptide)
@@ -41,4 +40,3 @@ for k in protein_dic:
     outfile.write(">%s\n" % protein.name)
     outfile.write(protein.get_concat_peptides())
     outfile.write("\n")
-

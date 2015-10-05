@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 
 import csv, sys
@@ -48,21 +49,18 @@ use_fdr_score = sys.argv[7]
 use_fdr_score = (use_fdr_score == 'TRUE')
 
 reader = csv.reader(open(filename), delimiter='\t')
-header = reader.next()
+header = next(reader)
 header_d = dict( [ (h,i) for i,h in enumerate(header)] )
 try:
   sort_pos = header_d[sort_by]
 except KeyError:
-    print "Could not find key", sort_by, "in", header_d
+    print("Could not find key", sort_by, "in", header_d)
     sys.exit()
 
 
-print "Sort by '%s' (position %s) and reverse %s" % (sort_by, sort_pos, reverse)
+print("Sort by '%s' (position %s) and reverse %s" % (sort_by, sort_pos, reverse))
 lines = list(reader)
-if reverse:
-  lines.sort( lambda x,y: -cmp( float(x[sort_pos]), float(y[sort_pos]) ) )
-else:
-  lines.sort( lambda x,y: cmp( float(x[sort_pos]), float(y[sort_pos]) ) )
+lines.sort(key=lambda x: float(x[sort_pos]), reverse=reverse)
 
 # try to estimate an empirical FDR and only keep those lines above the fdr
 decoys_ = 0
@@ -84,12 +82,10 @@ for i,line in enumerate(lines):
     if(fdr > fdr_cutoff): break
 
 
-print "Stop after %s entries of which %s are decoys (est. fdr=%s)" % (i, decoys_, fdr)
+print("Stop after %s entries of which %s are decoys (est. fdr=%s)" % (i, decoys_, fdr))
 above_cutoff = lines[:i]
 
 header.append('FDREstimate')
 writer = csv.writer(open(filename_out, 'w'), delimiter='\t')
 writer.writerow(header)
 writer.writerows(above_cutoff)
-
-

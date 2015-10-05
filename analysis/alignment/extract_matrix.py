@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 import argparse
 import csv
@@ -21,7 +22,7 @@ def main(options):
     # Read the files
     start = time.time()
     columns = options.columns
-    print "Reading",options.infile,"extracting columns",columns
+    print("Reading", options.infile,"extracting columns", columns)
     files = set()
     ids = set()
     entries = {}
@@ -38,7 +39,7 @@ def main(options):
                 entry.append(row[headers.index(column)])
             entries[id+file] = entry
 
-    print "Writing",options.out
+    print("Writing", options.out)
     with open(options.out,'w') as f:
         #write header
         f.write("transition_group_id\tProteinName\t")
@@ -62,4 +63,3 @@ def main(options):
 if __name__=="__main__":
     options = handle_args()
     main(options)
-

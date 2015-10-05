@@ -34,6 +34,7 @@ $Maintainer: Pedro Navarro$
 $Authors: Pedro Navarro$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import sys
 import os
@@ -46,21 +47,21 @@ from msproteomicstoolslib.format.ProteinDB	import	 ProteinDB
 
 
 def usage() :
-	print ""
-	print "proteinDBmasses.py"
+	print("")
+	print("proteinDBmasses.py")
 	print ("-" * 15)
-	print "This script retrieves the protein weights given a fasta file."
-	print ""
-	print "Usage: "
-	print "python proteinDBmasses.py [options] fasta_file(s)"
-	print "-h		Display this help"
-	print "-a	abundancefile	Protein abundance file. If not used, the script will just report the number of peptides and molecular weight of the proteins."
-	print "-d	dynamic-range	Simulation of peptide intensity by using the peptide detectability dynamic range specified. If not used, there will not be any simulation"
-	print "-e 	enzyme	Enzyme used for in-silico digestion (peptide counting). Options: trypsin, Asp-N, Arg-C, Chymotrypsin, Lys-C, Lys-N. Default: trypsin"
-	print "-l 	pep-length	Minimum peptide length for the in-silico digestion. Default: 5"
-	print "-m	min-peptides	Define a minimum number of peptides to identify a protein. This must be completed with the -n option."
-	print "-n	peptides-identified Define a number of identified peptides to estimate the number of proteins identified."
-	print ""
+	print("This script retrieves the protein weights given a fasta file.")
+	print("")
+	print("Usage: ")
+	print("python proteinDBmasses.py [options] fasta_file(s)")
+	print("-h		Display this help")
+	print("-a	abundancefile	Protein abundance file. If not used, the script will just report the number of peptides and molecular weight of the proteins.")
+	print("-d	dynamic-range	Simulation of peptide intensity by using the peptide detectability dynamic range specified. If not used, there will not be any simulation")
+	print("-e 	enzyme	Enzyme used for in-silico digestion (peptide counting). Options: trypsin, Asp-N, Arg-C, Chymotrypsin, Lys-C, Lys-N. Default: trypsin")
+	print("-l 	pep-length	Minimum peptide length for the in-silico digestion. Default: 5")
+	print("-m	min-peptides	Define a minimum number of peptides to identify a protein. This must be completed with the -n option.")
+	print("-n	peptides-identified Define a number of identified peptides to estimate the number of proteins identified.")
+	print("")
 
 
 def parse_abundance(abundancefile) :
@@ -71,7 +72,7 @@ def parse_abundance(abundancefile) :
 	try: 
 		rf = csv.reader(open(abundancefile,'r'), dialect='excel-tab')
 	except :
-		print "Something went wrong when trying to read the file : ", abundancefile
+		print("Something went wrong when trying to read the file : ", abundancefile)
 		sys.exit(1)
 	
 	headerset = False
@@ -160,22 +161,22 @@ def writeMassFile(fastafile,enzyme, abundances, dynrange, minPepLength = 5, pept
 	try :
 		writer = csv.writer(open(massfile,'w'), dialect='excel-tab')
 	except :
-		print "something went wrong while trying to write the file :" , massfile
+		print("something went wrong while trying to write the file :" , massfile)
 		sys.exit(1)
 	if dynrange :
 		try :
 			writer_dyn = csv.writer(open(dynfile,'w'), dialect='excel-tab')
 		except :
-			print "something went wrong while trying to write the file :" , dynfile
+			print("something went wrong while trying to write the file :" , dynfile)
 			sys.exit(1)
 	
 	if len(abundances) > 0 : headers.extend(['protein_abundance'])
 	writer.writerow(headers)
 	if dynrange : writer_dyn.writerow(headers_dyn)
 	protein_cnt = 0
-	for code, protein in db.proteinDictionary.iteritems() :
+	for code, protein in db.proteinDictionary.items() :
 		protein_cnt += 1
-		if protein_cnt % 5000 == 0 : print "%s proteins stored" % protein_cnt
+		if protein_cnt % 5000 == 0 : print("%s proteins stored" % protein_cnt)
 		peptides = protein.digest(enzyme, minLength = minPepLength)
 		wr_row = [protein.code2, protein.proteinWeight(), len(peptides)]
 		this_abundance = -1
@@ -191,9 +192,9 @@ def writeMassFile(fastafile,enzyme, abundances, dynrange, minPepLength = 5, pept
 	
 	protein_cnt = 0
 	all_peptides = []
-	for code, protein in db.proteinDictionary.iteritems() :
+	for code, protein in db.proteinDictionary.items() :
 		protein_cnt += 1
-		if protein_cnt % 5000 == 0 : print "%s proteins simulated" % protein_cnt
+		if protein_cnt % 5000 == 0 : print("%s proteins simulated" % protein_cnt)
 		if protein.code2 not in abundances : continue 
 		this_abundance = -1
 		this_abundance = abundances[protein.code2]
@@ -202,10 +203,10 @@ def writeMassFile(fastafile,enzyme, abundances, dynrange, minPepLength = 5, pept
 		for pep in peptides :
 			if pep not in peptidelib : continue
 			#print peptidelib[pep][0] , list(peptidelib[pep][1].itervalues())
-			intensity = peptidelib[pep][0] * sum( list(peptidelib[pep][1].itervalues()) )
+			intensity = peptidelib[pep][0] * sum( list(peptidelib[pep][1].values()) )
 			proteins_txt = ""
 			if len(peptidelib[pep][1]) > 1 :
-				proteins_txt = ",".join( [ str(i.code2) for i in peptidelib[pep][1].iterkeys()] )
+				proteins_txt = ",".join( [ str(i.code2) for i in peptidelib[pep][1].keys()] )
 			wr_row = [protein.code2, len(peptides), pep, peptidelib[pep][0], this_abundance ,intensity,proteins_txt]
 			all_peptides.append(wr_row)
 			writer_dyn.writerow(wr_row)
@@ -231,13 +232,13 @@ def writeMassFile(fastafile,enzyme, abundances, dynrange, minPepLength = 5, pept
 	#Count the number of proteins with 2 or more peptides, and proteins with only 1 peptide
 	protein_2peps = 0
 	protein_1pep  = 0
-	for protein in protein_peptides.itervalues() :
+	for protein in protein_peptides.values() :
 		#print len(protein), protein
 		if len(protein) >= minPepProteinID : protein_2peps += 1
 		else : 	protein_1pep += 1
 	
-	print "Number of proteins identified with at least %s peptides (given %s identified peptides) : %s" % (minPepProteinID,peptidesID,protein_2peps) 
-	print "Number of proteins identified with less than %s peptides (given %s identified peptides) : %s" % (minPepProteinID,peptidesID,protein_1pep) 
+	print("Number of proteins identified with at least %s peptides (given %s identified peptides) : %s" % (minPepProteinID,peptidesID,protein_2peps)) 
+	print("Number of proteins identified with less than %s peptides (given %s identified peptides) : %s" % (minPepProteinID,peptidesID,protein_1pep)) 
 	
 def main(argv) :
 
@@ -276,8 +277,8 @@ def main(argv) :
 			argsUsed += 2
 		if opt in ("-e","--enzyme") :
 			if arg not in enzymes :
-				print "Error: Enzyme not recognized!" 
-				print "Available enzyme options: " , [ key for key in enzymes.iterkeys() ]
+				print("Error: Enzyme not recognized!") 
+				print("Available enzyme options: " , [ key for key in enzymes.keys() ])
 			enzyme = enzymes[arg]
 			argsUsed += 2
 		if opt in ("-d","dynrange") :
@@ -294,17 +295,17 @@ def main(argv) :
 			argsUsed += 2
 
 	if not os.path.exists(abundancefile) :
-		print "The abundance file does not exist! " , abundancefile
+		print("The abundance file does not exist! " , abundancefile)
 		sys.exit(2)
 
 	abundancelib = parse_abundance(abundancefile)
 
 	fastafiles = argv[argsUsed:]
 	for fastafile in fastafiles : 
-		print "processing " , fastafile
+		print("processing " , fastafile)
 		#File exists?
 		if not os.path.exists(fastafile) :
-			print "This file: %s does not exist! It will be ignored." % fastafile
+			print("This file: %s does not exist! It will be ignored." % fastafile)
 			continue
 		writeMassFile(fastafile, enzyme, abundancelib, dynrange, minPepLength, peptidesID = peptidesId, minPepProteinID = minPepProteinID )
 		

@@ -60,7 +60,7 @@ class Experiment(MRExperiment):
       return len(self.runs)*len(self.union_transition_groups_set)
 
     def estimate_real_fdr(self, multipeptides, fraction_needed_selected):
-        class DecoyStats(): 
+        class DecoyStats(object): 
             def __init__(self):
                 self.est_real_fdr = 0.0
                 self.nr_decoys = 0
@@ -216,7 +216,7 @@ class Experiment(MRExperiment):
             for file_nr, f in enumerate(infiles):
               header_dict = {}
               reader = csv.reader(open(f), delimiter="\t")
-              header = reader.next()
+              header = next(reader)
               for i,n in enumerate(header):
                 header_dict[n] = i
               for row in reader:
@@ -376,4 +376,3 @@ def main(options):
 if __name__=="__main__":
     options = handle_args()
     main(options)
-

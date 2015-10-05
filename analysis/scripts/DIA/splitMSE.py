@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest $
 $Authors: Hannes Roest $
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 import sys
 
 # This program takes mass spectrometric data in ASCII format as produced by
@@ -43,7 +44,7 @@ import sys
 # Output: split files at "outpath" location
 
 if len(sys.argv) < 3:
-    print "Please use filename as the first argument and the output path as second argument"
+    print("Please use filename as the first argument and the output path as second argument")
     exit()
 
 fname = sys.argv[1]

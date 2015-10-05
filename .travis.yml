@@ -16,6 +16,7 @@ install:
   # for Python 2.7 and 3.3 w/o system packages, install rpy2 manually
   #  note rpy2 > 2.5.6 (certainly > 2.6.1) will NOT work with R 2.x any more!
   #  we use 2.2.5 (same as Ubuntu precise 12.04)
+  - easy_install -U setuptools
   - pip install rpy2==2.2.5
   - travis_retry python setup.py develop
 script: 
