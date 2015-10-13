@@ -88,6 +88,7 @@ f.close()
 
 # some regexes that we need since we replace parts of the XML
 precursor_re = re.compile('<precursorMz([^>]*)>([^<]*)</precursorMz>')
+window_re = re.compile('(windowWideness="\d+\.\d*")')
 scan_nr = re.compile('<scan num="([\d]*)"')
 scan_type = re.compile('scanType="(.*)"')
 ms_level = re.compile('msLevel="2"')
@@ -133,8 +134,10 @@ def rewrite_single_scan(mybuffer, swathscan):
             middle = (start + end) / 2.0
             width = end - start
 
-    mybuffer = precursor_re.sub( """<precursorMz windowWideness="%(width)s"\\1>%(middle)s</precursorMz>""" %
-            {'width' : width, 'middle' : middle }, mybuffer)
+    precursor_fix = window_re.sub("""windowWideness="%(width)s" """ %
+                                  {'width' : width}, precursor_match.group(1))
+    mybuffer = precursor_re.sub( """<precursorMz %(fix)s>%(middle)s</precursorMz>""" %
+                                 {'fix' : precursor_fix, 'middle' : middle }, mybuffer)
     mybuffer = scan_type.sub( """scanType="SIM" """, mybuffer)
     ## Removed the renumbering of the scans and the replacement of MS2 with MS1 level
     ## mybuffer = scan_nr.sub( """<scan num="%(scannr)s" """ %
