@@ -223,6 +223,7 @@ class TestUnitSmoothing(unittest.TestCase):
         for a,b in zip(expected,r):
             self.assertAlmostEqual(a, b)
 
+    @attr('rpy2')
     def test_smooth_spline_r(self):
         """Test the smoothing spline using R"""
         sm = smoothing.SmoothingR()
@@ -262,9 +263,6 @@ class TestUnitSmoothing(unittest.TestCase):
         """
         Test getting the correct smoothing operator
         """
-        op = smoothing.get_smooting_operator()
-        self.assertTrue(isinstance(op, smoothing.SmoothingR))
-
         op = smoothing.get_smooting_operator(use_linear=True)
         self.assertTrue(isinstance(op, smoothing.SmoothingLinear))
 
@@ -273,6 +271,14 @@ class TestUnitSmoothing(unittest.TestCase):
 
         op = smoothing.get_smooting_operator(use_external_r=True, tmpdir="tmp")
         self.assertTrue(isinstance(op, smoothing.SmoothingRExtern))
+
+    @attr('rpy2')
+    def test_gettingOperator_rpy2(self):
+        """
+        Test getting the correct smoothing operator
+        """
+        op = smoothing.get_smooting_operator()
+        self.assertTrue(isinstance(op, smoothing.SmoothingR))
 
     def test_gettingOperator_obj(self):
         """

@@ -112,6 +112,7 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename_matrix)
 
     @attr('slow')
+    @attr('rpy2')
     def test_3_featureAlignment_openswath_alignment(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")
@@ -160,7 +161,7 @@ class TestFeatureAlignment(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
-    def test_6_featureAlignment_openswath_best_overall(self):
+    def test_6_featureAlignment_openswath_LocalMSTAllCluster(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")
         expected_outcome = os.path.join(self.datadir, "feature_alignment_6_output_1_ids.csv")
@@ -180,7 +181,7 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename_ids)
         os.remove(tmpfilename_matrix)
 
-    def test_7_featureAlignment_openswath_best_overall(self):
+    def test_7_featureAlignment_openswath_LocalMSTAllCluster_lowess(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_7_openswath_input.csv")
         expected_outcome_ids = os.path.join(self.datadir, "feature_alignment_7_output_1_ids.csv")
