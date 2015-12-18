@@ -75,16 +75,16 @@ class TestUnitSmoothing(unittest.TestCase):
         # and a different estimation is used here...
         r = sm._smooth_spline_scikit(self.data1, self.data2, [10.0,5.0,7,10.00001])
         self.assertEqual(len(r), 4)
-        self.assertAlmostEqual(r[0], 11.60276344181)
-        self.assertAlmostEqual(r[1], 4.3279294106253)
-        self.assertAlmostEqual(r[2], 7.3603529478143)
-        self.assertAlmostEqual(r[3], 11.60276823628391)
+        self.assertAlmostEqual(r[0], 11.60276344181, 4)
+        self.assertAlmostEqual(r[1], 4.3279294106253, 4)
+        self.assertAlmostEqual(r[2], 7.3603529478143, 4)
+        self.assertAlmostEqual(r[3], 11.60276823628391, 4)
 
         r = sm._smooth_spline_scikit(self.data1, self.data2, [10.0,5.0,7,10.0], True)
         self.assertEqual(len(r), 4)
         expected = [10.372668632871067, 4.6129201633602159, 7.738376211369804, 10.372668632871067]
         for res, exp in zip(r,expected):
-            self.assertAlmostEqual(res,exp)
+            self.assertAlmostEqual(res, exp, 4)
 
     @attr('slow')
     def test_smooth_spline_scikit_wrap(self):
