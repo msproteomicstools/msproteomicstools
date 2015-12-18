@@ -411,14 +411,24 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
 
 def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_alignment_cutoff,
                    fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
-                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev):
+                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref):
     """
     Minimum Spanning Tree (MST) based local aligment 
     """
 
     spl_aligner = SplineAligner(initial_alignment_cutoff)
-    tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
+
+    if mst_use_ref:
+        # force reference-based alignment
+        bestrun = spl_aligner._determine_best_run(exp)
+        ref = spl_aligner._determine_best_run(exp).get_id()
+        refrun_id, refrun = [ (i,run) for i, run in enumerate(exp.runs) if run.get_id() == ref][0]
+        tree = [( i, refrun_id) for i in range(len(exp.runs)) if i != refrun_id]
+    else:
+        tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
+
     print("Computed Tree:", tree)
+
     
     # Get alignments
     tr_data = LightTransformationData()
@@ -570,6 +580,7 @@ def handle_args():
     experimental_parser.add_argument("--mst:useRTCorrection", dest="mst_correct_rt", type=ast.literal_eval, default=False, help="Use aligned peakgroup RT to continue threading in MST algorithm", metavar='False')
     experimental_parser.add_argument("--mst:Stdev_multiplier", dest="mst_stdev_max_per_run", type=float, default=-1.0, help="How many standard deviations the peakgroup can deviate in RT during the alignment (if less than max_rt_diff, then max_rt_diff is used)", metavar='-1.0')
     experimental_parser.add_argument("--mst:useLocalStdev", dest="mst_local_stdev", type=ast.literal_eval, default=False, help="Use standard deviation of local region of the chromatogram", metavar='False')
+    experimental_parser.add_argument("--mst:useReference", dest="mst_use_ref", type=ast.literal_eval, default=False, help="Use a reference-based tree for alignment", metavar='False')
     experimental_parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
 
     # deprecated methods
@@ -653,7 +664,7 @@ def main(options):
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
                        options.mst_correct_rt, stdev_max_rt_per_run,
-                       options.mst_local_stdev)
+                       options.mst_local_stdev, options.mst_use_ref)
         print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
