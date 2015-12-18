@@ -586,7 +586,7 @@ def analyze_multipeptide_cluster(current_mpep, cnt, new_exp, swath_chromatograms
                     border_l, border_r = integrationBorderShortestDistance(selected_pg, 
                         rid, transformation_collection_, mat, rmap)
                 else:
-                    ## Use the refernce-based approach
+                    ## Use the reference-based approach
                     border_l, border_r = integrationBorderReference(new_exp, selected_pg, rid, transformation_collection_, border_option)
                 newpg = integrate_chromatogram(selected_pg[0], current_run, swath_chromatograms,
                                              border_l, border_r, cnt, is_test)
@@ -766,7 +766,7 @@ def handle_args():
     parser.add_argument('--in', dest="infiles", nargs = '+', required=False, help = 'A list of transformation files in the same folder as the .chrom.mzML files')
     parser.add_argument("--peakgroups_infile", dest="peakgroups_infile", required=True, help="Infile containing peakgroups (outfile from feature_alignment.py)")
     parser.add_argument("--out", dest="output", required=True, help="Output file with imputed values")
-    parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+    parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath, mprophet or peakview)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xls)")
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
     parser.add_argument('--border_option', default='median', metavar="median", help="How to determine integration border (possible values: max_width, mean, median). Max width will use the maximal possible width (most conservative since it will overestimate the background signal).")
@@ -774,7 +774,7 @@ def handle_args():
     parser.add_argument('--test', dest="is_test", action='store_true', default=False, help="For running the tests (does not add a random id to the results)")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
     parser.add_argument('--method', dest='method', default="allTrafo", help="Which method to use (singleShortestPath, singleClosestRun, other)")
-    parser.add_argument('--realign_runs', dest='realign_method', default="splineR", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line, 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother)")
+    parser.add_argument('--realign_runs', dest='realign_method', default="splineR", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line), 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother), 'nonCVSpline, CVSpline': splines with and without cross-validation, 'Earth' : use Multivariate Adaptive Regression Splines using py-earth")
     parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
 
