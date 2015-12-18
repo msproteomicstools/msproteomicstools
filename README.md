@@ -5,7 +5,7 @@ applied to proteomics. Speficically, it contains
 
 - the TAPIR visualization software (available in ./gui)
 - the MS Proteomics Tools Library (available in ./msproteomicstoolslib)
-- a set of executables and scripts (available under ./analysis)
+- a set of executables and scripts (available under ./analysis) including the TRIC alignment tool
 
 The code is under the 3-clause BSD licence (see the [LICENSE](LICENSE)
 and the [AUTHORS](AUTHORS.txt)  files).
@@ -20,30 +20,41 @@ Please also see the [project homepage](http://proteomics.ethz.ch/tapir/)
 for further information.  Binaries are available for Windows and Mac OS X. For
 a source installation of the package, see below.
 
+# Executables
+
+The ./analysis folder contains multiple potentially useful executables,
+including a tools for high throughput targeted proteomics data analysis (such
+as SWATH-MS data analysis). See [the TRIC manual](TRIC-README.md) for further
+information on the TRIC alignment tool.
+
 # MS Proteomics Tools Library 
 
 The mass spectrometric (MS) Proteomics Tools Library contains multiple Python
 functions useful for MS-based proteomics.
 
-## Documentation
-
-Documentation for the library can be found at [http://proteomics.ethz.ch/msproteomicstools/ ](http://proteomics.ethz.ch/msproteomicstools/) which contains source code documentation of the available functions and objects.
-
-## Install ##
+# Install
 
 After installing the dependencies, you can proceed to install msproteomicstools itself:
 
     pip install numpy
     pip install msproteomicstools
 
-Alternatively, a source install can be chosen as well:
+If you are on windows, there is a chance the above will not work as Biopython
+and numpy need to be compiled from source. Currently, the way to get these is
+by installing [Anaconda](https://www.continuum.io/downloads) and then running
+in the Anaconda prompt:
+
+    conda install biopython
+    pip install msproteomicstools
+
+Alternatively, you can also install from source:
 
     git checkout https://github.com/msproteomicstools/msproteomicstools.git
     pip install numpy
     python setup.py install --prefix=/your/install/path 
 
 
-## Extra packages 
+## Optional packages 
 
 There are some extra packages that can increase the features and improve the speed of the toolset
 
@@ -57,4 +68,14 @@ following
     python setup.py build
     sudo python setup.py install
 
+### Rpy2
+
+If you would like to use the rpy2 bridge, you should install the `rpy2` package.
+
+## Documentation
+
+Documentation for the library can be found at
+[http://proteomics.ethz.ch/msproteomicstools/](http://proteomics.ethz.ch/msproteomicstools/) 
+which contains source code documentation of the available functions and
+objects.
 
