@@ -62,7 +62,7 @@ msproteomicstools projects.
 
 Next, download and install pymzml using the following link:
 
-```https://github.com/hroest/pymzML/archive/Release_0.7.5.zip```
+    https://github.com/hroest/pymzML/archive/Release_0.7.5.zip
 
 Then navigate to the download location:
 
