@@ -37,6 +37,7 @@ $Authors: Hannes Roest$
 
 from __future__ import print_function
 import numpy
+import math
 import scipy.stats
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
@@ -283,20 +284,32 @@ class TreeConsensusAlignment():
             # select the first cluster => same behavior as alignBestCluster
             # firstcluster = clusters[0]
 
-            # Get best cluster by length-normalized best score.
-            #   Length normalization divides the score by the expected probability
-            #   values if all peakgroups were chosen randomly (assuming equal
-            #   probability between 0 and aligned_fdr_cutoff, the expected value
-            #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
-            #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
-            clusters.sort(key=lambda x: 
-                          x.getTotalScore()/((self._aligned_fdr_cutoff/2)**len(x.peakgroups)))
+            def normalizedClusterScore(x):
+
+                # Get best cluster by length-normalized best score.
+                #   Length normalization divides the score by the expected probability
+                #   values if all peakgroups were chosen randomly (assuming equal
+                #   probability between 0 and aligned_fdr_cutoff, the expected value
+                #   for a random peakgroup is "aligned_fdr_cutoff/2") and thus the
+                #   expected random value of n peakgroups would be (aligned_fdr_cutoff/2)^n
+                #   
+                #   Thus the normalized score is: score / exp_value
+                # 
+                #   For numerical stability we take the log of the score (if we
+                #   have many runs, then the denominator may evalute to zero)
+                #   which will not change the relative order of the clusters.
+                #
+
+                return math.log( x.getTotalScore() ) - len(x.peakgroups) * math.log( self._aligned_fdr_cutoff/2.0 )
+                # return x.getTotalScore()/((self._aligned_fdr_cutoff/2)**len(x.peakgroups)))
+
+            clusters.sort(key=normalizedClusterScore)
             # bestcluster = cluster[0]
             for i,c in enumerate(clusters): 
                 if self.verbose:
                     print (" - Cluster", i, "with score", c.getTotalScore(), "at", \
                       c.getMedianRT(), "+/-", c.getRTstd() , "(norm_score %s)" % \
-                      (float(c.getTotalScore())/((self._aligned_fdr_cutoff/2)**len(c.peakgroups))) )
+                      (normalizedClusterScore(c)) )
                 for pg in c.peakgroups:
                     pg.setClusterID(i+1)
                     if self.verbose:
