@@ -14,6 +14,10 @@ or disable all slow tests for a faster response
 
     nosetests -a '!slow' test
 
+using the same approach, also tests that require rpy2 can be disabled:
+
+    nosetests -a '!slow,!rpy2' test
+
 # Dependencies
 
 For the TAPIR graphical user interface, you will need the following dependencies:
