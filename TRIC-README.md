@@ -87,8 +87,7 @@ that are present in both runs and then compute a transformation function from
 the RT-space of one run into the RT-space of the other run.
 
 The method for pairwise alignment can be selected using ```--realign_method```.
-The recommended  method is ```lowess``` (or the faster ```lowess_cython```) or
-```SmoothLLDMedian```.
+The recommended  method is ```lowess``` (or the faster ```lowess_cython```) or `SmoothLLDMedian`.
 
 The very simple or linear alignment methods are:
 
