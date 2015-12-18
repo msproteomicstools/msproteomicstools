@@ -72,6 +72,9 @@ class Run():
     def get_openswath_filename(self):
         return self.openswath_filename
 
+    def get_original_filename(self):
+        return self.orig_filename
+
     def get_aligned_filename(self):
         return self.aligned_filename
   

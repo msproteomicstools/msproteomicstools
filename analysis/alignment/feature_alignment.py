@@ -55,6 +55,8 @@ from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpan
 class AlignmentStatistics(object):
 
     def __init__(self): 
+
+        self.nr_runs = -1
         self.nr_aligned = 0
         self.nr_changed = 0
         self.nr_quantified = 0
@@ -69,7 +71,10 @@ class AlignmentStatistics(object):
         self.quant_peptides = set([])
         self.quant_proteins = set([])
 
-    def count(astats, multipeptides, fdr_cutoff, skipDecoy=True):
+    def count(self, multipeptides, fdr_cutoff, runs, skipDecoy=True):
+
+
+        astats = self
 
         for m in multipeptides:
 
@@ -111,6 +116,45 @@ class AlignmentStatistics(object):
                   and p.get_best_peakgroup().get_fdr_score() < fdr_cutoff:
                     astats.nr_removed += 1
 
+        self.max_pg = self.nr_good_precursors * len(runs)
+        self.nr_runs = len(runs)
+
+    def to_yaml(self):
+
+        r = {}
+        r["NumberRuns"] = self.nr_runs
+        r["QuantifiedPrecursors"] = self.nr_good_precursors
+        r["QuantifiedPeakgroups"] = self.nr_quantified
+        r["MaximalPeakgroups"] = self.max_pg
+        r["AlignedPeakgroups"] = self.nr_aligned
+        r["ChangedPeakgroups"] = self.nr_changed
+        r["NotAlignedPeakgroups"] = self.max_pg - self.nr_quantified
+        r["RemovedPeakgroups"] = self.nr_removed
+        r["AmbigousPeakgroups"] = self.nr_ambiguous
+        r["MultipleSuitablePeakgroups"] = self.nr_multiple_align
+        allr ={}
+        allr["Precursors"] = {}
+        allr["Peptides"] = {}
+        allr["Proteins"] = {}
+
+        allr["Precursors"]["Quant"] = self.nr_quant_precursors
+        allr["Precursors"]["Total"] = self.nr_good_precursors
+        allr["Precursors"]["AllRuns"] = self.nr_precursors_in_all
+        allr["Precursors"]["AllRunsNoAlign"] = self.precursors_in_all_runs_wo_align
+        allr["Peptides"]["Quant"] = len(self.quant_peptides)
+        allr["Peptides"]["Total"] = len(self.good_peptides)
+        allr["Peptides"]["AllRuns"] = self.nr_peptides_target
+        allr["Peptides"]["AllRunsNoAlign"] = self.peptides_in_all_runs_wo_align_target
+
+        allr["Proteins"]["Quant"] = len(self.quant_proteins)
+        allr["Proteins"]["Total"] = len(self.good_proteins)
+        allr["Proteins"]["AllRuns"] = self.nr_proteins_target
+        allr["Proteins"]["AllRunsNoAlign"] = self.proteins_in_all_runs_wo_align_target
+
+        r["AllRuns"] = allr
+
+        return r
+
 class Experiment(MRExperiment):
     """
     An Experiment is a container for multiple experimental runs - some of which may contain the same precursors.
@@ -151,7 +195,7 @@ class Experiment(MRExperiment):
     def print_stats(self, multipeptides, fdr_cutoff, fraction_present, min_nrruns):
 
         alignment = AlignmentStatistics()
-        alignment.count(multipeptides, fdr_cutoff)
+        alignment.count(multipeptides, fdr_cutoff, self.runs)
 
         # Count presence in all runs (before alignment)
         precursors_in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
@@ -182,6 +226,17 @@ class Experiment(MRExperiment):
         target_quant_protein_list.sort()
         nr_sh_target_proteins = sum( [len(list(group)) == 1 for key, group in groupby(target_quant_protein_list)] )
         nr_mh_target_proteins = sum( [len(list(group)) > 1 for key, group in groupby(target_quant_protein_list)] )
+
+        ### Store for later (yaml output)
+        alignment.nr_ambiguous = self.nr_ambiguous
+        alignment.nr_multiple_align = self.nr_multiple_align
+        alignment.precursors_in_all_runs_wo_align = precursors_in_all_runs_wo_align
+        alignment.peptides_in_all_runs_wo_align_target = peptides_in_all_runs_wo_align_target
+        alignment.proteins_in_all_runs_wo_align_target = proteins_in_all_runs_wo_align_target
+
+        alignment.nr_precursors_in_all = nr_precursors_in_all
+        alignment.nr_peptides_target = nr_peptides_target
+        alignment.nr_proteins_target = nr_proteins_target
 
         #
         ###########################################################################
@@ -217,6 +272,8 @@ class Experiment(MRExperiment):
                   alignment.nr_quant_precursors + decoy_precursors, "precursors which is %0.4f %%" % (
                       decoy_precursors * 100.0 / (alignment.nr_quant_precursors + decoy_precursors)))
 
+        return alignment
+
     def _getTrafoFilename(self, current_run, ref_id):
         current_id = current_run.get_id()
         input_basename = os.path.basename(current_run.orig_filename)
@@ -236,7 +293,7 @@ class Experiment(MRExperiment):
             self.transformation_collection.writeTransformationData(filename, current_id, ref_id)
             self.transformation_collection.readTransformationData(filename)
 
-    def write_to_file(self, multipeptides, options, writeTrafoFiles=True):
+    def write_to_file(self, multipeptides, options, alignment, tree=None, writeTrafoFiles=True):
 
         infiles = options.infiles
         outfile = options.outfile
@@ -369,6 +426,21 @@ class Experiment(MRExperiment):
                       },
                       "Parameters" : {}
                      }
+
+            myYaml["Output"] = {}
+            myYaml["Output"]["Tree"] = {}
+            if tree is not None:
+                myYaml["Output"]["Tree"]["Raw"] = [list(t) for t in tree]
+                tree_mapped = [ [self.runs[a].get_id(), self.runs[b].get_id()] for a,b in tree]
+                myYaml["Output"]["Tree"]["Mapped"] = tree_mapped
+                tree_mapped = [ [self.runs[a].get_openswath_filename(), self.runs[b].get_openswath_filename()] for a,b in tree]
+                myYaml["Output"]["Tree"]["MappedFile"] = tree_mapped
+                tree_mapped = [ [self.runs[a].get_openswath_filename(), self.runs[b].get_openswath_filename()] for a,b in tree]
+                myYaml["Output"]["Tree"]["MappedFile"] = tree_mapped
+                tree_mapped = [ [self.runs[a].get_original_filename(), self.runs[b].get_original_filename()] for a,b in tree]
+                myYaml["Output"]["Tree"]["MappedFileInput"] = tree_mapped
+
+            myYaml["Output"]["Quantification"] = alignment.to_yaml()
             myYaml["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff) # deprecated
             myYaml["FeatureAlignment"]["Parameters"]["m_score_cutoff"] = float(options.fdr_cutoff)
             myYaml["FeatureAlignment"]["Parameters"]["fdr_cutoff"] = float(options.fdr_cutoff)
@@ -456,6 +528,8 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     # cases where multiple possibilities were found.
     exp.nr_ambiguous = al.nr_ambiguous
     exp.nr_multiple_align = al.nr_multiple_align
+
+    return tree
 
 def doParameterEstimation(options, this_exp, multipeptides):
     """
@@ -651,6 +725,7 @@ def main(options):
     if options.target_fdr > 0:
         multipeptides = doParameterEstimation(options, this_exp, multipeptides)
 
+    tree_out = None
     if options.method == "LocalMST" or options.method == "LocalMSTAllCluster":
         start = time.time()
         if options.mst_stdev_max_per_run > 0:
@@ -658,7 +733,8 @@ def main(options):
         else:
             stdev_max_rt_per_run = None
             
-        doMSTAlignment(this_exp, multipeptides, float(options.rt_diff_cutoff), 
+        tree_out = doMSTAlignment(this_exp, 
+                       multipeptides, float(options.rt_diff_cutoff), 
                        float(options.rt_diff_isotope),
                        float(options.alignment_score), options.fdr_cutoff,
                        float(options.aligned_fdr_cutoff),
@@ -683,8 +759,8 @@ def main(options):
 
     # print statistics, write output
     start = time.time()
-    this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
-    this_exp.write_to_file(multipeptides, options)
+    al = this_exp.print_stats(multipeptides, options.fdr_cutoff, options.min_frac_selected, options.nr_high_conf_exp)
+    this_exp.write_to_file(multipeptides, options, alignment=al, tree=tree_out)
     print("Writing output took %0.2fs" % (time.time() - start) )
 
 if __name__=="__main__":
