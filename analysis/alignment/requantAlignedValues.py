@@ -773,7 +773,7 @@ def handle_args():
     parser.add_argument('--dry_run', action='store_true', default=False, help="Perform a dry run only")
     parser.add_argument('--test', dest="is_test", action='store_true', default=False, help="For running the tests (does not add a random id to the results)")
     parser.add_argument('--cache_in_memory', action='store_true', default=False, help="Cache data from a single run in memory")
-    parser.add_argument('--method', dest='method', default="allTrafo", help="Which method to use (singleShortestPath, singleClosestRun, other)")
+    parser.add_argument('--method', dest='method', default="reference", help="Which method to use (singleShortestPath, singleClosestRun, reference)")
     parser.add_argument('--realign_runs', dest='realign_method', default="splineR", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line), 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother), 'nonCVSpline, CVSpline': splines with and without cross-validation, 'Earth' : use Multivariate Adaptive Regression Splines using py-earth")
     parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
@@ -790,9 +790,24 @@ def main(options):
 
     rid = None
     if options.method in ["singleShortestPath", "singleClosestRun"]:
-        new_exp, multipeptides, rid = runSingleFileImputation(options, options.peakgroups_infile, options.do_single_run, options.method, options.is_test)
+
+        # Some parameter checking
+        if options.do_single_run == "":
+            raise Exception("Input mzML file (--do_single_run) cannot be empty when choosing a tree-based approacht")
+
+        new_exp, multipeptides, rid = runSingleFileImputation(options,
+                                                              options.peakgroups_infile,
+                                                              options.do_single_run,
+                                                              options.method,
+                                                              options.is_test)
     else:
-        new_exp, multipeptides, rid = runImputeValues(options, options.peakgroups_infile, options.infiles, options.is_test)
+        if not options.method == "reference" and not options.method == "allTrafo":
+            print ("Found unknown method '%s', assuming 'reference'." % options.method)
+
+        new_exp, multipeptides, rid = runImputeValues(options,
+                                                      options.peakgroups_infile,
+                                                      options.infiles,
+                                                      options.is_test)
 
     if options.dry_run:
         return
