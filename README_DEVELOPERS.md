@@ -1,4 +1,4 @@
-Please follow the install instructions in the main README.md file
+Please follow the install instructions in the [main README file](README.md) before you continue reading
 
 # Testing 
 

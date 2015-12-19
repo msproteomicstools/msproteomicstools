@@ -36,6 +36,8 @@ $Authors: Hannes Roest$
 """
 from __future__ import print_function
 
+from __future__ import print_function
+
 import os, sys, csv, time
 import numpy
 import argparse
@@ -543,7 +545,7 @@ def handle_args():
     import ast
     parser = argparse.ArgumentParser(description = usage )
     parser.add_argument('--in', dest="infiles", required=True, nargs = '+', help = 'A list of mProphet output files containing all peakgroups (use quotes around the filenames)')
-    parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath or peakview)")
+    parser.add_argument('--file_format', default='openswath', help="Which input file format is used (openswath, mprophet or peakview)")
     parser.add_argument("--out", dest="outfile", required=True, default="feature_alignment_outfile", help="Output file with filtered peakgroups for quantification (only works for OpenSWATH)")
     parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xlsx)")
     parser.add_argument("--out_ids", dest="ids_outfile", default="", help="Id file only containing the ids")
@@ -556,7 +558,7 @@ def handle_args():
     parser.add_argument('--method', default='best_overall', help="Which method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall, LocalMST, LocalMSTAllCluster). Note that the MST options will perform a local, MST guided alignment while the other options will use a reference-guided alignment. The global option will also move peaks which are below the selected FDR threshold.")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)")
-    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line, 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother), 'nonCVSpline, CVSpline': splines with and without cross-validation, 'earth' : use Multivariate Adaptive Regression Splines using py-earth")
+    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line), 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother), 'nonCVSpline, CVSpline': splines with and without cross-validation, 'Earth' : use Multivariate Adaptive Regression Splines using py-earth")
 
     experimental_parser = parser.add_argument_group('experimental options')
 
