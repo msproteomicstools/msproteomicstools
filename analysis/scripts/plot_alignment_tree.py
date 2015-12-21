@@ -32,15 +32,23 @@ docs = yaml.load(stream)
 tree = docs["AlignedSwathRuns"]["Output"]["Tree"][treeFormat]
 myFormat = outfile.split(".")[-1]
 
+newtree = []
+for a,b in tree:
+    newtree.append( [a.split("/")[-1], b.split("/")[-1] ] )
+
+tree = newtree
+
 def get_graph(tree, labels, length, extra=""):
     res = ""
     extra = "overlap=scale"
     for i,edge in enumerate(tree):
-        res += '"%s" -- "%s" [len=%s,label="%s"]\n' % ( edge[0], edge[1],  length[i], labels[i])
+        if labels is None or length is None:
+            res += '"%s" -- "%s"\n' % ( edge[0], edge[1] )
+        else:
+            res += '"%s" -- "%s" [len=%s,label="%s"]\n' % ( edge[0], edge[1],  length[i], labels[i])
     return "graph G {\n%s\n%s\n}\n" % (res, extra)
 
-
-gr = get_graph(tree, labels, length)
+gr = get_graph(tree, None, None)
 
 with open(tmpfile, "w") as f:
     f.write(gr)
