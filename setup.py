@@ -20,7 +20,7 @@ else:
     extra_installs = []
 
 setup(name='msproteomicstools',
-      version='0.3.3',
+      version='0.4.0',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
