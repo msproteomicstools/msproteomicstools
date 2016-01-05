@@ -4,6 +4,7 @@ Table of Contents
 
 * [TRIC alignment](#alignment)
     * [Overview](#alignment-overview)
+    * [Algorithm](#design)
     * [Running TRIC](#runtric)
         * [(Non)-linear pairwise alignment](#pairwise-alignment)
         * [Reference-based alignment](#ref-alignment)
@@ -29,6 +30,57 @@ tree based on chromatographic similarity of the input runs and uses this tree
 to align the targeted proteomics runs (the nodes in the tree are runs and the
 edges are pairwise alignments). Generally this mode is better for a large
 number of runs or for chromatographically dissimilar samples.
+
+##<a name="design"></a> Design of the Algorithm 
+
+### Alignment Order and RT correction
+
+The first step in the algorithm is to compute the alignment order.  If the
+tree-based alignment is used, then first  a set of of high-confidence _anchor
+points_ is used to estimate the pairwise chromatographic distance between all
+runs. This distance matrix is then used to compute a guidance tree (minimum
+spanning tree, MST) where the nodes represent LC-MS/MS runs and the edges
+represent pairwise alignments.  If a reference-based approach is used, then a
+reference run is selected first (the run with the most features) and a
+star-shaped tree is created with the reference run in the middle, connected to
+all other runs.
+
+Then, for each edge in the tree, a pairwise non-linear transformation between
+the retention time (RT) domains of the two runs at the nodes is computed, using one
+of several available methods (e.g. local regression, spline fit, k-nearest
+neighbor). 
+
+### Confidence transfer:
+Using the guidance tree  from above (star-shaped or MST-based), 
+for each measured targeted proteomics assay, traversal of
+the global guidance tree starts with a suitable starting point, or _seed_
+identification (a identification below the ```--target_fdr``` or
+```--fdr_cutoff``` cutoff). During traversal each edge of the tree is visited
+sequentially and a confident identification is mapped from one node
+(run $n$) to an adjacent node (run $m$), where the choice of using a
+MST-guidance tree ensures that the mapping only occurs between
+chromatographically similar runs.  During confidence transfer, the
+identification confidence of all peakgroups in run $m$ within the specified
+retention time window (user-defined or adaptive) is considered. If the
+confidence score of the best peakgroup _within the RT window_ passes the
+user-defined threshold given by ```--max_fdr_quality```, it gets added to the
+result.
+
+The size of he RT window during confidence transfer is given by
+```--max_rt_diff```. However, as different parts of the tree may have different
+alignment quality, it is possible to use adaptive
+retention time windows, derived from the quality of the alignment. This 
+approach allows different parameters for confidence transfer on different
+parts of the tree, increasing robustness and decreasing the influence of 
+outlier runs (see ```--mst:Stdev_multiplier``` parameter).
+
+### Requantification 
+TRIC contains a separate, optional requantification step where runs in the
+guidance tree where no peakgroup passed the confidence filter can be re-visited
+for re-quantification.  In these cases, the software can infer the peak
+boundaries from the closest neighboring run and quantify the fragment ion
+signal within those boundaries, see [TRIC requantification](#requant).
+
 
 ## Installing TRIC
 
@@ -183,14 +235,13 @@ Thus, a sample command for a tree-based alignment may look like this
 
 
 - ```--disable_isotopic_grouping``` Disable grouping of isotopic variants by ```peptide_group_label```, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.
-
 - ```--use_dscore_filter``` Enable the filter by d score (this is mainly for speedup)
 - ```--dscore_cutoff``` Quality cutoff to still consider a feature for alignment using the d_score: everything below this d-score is discarded (this is mainly for speedup)
 - ```--nr_high_conf_exp``` Number of experiments in which the peptide needs to be identified with high confidence (e.g. above ``` fdr_curoff ```)
 - ```--readmethod``` Read full or minimal transition groups (minimal,full)
 - ```--tmpdir``` Temporary directory location
 - ```--alignment_score``` Minimal score needed for a feature to be considered for alignment between runs (e.g. score needed to be considered an "anchor point" for pairwise alignment)
-- ```--fdr_cutoff``` A fixed m-score cutoff  which does not take into account the number of runs (use ```target_fdr``` instead)
+- ```--fdr_cutoff``` A fixed m-score cutoff which does not take into account the number of runs (use ```target_fdr``` instead)
 
 #<a name="requant"></a> TRIC requantification
 
