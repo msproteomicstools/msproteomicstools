@@ -1,0 +1,41 @@
+
+---------------------------------------------------------------------------
+  Release 0.4.0
+---------------------------------------------------------------------------
+
+- improved reporting in YAML format for alignment tools
+- port of code to Python 3
+- option to use reference-based approach in MST algorithm
+- improvements to documentation
+
+---------------------------------------------------------------------------
+  Release 0.3.2
+---------------------------------------------------------------------------
+
+- improvements in parsing of Peakview files (preprocessor script)
+- multiple improvements in TAPIR
+- creation of executables for TAPIR
+- metabolomics support for TAPIR
+
+---------------------------------------------------------------------------
+  Release 0.3.0
+---------------------------------------------------------------------------
+
+- add tree-based alignment (MST options)
+- improved output reporting
+- add documentation
+- improve test coverage substantially
+
+---------------------------------------------------------------------------
+  Release 0.2.0
+---------------------------------------------------------------------------
+
+- add TAPIR visualization tool for chromatograms
+- output data matrix in Excel format
+
+---------------------------------------------------------------------------
+  Release 0.1.0
+---------------------------------------------------------------------------
+
+- initial version of library and alignment tools
+
