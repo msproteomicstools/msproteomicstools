@@ -1,3 +1,11 @@
+---------------------------------------------------------------------------
+  Release 0.4.2
+---------------------------------------------------------------------------
+
+- added fast lowess support through statsmodels
+- fix bug in wrapper around statsmodels lowess
+
+- make threading default for the MST traversal (--mst:useRTCorrection)
 
 ---------------------------------------------------------------------------
   Release 0.4.0
