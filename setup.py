@@ -59,7 +59,8 @@ setup(name='msproteomicstools',
           "xlsxwriter >= 0.5.3 ", # for xlsx
           # 'xlwt', # for xls
           'scikits.datasmooth',
-          'pymzml',
+          # versions 7.6 and 7.7 are broken for us (use spectra sanity check)
+          'pymzml == 0.7.5',
           'lxml',
           'configobj',
           'biopython',
