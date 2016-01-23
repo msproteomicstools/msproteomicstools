@@ -414,6 +414,12 @@ class LowessSmoothingBiostats(LowessSmoothingBase):
 
 class LowessSmoothingStatsmodels(LowessSmoothingBase):
     """Smoothing using Lowess smoother and then interpolate on the result
+
+    statsmodels now also has fast Cython lowess, see https://github.com/statsmodels/statsmodels/pull/856
+
+    This faster lowess should be in version 0.5.0 of statsmodels (anaconda
+    currently has version 0.6.0). However, Ubuntu only has version 0.5.0 from
+    14.04 onwards, so be careful.
     """
 
     def __init__(self):
@@ -428,9 +434,12 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
             print("Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'")
             print("===================================")
 
+        # NOTE: delta parameter is only available from statsmodels > 0.5.0
+        delta = (max(data1) - min(data1)) * 0.01
+
         # Input data is y/x -> needs switch
-        result = lowess(numpy.array(data2), numpy.array(data1))
-        return result
+        result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=0.1, it=10)
+        return [ r[0] for r in result], [r[1] for r in result]
 
 class LowessSmoothingCyLowess(LowessSmoothingBase):
     """Smoothing using Lowess smoother and then interpolate on the result
