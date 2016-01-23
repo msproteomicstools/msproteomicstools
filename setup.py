@@ -37,6 +37,8 @@ setup(name='msproteomicstools',
       package_dir = {
           'openswathgui': 'gui/openswathgui',
       },
+      package_data={'msproteomicstoolslib.data_structures':
+          ['modifications_default.tsv']},
       scripts=all_scripts,
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
