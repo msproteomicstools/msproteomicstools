@@ -104,6 +104,7 @@ class SwathChromatogramRun(object):
                 continue
             run = pymzml.run.Reader(f, build_index_from_scratch=True)
             if not run.info["seekable"]:
+                print("Could not open mzML file %s in seekable mode. Please use unzipped files, preferably with an index (using the indexedmzML standard).") 
                 raise Exception("Could not properly read file", f)
             self.chromfiles.append(run)
 
