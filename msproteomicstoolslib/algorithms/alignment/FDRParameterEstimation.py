@@ -198,6 +198,10 @@ class ParamEst(object):
 
     def compute_decoy_frac(self, multipeptides, target_fdr):
         """ Calculate how many of the *peakgroups* are decoy for a given cutoff.
+
+        This provides an estimator of the ration of false positives to decoy
+        peak groups which the mProphet / pyProphet algorithm has previously
+        estimated using the Storey-Tibshirani method.
         """
         allpg_cnt = 0
         alldecoypg_cnt = 0
