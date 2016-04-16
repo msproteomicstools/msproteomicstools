@@ -10,6 +10,11 @@ applied to proteomics. Speficically, it contains
 The code is under the 3-clause BSD licence (see the [LICENSE](LICENSE)
 and the [AUTHORS](AUTHORS.txt)  files).
 
+# TRIC
+
+The ./analysis folder contains the TRIC alignment tool, see [the TRIC
+manual](TRIC-README.md) for further information.
+
 # TAPIR 
 
 TAPIR is a software that allows visualization of targeted proteomics data. See
