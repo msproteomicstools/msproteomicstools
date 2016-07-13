@@ -64,6 +64,7 @@ Structure
 import sys,time, re
 import argparse
 
+from guidata import qt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 

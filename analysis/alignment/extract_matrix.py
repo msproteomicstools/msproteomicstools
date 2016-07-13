@@ -2,7 +2,10 @@
 from __future__ import print_function
 import sys
 import argparse
+from sys import stdout, maxsize
 import csv
+
+csv.field_size_limit(maxsize)
 
 def handle_args():
     usage="Generates matrix with flexible columns from featurealigner.tsv or featurealigner_requant.tsv file." \

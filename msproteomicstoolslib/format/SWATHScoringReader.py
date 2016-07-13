@@ -36,8 +36,10 @@ $Authors: Hannes Roest$
 """
 
 from __future__ import print_function
-from sys import stdout
+from sys import stdout, maxsize
 import csv
+
+csv.field_size_limit(maxsize)
 
 verb = False
 
