@@ -45,7 +45,7 @@ from msproteomicstoolslib.math.chauvenet import *
 def lmedian(valarr):
   vals = sorted(valarr)
   if len(vals) % 2 == 1:
-    return vals[(len(vals) + 1) // 2) - 1]
+    return vals[(len(vals) + 1) // 2 - 1]
   else:
     return vals[len(vals) // 2 - 1]
 
