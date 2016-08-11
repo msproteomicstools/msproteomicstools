@@ -490,7 +490,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     Minimum Spanning Tree (MST) based local aligment 
     """
 
-    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    spl_aligner = SplineAligner(initial_alignment_cutoff, experiment=exp)
 
     if mst_use_ref:
         # force reference-based alignment
@@ -584,7 +584,8 @@ def doReferenceAlignment(options, this_exp, multipeptides):
         start = time.time()
         spl_aligner = SplineAligner(alignment_fdr_threshold = options.alignment_score, 
                                    smoother=options.realign_method,
-                                   external_r_tmpdir = options.tmpdir)
+                                   external_r_tmpdir = options.tmpdir, 
+                                   experiment=this_exp)
         this_exp.transformation_collection = spl_aligner.rt_align_all_runs(this_exp, multipeptides)
         trafoError = spl_aligner.getTransformationError()
         print("Aligning the runs took %0.2fs" % (time.time() - start) )

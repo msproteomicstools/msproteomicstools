@@ -64,12 +64,14 @@ class SplineAligner():
     >>> spl_aligner = SplineAligner()
     >>> transformations = spl_aligner.rt_align_all_runs(this_exp, multipeptides, options.alignment_score, options.use_scikit)
     """
-    def __init__(self, alignment_fdr_threshold = 0.0001, smoother="lowess", external_r_tmpdir=None, maxdata=-1):
+    def __init__(self, alignment_fdr_threshold = 0.0001, smoother="lowess", external_r_tmpdir=None, maxdata=-1, experiment=None):
       self.transformation_collection = TransformationCollection()
       self.alignment_fdr_threshold_ = alignment_fdr_threshold
       self.smoother = smoother
       self.tmpdir_ = external_r_tmpdir
       self.max_data_ = maxdata
+      self._cacher = None
+      self._experiment = experiment
 
     def _determine_best_run(self, experiment):
 
@@ -92,6 +94,73 @@ class SplineAligner():
     def _getRTData(self, bestrun, run, multipeptides):
         """ Return retention time data for reference and slave run """
 
+        if self._experiment is not None:
+            return self._getRTData_cached(bestrun, run, multipeptides)
+        else:
+            return self._getRTData_legacy(bestrun, run, multipeptides)
+
+    def _cache_RT_data(self, bestrun, run, multipeptides):
+
+        self._cacher = []
+        for m in multipeptides:
+            cached_vals = []
+            is_decoy = False
+            for r in self._experiment.runs:
+                val = None
+                if m.hasPrecursorGroup(r.get_id()):
+
+                    al_pg = [pg for pg in m.getPrecursorGroup(r.get_id()).getAllPeakgroups()
+                                   if pg.get_fdr_score() < self.alignment_fdr_threshold_]
+
+                    # We need to have a single, good peak group below the threshold (not a decoy)
+                    if len(al_pg) == 1:
+                        pep = m.getPrecursorGroup(r.get_id()).getOverallBestPeakgroup()
+                        if not pep.peptide.get_decoy() and pep.get_fdr_score() < self.alignment_fdr_threshold_:
+                            val = (pep.get_fdr_score(), pep.get_normalized_retentiontime())
+
+                cached_vals.append(val)
+
+            # only append with at least 2 values ...
+            if len([v for v in cached_vals if not v is None] ) > 1:
+                self._cacher.append(cached_vals)
+
+    def _getRTData_cached(self, bestrun, run, multipeptides):
+        """ Return retention time data for reference and slave run """
+
+        if self._cacher is None:
+            self._cache_RT_data(bestrun, run, multipeptides)
+
+        run_nr = [k for k,r in enumerate(self._experiment.runs) if r.get_id() == run.get_id() ][0]
+        bestrun_nr = [k for k,r in enumerate(self._experiment.runs) if r.get_id() == bestrun.get_id() ][0]
+
+        data_tmp = []
+        for m in self._cacher:
+
+            rund = m[ run_nr ]
+            bestrund = m[ bestrun_nr ]
+
+            # Skip empty entries
+            if rund is None or bestrund is None:
+                continue
+
+            data_tmp.append( (
+                min( rund[0], bestrund[0]),
+                bestrund[1], rund[1]) )
+
+        maxdata = self.max_data_
+        if maxdata == -1:
+            # -1 means take all data
+            maxdata = len(data_tmp)
+
+        for fdr, d1, d2 in sorted(data_tmp)[:maxdata]:
+            data1.append(d1)
+            data2.append(d2)
+
+        return data1,data2
+
+    def _getRTData_legacy(self, bestrun, run, multipeptides):
+        """ Return retention time data for reference and slave run """
+
         # data1 = reference data (master)
         # data2 = data to be aligned (slave)
         data1 = []
@@ -99,12 +168,13 @@ class SplineAligner():
 
         data_tmp = []
         cnt_multiple = 0
+
         for m in multipeptides:
 
-            try: 
-                len_ali = len([pg for pg in m.getPrecursorGroup(run.get_id()).getAllPeakgroups() 
+            try:
+                len_ali = len([pg for pg in m.getPrecursorGroup(run.get_id()).getAllPeakgroups()
                                if pg.get_fdr_score() < self.alignment_fdr_threshold_])
-                len_ref = len([pg for pg in m.getPrecursorGroup(bestrun.get_id()).getAllPeakgroups() 
+                len_ref = len([pg for pg in m.getPrecursorGroup(bestrun.get_id()).getAllPeakgroups()
                                if pg.get_fdr_score() < self.alignment_fdr_threshold_])
 
                 # Do not consider peakgroups that are missing in one run
@@ -116,12 +186,12 @@ class SplineAligner():
 
                 ref_pep = m.getPrecursorGroup(bestrun.get_id()).getOverallBestPeakgroup()
                 align_pep = m.getPrecursorGroup(run.get_id()).getOverallBestPeakgroup()
-            except KeyError: 
+            except KeyError:
                 # it is possible that for some, no peak group exists in this run
                 continue
 
             # Do not use decoy peptides
-            if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy(): 
+            if ref_pep.peptide.get_decoy() or align_pep.peptide.get_decoy():
                 continue
 
             if ref_pep.get_fdr_score() < self.alignment_fdr_threshold_ and \
@@ -130,9 +200,9 @@ class SplineAligner():
                 # data1.append(ref_pep.get_normalized_retentiontime())
                 # data2.append(align_pep.get_normalized_retentiontime())
                 data_tmp.append( (
-                    ref_pep.get_fdr_score(), 
-                    ref_pep.get_normalized_retentiontime(), 
-                    align_pep.get_normalized_retentiontime() 
+                    ref_pep.get_fdr_score(),
+                    ref_pep.get_normalized_retentiontime(),
+                    align_pep.get_normalized_retentiontime()
                 ) )
 
         if cnt_multiple > len(multipeptides) * 0.8 :

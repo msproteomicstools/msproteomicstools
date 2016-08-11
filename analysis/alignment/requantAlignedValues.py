@@ -259,7 +259,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     max_rt_diff = 30
     sd_data = -1 # We do not use the standard deviation data in this algorithm
     tr_data = transformations.LightTransformationData()
-    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    spl_aligner = SplineAligner(initial_alignment_cutoff, new_exp)
 
     if method == "singleClosestRun":
         tree_mapped = None
