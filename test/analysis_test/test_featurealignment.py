@@ -170,7 +170,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename_ids = "featureAlignment_6.out.tmp_idsonly.csv"
         tmpfilename_matrix = "featureAlignment_6.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_ids %s --out_matrix %s --method LocalMSTAllCluster --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --method LocalMSTAllCluster --max_fdr_quality 0.4 --matrix_output_method RT --force" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -191,7 +191,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename_ids = "featureAlignment_7.out.tmp_idsonly.csv"
         tmpfilename_matrix = "featureAlignment_7.out.tmp_matrix.tsv"
 
-        args = "--in %s --out %s --out_ids %s --out_matrix %s --max_rt_diff 300 --file_format openswath --max_fdr_quality 0.1 --realign_method lowess --method LocalMSTAllCluster --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
+        args = "--in %s --out %s --out_ids %s --out_matrix %s --max_rt_diff 300 --file_format openswath --max_fdr_quality 0.1 --realign_method lowess --method LocalMSTAllCluster --matrix_output_method RT --force" % (filename, tmpfilename, tmpfilename_ids, tmpfilename_matrix)
 
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)

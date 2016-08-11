@@ -36,8 +36,6 @@ $Authors: Hannes Roest$
 """
 from __future__ import print_function
 
-from __future__ import print_function
-
 import os, sys, csv, time
 import numpy
 import argparse
@@ -485,7 +483,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
 
 def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_alignment_cutoff,
                    fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
-                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref):
+                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref, force):
     """
     Minimum Spanning Tree (MST) based local aligment 
     """
@@ -509,7 +507,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
                        spl_aligner, multipeptides, smoothing_method,
-                       max_rt_diff)
+                       max_rt_diff, force=force)
 
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
 
@@ -645,6 +643,7 @@ def handle_args():
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)", metavar="")
     parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, nonCVSpline, CVSpline, Earth)", metavar="diRT")
+    parser.add_argument('--force', action='store_true', default=False, help="Force alignment")
 
     mst_parser = parser.add_argument_group('options for the MST')
 
@@ -746,7 +745,7 @@ def main(options):
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
                        options.mst_correct_rt, stdev_max_rt_per_run,
-                       options.mst_local_stdev, options.mst_use_ref)
+                       options.mst_local_stdev, options.mst_use_ref, options.force)
         print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
