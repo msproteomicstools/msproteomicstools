@@ -169,7 +169,7 @@ class TransformationCollection():
                     if reverse: 
                         sm_rev = smoothing.SmoothingInterpolation()
                         sm_rev.initialize(self.getTransformedData(s_from, s_to), data[0])
-                        self._addTransformation(sm_rev, s_to, s_from, force=force)
+                        self._addTransformation(sm_rev, s_to, s_from)
                 else:
                     sm = smoothing.getSmoothingObj(smoother)
                     sm.initialize(data[0], data[1])
@@ -177,7 +177,7 @@ class TransformationCollection():
                     if reverse: 
                         sm_rev = smoothing.getSmoothingObj(smoother)
                         sm_rev.initialize(data[1], data[0])
-                        self._addTransformation(sm_rev, s_to, s_from, force=force)
+                        self._addTransformation(sm_rev, s_to, s_from)
                 print("Took %0.4fs to align %s against %s" % (time.time() - start, s_to, s_from))
 
     def addTransformationData(self, data, s_from, s_to):
