@@ -152,6 +152,8 @@ class SplineAligner():
             # -1 means take all data
             maxdata = len(data_tmp)
 
+        data1 = []
+        data2 = []
         for fdr, d1, d2 in sorted(data_tmp)[:maxdata]:
             data1.append(d1)
             data2.append(d2)
