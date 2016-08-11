@@ -120,7 +120,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "featureAlignment_3.out.tmp"
         tmpfilename_ids = "featureAlignment_3.out.tmp_idsonly.csv"
 
-        args = "--in %s --out %s --out_ids %s --realign_method 'splineR' --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
+        args = "--in %s --out %s --out_ids %s --realign_method 'lowess' --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         
@@ -137,7 +137,7 @@ class TestFeatureAlignment(unittest.TestCase):
         tmpfilename = "featureAlignment_4.out.tmp"
         tmpfilename_ids = "featureAlignment_4.out.tmp_idsonly.csv"
 
-        args = "--in %s --out %s --out_ids %s --realign_method 'splinePy' --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
+        args = "--in %s --out %s --out_ids %s --realign_method 'lowess' --method best_cluster_score --max_fdr_quality 0.4 --matrix_output_method RT" % (filename, tmpfilename, tmpfilename_ids)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
         

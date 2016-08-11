@@ -75,10 +75,10 @@ class TestUnitSmoothing(unittest.TestCase):
         # and a different estimation is used here...
         r = sm._smooth_spline_scikit(self.data1, self.data2, [10.0,5.0,7,10.00001])
         self.assertEqual(len(r), 4)
-        self.assertAlmostEqual(r[0], 11.60276344181, 4)
-        self.assertAlmostEqual(r[1], 4.3279294106253, 4)
-        self.assertAlmostEqual(r[2], 7.3603529478143, 4)
-        self.assertAlmostEqual(r[3], 11.60276823628391, 4)
+        self.assertAlmostEqual(r[0], 11.60276344181, 3)
+        self.assertAlmostEqual(r[1], 4.327929410625, 3)
+        self.assertAlmostEqual(r[2], 7.360352947814, 3)
+        self.assertAlmostEqual(r[3], 11.60276823628, 3)
 
         r = sm._smooth_spline_scikit(self.data1, self.data2, [10.0,5.0,7,10.0], True)
         self.assertEqual(len(r), 4)
