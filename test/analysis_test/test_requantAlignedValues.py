@@ -64,7 +64,6 @@ class TestNoiseIntegration(unittest.TestCase):
             print("  diff %s %s" % (name1, name2))
             raise e
 
-    @attr('rpy2')
     @attr('slow')
     def test_1_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
@@ -86,7 +85,6 @@ class TestNoiseIntegration(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
-    @attr('rpy2')
     @attr('slow')
     def test_2_cache_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
@@ -189,7 +187,6 @@ class TestNoiseIntegration(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
-    @attr('rpy2')
     @attr('slow')
     def test_7_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
@@ -211,7 +208,6 @@ class TestNoiseIntegration(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
-    @attr('rpy2')
     @attr('slow')
     def test_8_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")

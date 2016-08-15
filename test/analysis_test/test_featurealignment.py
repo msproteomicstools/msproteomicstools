@@ -112,7 +112,6 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename_matrix)
 
     @attr('slow')
-    @attr('rpy2')
     def test_3_featureAlignment_openswath_alignment(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_3_openswath_input.csv")
