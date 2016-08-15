@@ -280,6 +280,9 @@ class TestUnitSmoothing(unittest.TestCase):
         op = smoothing.get_smooting_operator()
         self.assertTrue(isinstance(op, smoothing.SmoothingR))
 
+        op = smoothing.getSmoothingObj("splineR")
+        self.assertTrue(isinstance(op, smoothing.SmoothingR))
+
     def test_gettingOperator_obj(self):
         """
         Test getting the correct smoothing operator (new interface)
@@ -294,8 +297,8 @@ class TestUnitSmoothing(unittest.TestCase):
         op = smoothing.getSmoothingObj("linear")
         self.assertTrue(isinstance(op, smoothing.SmoothingLinear))
 
-        op = smoothing.getSmoothingObj("splineR")
-        self.assertTrue(isinstance(op, smoothing.SmoothingR))
+        # op = smoothing.getSmoothingObj("splineR")
+        # self.assertTrue(isinstance(op, smoothing.SmoothingR))
 
 if __name__ == '__main__':
     unittest.main()
