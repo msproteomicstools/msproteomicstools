@@ -76,6 +76,8 @@ def getSmoothingObj(smoother, topN=5, max_rt_diff=30, min_rt_diff=0.1, removeOut
     elif smoother == "splinePy":
         return SmoothingPy()
     elif smoother == "lowess":
+        return LowessSmoothingStatsmodels()
+    elif smoother == "lowess_biostats":
         return LowessSmoothingBiostats()
     elif smoother == "lowess_statsmodels":
         return LowessSmoothingStatsmodels()
