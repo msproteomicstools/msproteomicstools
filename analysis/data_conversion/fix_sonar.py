@@ -67,6 +67,7 @@ Debug = False
 
 # some regexes that we need since we replace parts of the XML
 ms_level = re.compile('MS:1000511([^>]*)value="([^"]*)"') # MS-level
+ms1_spec = re.compile('<cvParam([^>]*)MS:1000579([^>]*)>') # MS1 spec
 rt_re = re.compile('MS:1000016([^>]*)value="([^"]*)"') # retention time
 preset_scan_config = re.compile('preset scan configuration([^>]*)value="([\d]*)"')
 
@@ -97,7 +98,7 @@ for line in source:
         mybuffer = line
 
     # End of a spectrum, write it out ...
-    if line.find('</spectrum') != -1:
+    if line.find('</spectrum>') != -1:
 
         m = preset_scan_config.search(mybuffer)
         if not m:
@@ -137,6 +138,8 @@ for line in source:
             if not m:
                 raise Exception("Abort, cannot find MS-level")
             mybuffer = ms_level.sub("MS:1000511%svalue=\"2\"" % (m.group(1)), mybuffer)
+
+            mybuffer = ms1_spec.sub("", mybuffer) # delete MS1 spec info
 
             ###################################
             # (iv) Compute precursor isolation window
@@ -183,6 +186,6 @@ for line in source:
     if not header_done:
         header += line
 
-outfile.write('  </run>\n</mzML>\n')
+outfile.write('    </spectrumList>\n  </run>\n</mzML>\n')
 outfile.close()
 
