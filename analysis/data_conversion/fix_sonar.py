@@ -5,7 +5,7 @@
         msproteomicstools -- Mass Spectrometry Proteomics Tools
 =========================================================================
 
-Copyright (c) 2016, ETH Zurich
+Copyright (c) 2016, ETH Zurich and Stanford University
 For a full list of authors, refer to the file AUTHORS.
 
 This software is released under a three-clause BSD license:
@@ -45,6 +45,12 @@ import sys
 This program intends to fix SONAR mzML files by adding the precursor isolation
 window information into the file.
 
+It changes the mzML by fixing the following issues:
+
+    - replace MS-level MS:1000511 in SONAR scans with MS2 (which is wrongly written as MS1)
+    - removes the MS:1000579 tag from SONAR scans (indicates MS1 scan)
+    - add the precursor tag with isolation window target and offsets based on the formula provided
+
 Usage: 
     python fix_sonar.py input.mzML paramfile output.mzML
 
@@ -64,6 +70,13 @@ if not filename.endswith("mzML"):
 # Parameters
 SONAR_CONFIG_GROUP = 2
 Debug = False
+WINDOW_SIZE = 22.5
+
+## Formula to compute the start target window (we assume this is the start of
+## the window, e.g. the lower offset) 
+def computeTargetStart(scanwindow):
+    return 399.3983 + 2.3809 * scanwindow
+
 
 # some regexes that we need since we replace parts of the XML
 ms_level = re.compile('MS:1000511([^>]*)value="([^"]*)"') # MS-level
@@ -88,7 +101,7 @@ old_retention_time = "-1"
 for line in source:
     mybuffer += line
 
-    # Note: dont match spectrumList (!)
+    # Note: don't match spectrumList (!)
     if line.find('<spectrum ') != -1:
         # First pass
         if not header_done:
@@ -105,9 +118,9 @@ for line in source:
             raise Exception("Does not look like SONAR data, no parameter 'preset scan configuration'")
 
         ## Determine out which kind of scan it is
-        ### for waters, group 1 is MS1
-        ### for waters, group 2 is SONAR
-        ### for waters, group 3 is lock-mass
+        ### for Waters, group 1 is MS1
+        ### for Waters, group 2 is SONAR
+        ### for Waters, group 3 is lock-mass
         config_gr = int(m.group(2))
         if config_gr == SONAR_CONFIG_GROUP:
 
@@ -144,16 +157,10 @@ for line in source:
             ###################################
             # (iv) Compute precursor isolation window
 
-            # TODO make these proper parameters for the script
-            ### target = 2.5 * scanwindow + 400
-            # TODO: is there an extra factor, ? is this the middle or the lower bound?
-            #  -> assume it is the lower bound
-            WINDOW_SIZE = 22.5
-            target = 399.3983 + 2.3809 * scanwindow
+            target = computeTargetStart(scanwindow)
             target += WINDOW_SIZE / 2.0
             lower = WINDOW_SIZE / 2.0
             upper = WINDOW_SIZE / 2.0
-            # TODO make these proper parameters for the script
 
             if Debug: 
                 print ("we are at scanw,", scanwindow, "with swath scan", swathscan)
