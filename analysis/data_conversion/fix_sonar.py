@@ -72,9 +72,9 @@ SONAR_CONFIG_GROUP = 2
 Debug = False
 WINDOW_SIZE = 22.5
 
-## Formula to compute the start target window (we assume this is the start of
-## the window, e.g. the lower offset) 
-def computeTargetStart(scanwindow):
+## Formula to compute the center of the target window (we assume this is the
+## center of the window)
+def computeTarget(scanwindow):
     return 399.3983 + 2.3809 * scanwindow
 
 
@@ -157,8 +157,7 @@ for line in source:
             ###################################
             # (iv) Compute precursor isolation window
 
-            target = computeTargetStart(scanwindow)
-            target += WINDOW_SIZE / 2.0
+            target = computeTarget(scanwindow)
             lower = WINDOW_SIZE / 2.0
             upper = WINDOW_SIZE / 2.0
 
