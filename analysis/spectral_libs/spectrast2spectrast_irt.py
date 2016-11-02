@@ -232,8 +232,8 @@ class sptxtio(object):
           self.b[rawspectrum] = linregs[rawspectrum]['b']
           self.rsq[rawspectrum] = 1.0
         else:
-          (self.a[rawspectrum],self.b[rawspectrum]) = scipy.polyfit(rt_calibration,irt_calibration,1)
           slope, intercept, r_value, p_value, std_err = stats.linregress(rt_calibration,irt_calibration)
+          (self.a[rawspectrum], self.b[rawspectrum]) = (slope, intercept)
           self.rsq[rawspectrum] = r_value**2
           plt.figure()
           plt.title(rawspectrum + " (c: " + str(self.b[rawspectrum]) + ", m: " + str(self.a[rawspectrum]) + ")")
