@@ -79,17 +79,14 @@ class sptxtio(object):
     self.spectrum_block_map = {}
   
   def input(self,file,precursorlevel,spectralevel):
-    sptxt_lines = []
     try:
       sptxt_infile = open(file, 'r')
-      sptxt_lines = sptxt_infile.readlines()
-      sptxt_infile.close()
     except IOError:
       print(file, "not readable")
     
     sptxt_header = []
     sptxt_block = []
-    for sptxt_line in sptxt_lines:
+    for sptxt_line in sptxt_infile:
       if sptxt_line[0] == "#":
         sptxt_header.append(sptxt_line)
       else:
@@ -114,6 +111,7 @@ class sptxtio(object):
           self.push(block)
           sptxt_block = []
     
+    sptxt_infile.close()
     self.pushheader(sptxt_header)
   
   def output(self,file):
