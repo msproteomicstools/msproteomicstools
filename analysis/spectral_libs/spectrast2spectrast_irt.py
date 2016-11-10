@@ -45,7 +45,7 @@ from msproteomicstoolslib.math.chauvenet import *
 def lmedian(valarr):
   vals = sorted(valarr)
   if len(vals) % 2 == 1:
-    return vals[(len(vals) + 1) // 2) - 1]
+    return vals[(len(vals) + 1) // 2 - 1]
   else:
     return vals[len(vals) // 2 - 1]
 
@@ -132,7 +132,7 @@ class sptxtio(object):
 
   def report(self,file):
     try:
-      report_outfile = open(file, 'wb')
+      report_outfile = open(file, 'w')
       report = csv.writer(report_outfile, delimiter=',')
       report.writerow(['peptide','rt','irt','rt_lmedian','rt_mean','rt_sd','irt_lmedian','irt_mean','irt_sd','rt_run_lmedian','rt_run_mean','rt_run_sd'])
       ind = {}
