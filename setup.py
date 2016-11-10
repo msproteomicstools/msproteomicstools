@@ -66,7 +66,7 @@ setup(name='msproteomicstools',
           'lxml',
           'configobj',
           'biopython',
-          'xlwt-future',
+          'xlwt',
       ] + extra_installs,
       extras_require = {
           'RSmoothing' : ["rpy2"]

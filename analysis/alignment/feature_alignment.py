@@ -36,8 +36,6 @@ $Authors: Hannes Roest$
 """
 from __future__ import print_function
 
-from __future__ import print_function
-
 import os, sys, csv, time
 import numpy
 import argparse
