@@ -154,7 +154,7 @@ class TransformationCollection():
       except KeyError:
           return None
 
-    def initialize_from_data(self, reverse=False, smoother="lowess"):
+    def initialize_from_data(self, reverse=False, smoother="lowess", force=False):
 
         # use the data in self.transformation_data to create the trafos
         for s_from, darr in self.transformation_data.items():

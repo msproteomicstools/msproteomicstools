@@ -148,7 +148,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
     del matrix_writer
 
 def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
-                   realign_method, max_rt_diff, topN=5, sd_max_data_length=1000):
+                   realign_method, max_rt_diff, topN=5, sd_max_data_length=1000, force=False):
     id_0 = run_0.get_id()
     id_1 = run_1.get_id()
 
@@ -173,10 +173,14 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     # pylab.clf()
 
     if len(data_0) == 0:
-        null = smoothing.SmoothingNull()
-        tr_data.addTrafo(id_0, id_1, null)
-        tr_data.addTrafo(id_1, id_0, null)
-        return
+        print("Warning, zero data!")
+        if force:
+            null = smoothing.SmoothingNull()
+            tr_data.addTrafo(id_0, id_1, null)
+            tr_data.addTrafo(id_1, id_0, null)
+            return
+        else:
+            raise Exception("No data available for alignment %s vs %s" % (id_0, id_1) )
 
     # Smoothers
     sm_0_1 = smoothing.getSmoothingObj(realign_method, topN=topN,

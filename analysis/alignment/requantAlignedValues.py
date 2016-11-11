@@ -259,7 +259,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     max_rt_diff = 30
     sd_data = -1 # We do not use the standard deviation data in this algorithm
     tr_data = transformations.LightTransformationData()
-    spl_aligner = SplineAligner(initial_alignment_cutoff)
+    spl_aligner = SplineAligner(initial_alignment_cutoff, new_exp)
 
     if method == "singleClosestRun":
         tree_mapped = None
@@ -271,7 +271,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
         start = time.time()
         for run_0 in new_exp.runs:
             helper.addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
-                options.realign_method, max_rt_diff, sd_max_data_length=sd_data)
+                options.realign_method, max_rt_diff, sd_max_data_length=sd_data, force=is_test)
 
     elif method == "singleShortestPath":
         dist_matrix = None
@@ -284,7 +284,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
         for edge in tree:
             helper.addDataToTrafo(tr_data, new_exp.runs[edge[0]], 
                 new_exp.runs[edge[1]], spl_aligner, multipeptides, 
-                options.realign_method, max_rt_diff, sd_max_data_length=sd_data)
+                options.realign_method, max_rt_diff, sd_max_data_length=sd_data, force=is_test)
 
     else:
         raise Exception("Unknown method: " + method)
@@ -340,7 +340,7 @@ def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
     # Read the datapoints and perform the smoothing
     print("Reading the trafo file took %ss" % (time.time() - start) )
     start = time.time()
-    transformation_collection_.initialize_from_data(reverse=True, smoother=options.realign_method)
+    transformation_collection_.initialize_from_data(reverse=True, smoother=options.realign_method, force=is_test)
     print("Initializing the trafo file took %ss" % (time.time() - start) )
 
     rid = None
