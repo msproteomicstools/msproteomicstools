@@ -247,7 +247,7 @@ class Peptide:
     def getSequenceWithMods(self, code) :
         seqMods = ''
         
-        for i, aa in enumerate(['', *self.sequence, ''], start=-1):
+        for i, aa in enumerate([''] + list(self.sequence) + [''], start=-1):
             if i + 1 in self.modifications:
                 codestr = self.modifications[i + 1].getcode(code)
                 code_sans_aa = codestr[len("*-term"):] if codestr.startswith(("N-term", "C-term")) else codestr[1:]
