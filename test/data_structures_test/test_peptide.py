@@ -50,6 +50,8 @@ class TestUnitPeptide(unittest.TestCase):
         self.mods         = modifications.Modifications()
         self.phospho     = self.mods.mods_unimods[21]
         self.oxi        = self.mods.mods_unimods[35]
+        self.carbamidomethyl = self.mods.mods_unimods[4]
+        self.carbamyl = self.mods.mods_unimods[5]
         
         self.mypep         = peptide.Peptide('LIGPTSVVMGR', modifications={ 9: self.mods.mods_TPPcode['M[147]'] }) #M[147] 
         self.mypep2        = peptide.Peptide('LIGPTSVVMGR')
@@ -62,6 +64,7 @@ class TestUnitPeptide(unittest.TestCase):
         self.isoform4_3  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 13 : self.phospho })
         self.isoform4_4  = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 1 : self.oxi , 14 : self.phospho })
         self.notisoform4 = peptide.Peptide('MHGGTGFAGIDSSSPEVK', modifications = { 14 : self.phospho })
+        self.mypep5        = peptide.Peptide('CNTPTYCDLGK', modifications = { 0 : self.carbamyl , 1 : self.carbamidomethyl , 7 : self.carbamidomethyl })
         
     def assertAlmostIn(self, tpl, other, msg, epsilon=1e-10):
         """
@@ -133,6 +136,9 @@ class TestUnitPeptide(unittest.TestCase):
         self.assertEqual(self.mypep.getSequenceWithMods("TPP"), 'LIGPTSVVM[147]GR')
         self.assertEqual(self.mypep.getSequenceWithMods("unimod"), 'LIGPTSVVM(UniMod:35)GR')
         self.assertEqual(self.mypep.getSequenceWithMods("ProteinPilot"), 'LIGPTSVVM[Oxi]GR')
+        self.assertEqual(self.mypep5.getSequenceWithMods("TPP"), 'n[43]C[160]NTPTYC[160]DLGK')
+        self.assertEqual(self.mypep5.getSequenceWithMods("unimod"), '(UniMod:5)C(UniMod:4)NTPTYC(UniMod:4)DLGK')
+        self.assertEqual(self.mypep5.getSequenceWithMods("ProteinPilot"), '[CRM]C[CAM]NTPTYC[CAM]DLGK')
 
     def test_calIsoforms(self):
         self.isoforms = self.mypep3.calIsoforms(self.phospho, self.mods)

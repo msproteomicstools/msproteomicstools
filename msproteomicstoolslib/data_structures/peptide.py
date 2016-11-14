@@ -250,7 +250,9 @@ class Peptide:
         for i, aa in enumerate([''] + list(self.sequence) + [''], start=-1):
             if i + 1 in self.modifications:
                 codestr = self.modifications[i + 1].getcode(code)
-                code_sans_aa = codestr[len("*-term"):] if codestr.startswith(("N-term", "C-term")) else codestr[1:]
+                code_sans_aa = codestr[len("*-term"):] if codestr.startswith(("N-term", "C-term")) else \
+					codestr if codestr == "n[43]" else \
+						codestr[1:]
                 seqMods += aa + code_sans_aa
             else : seqMods += aa
             
