@@ -46,7 +46,7 @@ from configobj     import ConfigObj
 #DEPRECATED: from cluster     import HierarchicalClustering
 import numpy as np
 from sklearn.cluster import DBSCAN
-from sklearn.cluster import Ward
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.neighbors import kneighbors_graph
     
@@ -70,7 +70,7 @@ def clusterRT_ward(values) :
     v = sorted([[val] for val in values])
     
     #connectivity = kneighbors_graph(np.asarray(v), n_neighbors=3)
-    ward = Ward(n_clusters=2).fit(np.asarray(v))
+    ward = AgglomerativeClustering(n_clusters=2).fit(np.asarray(v))
     labels = ward.labels_
 
     curr_l = -2
