@@ -64,6 +64,15 @@ Structure
 import sys,time, re
 import argparse
 
+## We need to import guiqt first
+## https://github.com/pierreraybaut/guidata/issues/35#issuecomment-171573060
+have_guiqwt = True
+try:
+    from guiqwt.curve import CurveItem
+except ImportError:
+    print "Could not import guiqwt, will try to use Qwt only."
+    have_guiqwt = False
+
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
