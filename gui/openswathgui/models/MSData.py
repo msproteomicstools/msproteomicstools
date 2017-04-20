@@ -56,11 +56,12 @@ ONLY_SHOW_QUANTIFIED = True
 class PrecursorModel():
     """ A simplistic precursor model
 
-    It is initialized with an ID and knows how to parse the sequence and the
-    charge from that string.
+    It is used internal to parse individual precursors. It can be initialized
+    with an ID and knows how to parse the sequence and the charge from that
+    string.
 
     Attributes:
-        runs(str): The chromatogram native id used to infer charge and peptide sequence
+        chrom_id(str): The chromatogram native id used to infer charge and peptide sequence
     """
 
     def __init__(self, chrom_id):
@@ -81,7 +82,7 @@ class PrecursorModel():
             return self.chrom_id
 
 class DataModel(object):
-    """The main data model
+    """The main data model, provides access to all raw data
 
     It stores the references to individual :class:`.SwathRun` objects and can
     be initialized from a list of files. 
@@ -99,7 +100,10 @@ class DataModel(object):
     #
     def getStatus(self):
         """
-        Returns its own status (number of transitions etc.) for the status bar.
+        Returns
+        -----------
+        str:
+            Returns its own status (number of transitions etc.) for the status bar.
         """
         if len(self.get_runs()) == 0:
             return "Ready"
@@ -119,6 +123,10 @@ class DataModel(object):
         to display in the left side tree view. Each element may contain nested
         :class:`.ChromatogramTransition` elements (tree elements).
 
+        Returns
+        -----------
+        list of :class:`.ChromatogramTransition`:
+            Root element(s) for the peptide tree
         """
         return self._build_tree()
 
@@ -134,9 +142,18 @@ class DataModel(object):
         return self.runs
 
     def getDrawTransitions(self):
+        """
+        Returns
+        -----------
+        bool
+            Whether to draw transitions or not
+        """
         return self.draw_transitions_
 
     def setDrawTransitions(self, draw_transitions):
+        """
+        Whether to draw individual transitions or not
+        """
         self.draw_transitions_ = draw_transitions
 
     #
