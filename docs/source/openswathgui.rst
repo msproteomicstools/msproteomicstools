@@ -1,6 +1,26 @@
 OpenSWATH GUI
 ============================
 
+hello 
+
+TAPIR GUI 
+^^^^^^^^^^^^^^
+
+.. autoclass:: TAPIR.MainWindow
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+
+:mod:`TAPIR` Package
+-----------------------------------
+
+.. automodule:: TAPIR
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`openswathgui` Package
 -----------------------------------
 
@@ -8,6 +28,7 @@ OpenSWATH GUI
     :members:
     :undoc-members:
     :show-inheritance:
+
 
 Subpackages
 -----------
