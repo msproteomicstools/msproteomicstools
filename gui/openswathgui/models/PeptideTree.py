@@ -35,7 +35,6 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-
 import MSData
 
 from PyQt4 import QtCore 
@@ -63,6 +62,7 @@ class PeptideTree(TreeModel):
     """
 
     def __init__(self, rootElements, firstColumnName="Peptide Sequence"):
+
         self.rootElements = rootElements
         self.first_column_name_ = firstColumnName
         TreeModel.__init__(self)
@@ -75,16 +75,28 @@ class PeptideTree(TreeModel):
             for index, elem in enumerate(self.rootElements)]
 
     def columnCount(self, parent):
+        """
+        Returns how many columns we have
+        """
         return 3
 
     def data(self, index, role):
         """
         Get data for a specific index (and role)
 
-        Currently supported role is only Qt.DisplayRole (for displaying the tree). The three columns are:
-            - Peptide Sequence
+        Currently supported role is only Qt.DisplayRole (for displaying the
+        tree). The three columns are:
+
+            - Compound name (generally peptide sequence or compound sum formula)
             - Charge
             - Name
+
+        Parameters
+        ----------
+        index : QModelIndex 
+            Index of the element to be accessed
+        role : Qt::ItemDataRole
+            Item role to be used (only Qt.DisplayRole supported)
         """
         if not index.isValid():
             return None
@@ -107,6 +119,10 @@ class PeptideTree(TreeModel):
             - Peptide Sequence
             - Charge
             - Name
+
+        Note that the user can set the name of the first column name manually
+        in order to accomodate for other data (e.g. metabolomics) where
+        "Peptide Sequence" would not make sense.
         """
         if section == 0:
             return self.first_column_name_
@@ -119,12 +135,16 @@ class PeptideTree(TreeModel):
 
     def set_precursor_tree_structure(self, data, sortData = True):
         """
-        Initialize tree structure
+        Initialize tree structure with data from :meth:`.MSData.get_precursor_tree`
 
-        The three columns are:
-            - Peptide Sequence
-            - Charge
-            - Name
+        The tree is initialized by giving it a pointer to the root element(s)
+
+        Parameters
+        ----------
+        data : list of :class:`.ChromatogramTransition`:
+            Root element(s) for the peptide tree
+        sortData : bool
+            Whether to sort data
         """
 
         if sortData:

@@ -39,6 +39,9 @@ $Authors: Hannes Roest$
 from PyQt4 import QtGui, QtCore
 
 class PeptidesTreeView( QtGui.QTreeView ):
+    """
+    The Peptide Tree View widget is the view implementation for the left side tree view
+    """
 
     def __init__(self):
         super(PeptidesTreeView, self).__init__()

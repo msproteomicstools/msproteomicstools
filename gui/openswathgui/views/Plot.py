@@ -35,11 +35,9 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-
 from PyQt4 import QtGui, Qt, QtCore
 from PyQt4.Qwt5 import QwtPlotItem
 import PyQt4.Qwt5 as Qwt
-
 
 # There are two implementations of the plotting view, one uses guiqwt (may not
 # be present on all systems) and the other one uses plain Qwt (should be safer)
