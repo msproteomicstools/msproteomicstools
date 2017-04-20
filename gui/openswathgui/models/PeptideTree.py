@@ -103,11 +103,14 @@ class PeptideTree(TreeModel):
 
         node = index.internalPointer()
         if role == Qt.DisplayRole and index.column() == 0:
-            return QtCore.QVariant( node.ref.getPeptideSequence() )
+            # return QtCore.QVariant( node.ref.getPeptideSequence() )
+            return node.ref.getPeptideSequence()
         if role == Qt.DisplayRole and index.column() == 1:
-            return QtCore.QVariant( node.ref.getCharge() )
+            # return QtCore.QVariant( node.ref.getCharge() )
+            return node.ref.getCharge()
         if role == Qt.DisplayRole and index.column() == 2:
-            return QtCore.QVariant( node.ref.getName() )
+            # return QtCore.QVariant( node.ref.getName() )
+            return node.ref.getName()
 
         return None
 
