@@ -8,7 +8,7 @@ ApplicationView is the main widget, it contains the left side tree structure
 (peptide tree) and the right side graph area.
 
 TAPIR Main Window 
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 .. autoclass:: TAPIR.MainWindow
     :members:
@@ -18,7 +18,7 @@ TAPIR Main Window
 
 
 TAPIR ApplicationView (central window) 
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: TAPIR.ApplicationView
     :undoc-members:
@@ -26,7 +26,7 @@ TAPIR ApplicationView (central window)
     :members:
 
 TAPIR Widgets
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 .. autoclass:: TAPIR.GraphArea
     :members:
@@ -39,15 +39,7 @@ TAPIR Widgets
     :show-inheritance:
 
 
-TAPIR Config Dialog
-^^^^^^^^^^^^^^^^^^^^^
-
 .. autoclass:: TAPIR.ConfigDialog
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. autoclass:: TAPIR.Settings
     :members:
     :undoc-members:
     :show-inheritance:
