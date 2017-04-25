@@ -3,9 +3,9 @@ dist: trusty
 language: python
 python:
   - "2.7"
-  - "3.3"
   - "3.4"
   - "3.5"
+  - "3.6"
 before_install:
  - sudo apt-get update
  - sudo apt-get install -qq r-base
@@ -25,7 +25,7 @@ install:
   - travis_retry python setup.py develop
 script: 
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.3* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2' -w test/; fi
 cache: pip
