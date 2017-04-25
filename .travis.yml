@@ -3,9 +3,9 @@ dist: trusty
 language: python
 python:
   - "2.7"
-  - "3.3"
   - "3.4"
   - "3.5"
+  - "3.6"
 before_install:
  - sudo apt-get update
  - sudo apt-get install -qq r-base
@@ -21,7 +21,7 @@ install:
   #   (we thus disable the tests).
   - pip install -U Cython
   - pip install -U statsmodels
-  - pip install rpy2==2.3.9
+  - pip install rpy2
   - travis_retry python setup.py develop
 script: 
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -w test/; fi
