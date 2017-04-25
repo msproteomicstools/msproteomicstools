@@ -21,11 +21,12 @@ install:
   #   (we thus disable the tests).
   - pip install -U Cython
   - pip install -U statsmodels
-  - pip install rpy2==2.3.9
+  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install rpy2==2.3.9; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install rpy2==2.7.4; fi
   - travis_retry python setup.py develop
 script: 
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -w test/; fi
 cache: pip
