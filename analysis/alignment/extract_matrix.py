@@ -2,8 +2,24 @@
 from __future__ import print_function
 import sys
 import argparse
+from sys import stdout, maxsize
 import csv
 
+maxInt = maxsize
+decrement = True
+
+while decrement:
+    # decrease the maxInt value by factor 10 
+    # as long as the OverflowError occurs.
+    # http://stackoverflow.com/questions/15063936/csv-error-field-larger-than-field-limit-131072
+
+    decrement = False
+    try:
+        csv.field_size_limit(maxInt)
+    except OverflowError:
+        maxInt = int(maxInt/10)
+        decrement = True
+        
 def handle_args():
     usage="Generates matrix with flexible columns from featurealigner.tsv or featurealigner_requant.tsv file." \
           "For filtering or peak type highlighting use compute_full_matrix.py"
