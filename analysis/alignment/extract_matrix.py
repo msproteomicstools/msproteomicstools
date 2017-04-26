@@ -5,7 +5,7 @@ import argparse
 from sys import stdout, maxsize
 import csv
 
-maxInt = sys.maxsize
+maxInt = maxsize
 decrement = True
 
 while decrement:
