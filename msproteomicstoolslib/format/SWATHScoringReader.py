@@ -39,6 +39,9 @@ from __future__ import print_function
 from sys import stdout, maxsize
 import csv
 
+maxInt = sys.maxsize
+decrement = True
+
 while decrement:
     # decrease the maxInt value by factor 10 
     # as long as the OverflowError occurs.
