@@ -47,6 +47,7 @@ except ImportError:
     print "Could not import guiqwt, will try to use Qwt only."
     have_guiqwt = False
 
+# from guidata import qt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
