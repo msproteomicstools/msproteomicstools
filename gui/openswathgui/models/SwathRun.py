@@ -35,7 +35,7 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import os
+import os, time, sys
 import pymzml
 from SingleChromatogramFile import SingleChromatogramFile
 
@@ -91,9 +91,15 @@ class SwathRun(object):
         """
         for f in files:
             print "Loading file", f
-            import time
             start = time.time()
-            run_ = pymzml.run.Reader(f, build_index_from_scratch=True)
+            try:
+                # use at least obo 3.51 for numpress data
+                run_ = pymzml.run.Reader(f, build_index_from_scratch=True, obo_version = '3.51.0', use_spectra_sanity_check=False)
+            except TypeError as e:
+                # run_ = pymzml.run.Reader(f, build_index_from_scratch=True, obo_version = '3.51.0') # recover?
+                print("Certain options may not be available from pymzml, please update your pymzml version or get it directly from github: https://github.com/hroest/pymzML")
+                print(e)
+                sys.exit()
             print "Loading file", f, "took", time.time() - start
             run_.original_file = f
             first = run_.next()

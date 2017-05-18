@@ -26,10 +26,9 @@ Contents of the library:
 Contents of the GUI code:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
-    openswathgui.models
-    openswathgui.views
+    tapir
 
 Contents of the executables:
 

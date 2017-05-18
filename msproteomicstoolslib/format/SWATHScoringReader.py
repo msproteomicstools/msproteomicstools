@@ -791,5 +791,5 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                             "to either rename your files to have matching filenames " +\
                             "or provide an input yaml file describing the matching in detail")
                 if throwOnMismatch:
-                    raise Exception("Mismatch, alignemnt filename could not be matched to input chromatogram")
+                    raise Exception("Mismatch, alignment filename could not be matched to input chromatogram")
 
