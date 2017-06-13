@@ -2,6 +2,10 @@
 import sys
 import argparse
 import csv
+import sys
+
+csv.field_size_limit(sys.maxsize)
+
 
 def handle_args():
     usage="Generates matrix with flexible columns from featurealigner.tsv or featurealigner_requant.tsv file." \
