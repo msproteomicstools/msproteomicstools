@@ -78,7 +78,7 @@ def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
             idata, jdata = spl_aligner._getRTData(exp.runs[i], exp.runs[j], multipeptides)
 
             if len(idata) == 0:
-                dist_matrix[i,j] = 0
+                dist_matrix[i,j] = 2
                 continue
 
             # Get linear alignment, the distance is 1-R^2
