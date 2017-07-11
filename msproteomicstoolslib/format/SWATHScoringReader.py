@@ -97,7 +97,7 @@ class SWATHScoringReader:
 
     @staticmethod
     def newReader(infiles, filetype, readmethod="minimal",
-                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=False):
         """
         newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False)
 
@@ -107,7 +107,8 @@ class SWATHScoringReader:
         if filetype  == "openswath": 
             return OpenSWATH_SWATHScoringReader(infiles, readmethod,
                                                 readfilter, errorHandling,
-                                                enable_isotopic_grouping=enable_isotopic_grouping)
+                                                enable_isotopic_grouping=enable_isotopic_grouping,
+                                                read_cluster_id=read_cluster_id)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -203,7 +204,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     Parser for OpenSWATH output
     """
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=False):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
@@ -211,6 +212,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.readfilter = readfilter
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
+        self.read_cluster_id = read_cluster_id
         if readmethod == "minimal":
             self.Precursor = Precursor
         elif readmethod == "gui":
@@ -248,7 +250,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
             diff_from_assay_in_sec_name = "RT"
-        if "align_clusterid" in run.header_dict: 
+        if "align_clusterid" in run.header_dict and self.read_cluster_id:
             cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
