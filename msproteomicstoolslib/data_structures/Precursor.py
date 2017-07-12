@@ -105,6 +105,24 @@ class GeneralPrecursor(PrecursorBase):
     def add_peakgroup(self, peakgroup):
         self.peakgroups.append(peakgroup)
   
+    def getRun(self):
+      return self.run
+  
+    def set_precursor_group(self, p):
+        self.precursor_group = p
+
+    def getSequence(self):
+        return self.sequence
+
+    def setSequence(self, s):
+        self.sequence = s
+  
+    def setProteinName(self, p):
+        self.protein_name = p 
+
+    def getProteinName(self):
+        return self.protein_name
+
     def get_run_id(self):
       return self.run.get_id()
   
@@ -183,6 +201,9 @@ class Precursor(PrecursorBase):
         self.sequence = ""
         self.precursor_group = None
   
+    def getRun(self):
+      return self.run
+
     def __str__(self):
         return "%s (run %s)" % (self.id, self.run)
 
@@ -209,7 +230,22 @@ class Precursor(PrecursorBase):
 
     def get_id(self):
         return self.id 
+
+    def set_precursor_group(self, p):
+        self.precursor_group = p
+
+    def getSequence(self):
+        return self.sequence
+
+    def setSequence(self, s):
+        self.sequence = s
   
+    def setProteinName(self, p):
+        self.protein_name = p 
+
+    def getProteinName(self):
+        return self.protein_name
+
     def getPrecursorGroup(self):
         return self.precursor_group 
 

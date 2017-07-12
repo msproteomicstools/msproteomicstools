@@ -117,6 +117,9 @@ class MinimalPeakGroup(PeakGroupBase):
       self.intensity_ = intensity
       self.dscore_ = dscore
 
+    def getPeptide(self):
+        return self.peptide
+
     def __lt__(self, other):
         """
         Larger than operator, allows sorting in Python 3.x
