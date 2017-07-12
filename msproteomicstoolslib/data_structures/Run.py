@@ -63,6 +63,12 @@ class Run():
         self.aligned_filename = aligned_filename # the aligned filename
         self.all_precursor_groups_ = {}
   
+        try:
+            from msproteomicstoolslib._optimized import CyPrecursorGroup
+            self.PrecursorGroup = CyPrecursorGroup
+        except ImportError:
+            self.PrecursorGroup = PrecursorGroup
+
     def __str__(self):
         return "Run %s" % (self.get_id())
 
@@ -111,7 +117,7 @@ class Run():
         if peptide_group_label in self.all_precursor_groups_:
             self.getPrecursorGroup(peptide_group_label).addPrecursor(precursor)
         else:
-            prec_gr = PrecursorGroup(peptide_group_label, self)
+            prec_gr = self.PrecursorGroup(peptide_group_label, self)
             prec_gr.addPrecursor(precursor)
             self.all_precursor_groups_[peptide_group_label] = prec_gr
 
