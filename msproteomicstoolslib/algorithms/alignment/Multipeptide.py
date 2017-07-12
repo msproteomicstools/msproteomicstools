@@ -35,7 +35,9 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-class Multipeptide():
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
+
+class Multipeptide(object):
     """ A collection of the same precursors (chromatograms) across multiple runs.
 
     It contains individual precursors that can be accessed by their run id.
