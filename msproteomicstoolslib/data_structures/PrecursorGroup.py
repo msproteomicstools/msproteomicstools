@@ -132,3 +132,15 @@ class PrecursorGroup(object):
         minscore = min([pg.get_fdr_score() for pg in allpg])
         return [pg for pg in allpg if pg.get_fdr_score() <= minscore][0]
 
+    def get_decoy(self):
+        """
+        Whether the current peptide is a decoy or not
+
+        Returns:
+            decoy(bool): Whether the peptide is decoy or not
+        """
+        if len(self.precursors_) == 0:
+            return False
+
+        return self.precursors_[0].get_decoy()
+
