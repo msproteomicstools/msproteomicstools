@@ -109,7 +109,7 @@ cdef extern from "peakgroup.h":
         double predict(double xnew)
 
 
-cdef class CyLinearInterpolateWrapper:
+cdef class CyLinearInterpolateWrapper(object):
 
     cdef c_linear_interpolate * inst 
 
@@ -129,7 +129,10 @@ cdef class CyLinearInterpolateWrapper:
             ynew.append( <double>deref(self.inst).predict( <double>xn) )
         return ynew
 
-cdef class CyPeakgroupWrapperOnly:
+    cdef double predict_cy(self, double xnew):
+        return deref(self.inst).predict(xnew)
+
+cdef class CyPeakgroupWrapperOnly(object):
     """
     """
 
@@ -203,7 +206,7 @@ cdef class CyPeakgroupWrapperOnly:
     def get_feature_id(self):
         return <bytes>(deref(self.inst).internal_id_)
 
-cdef class CyPrecursor:
+cdef class CyPrecursor(object):
     """ A set of peakgroups that belong to the same precursor in a single run.
 
     Each precursor has a backreference to its precursor group (heavy/light
@@ -483,8 +486,10 @@ cdef class CyPrecursor:
 
     def getAllPeakgroups(self):
         return self.get_all_peakgroups()
-  
 
+    cdef libcpp_vector[c_peakgroup] getPeakGroupsVector(self):
+        return self.cpeakgroups_
+  
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double max_rt_diff,
