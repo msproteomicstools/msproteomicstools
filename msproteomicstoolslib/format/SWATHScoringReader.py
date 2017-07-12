@@ -311,6 +311,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+        else:
+            raise Exception("Unknown readmethod", self.readmethod)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
     """
