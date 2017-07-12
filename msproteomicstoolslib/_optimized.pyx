@@ -285,6 +285,15 @@ cdef class CyPrecursor(object):
     def getPrecursorGroup(self):
         return self.precursor_group 
 
+    def getPrecursorGroupId(self):
+        return self.precursor_group.getPeptideGroupLabel()
+
+    cdef bytes getRunId(self):
+        return <bytes>self.run.get_id()
+
+    def getRunId(self):
+        return self.run.get_id()
+
     def getRun(self):
         return self.run
 
