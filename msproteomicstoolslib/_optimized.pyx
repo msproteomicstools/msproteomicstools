@@ -132,7 +132,7 @@ cdef class CyPeakgroupWrapperOnly(object):
     """
 
     cdef c_peakgroup * inst 
-    cdef object peptide
+    cdef CyPrecursor peptide
 
     def __dealloc__(self):
         pass
@@ -152,6 +152,9 @@ cdef class CyPeakgroupWrapperOnly(object):
 
     def set_intensity(self, intensity):
         raise Exception("Cannot set in immutable object")
+
+    cdef CyPrecursor getPeptide(self):
+        return self.peptide
 
     def getPeptide(self):
         return self.peptide
@@ -192,6 +195,9 @@ cdef class CyPeakgroupWrapperOnly(object):
         self.normalized_retentiontime = normalized_retentiontime
 
     def get_normalized_retentiontime(self):
+        return deref(self.inst).normalized_retentiontime
+
+    cdef get_normalized_retentiontime_cy(self):
         return deref(self.inst).normalized_retentiontime
 
     def set_feature_id(self, id_):
