@@ -483,7 +483,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
 
 def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_alignment_cutoff,
                    fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
-                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref, force):
+                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref, force, optimized_cython):
     """
     Minimum Spanning Tree (MST) based local aligment 
     """
@@ -506,7 +506,16 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     
     # Get alignments
     start = time.time()
-    tr_data = LightTransformationData()
+    try:
+        from msproteomicstoolslib._optimized import CyLightTransformationData
+        if optimized_cython:
+            tr_data = CyLightTransformationData()
+        else:
+            tr_data = LightTransformationData()
+    except ImportError:
+        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
+        tr_data = LightTransformationData()
+
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
                        spl_aligner, multipeptides, smoothing_method,
@@ -523,7 +532,11 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
                                 use_local_stdev=use_local_stdev)
 
     if method == "LocalMST":
-        al.alignBestCluster(multipeptides, tree_mapped, tr_data)
+        if optimized_cython:
+            al.alignBestCluster(multipeptides, tree_mapped, tr_data)
+        else:
+            print("WARNING: cannot utilize optimized MST alignment (needs readmethod = minimal), will use Python version (slower).")
+            al.alignBestCluster_legacy(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
@@ -742,14 +755,18 @@ def main(options):
         else:
             stdev_max_rt_per_run = None
             
-        tree_out = doMSTAlignment(this_exp, 
+        optimized_cython = options.realign_method in [ "splineR_external", "lowess", "lowess_biostats", "lowess_statsmodels", "lowess_cython"]
+        optimized_cython = optimized_cython and options.readmethod == "minimal"
+
+        tree_out = doMSTAlignment(this_exp,
                        multipeptides, float(options.rt_diff_cutoff), 
                        float(options.rt_diff_isotope),
                        float(options.alignment_score), options.fdr_cutoff,
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
                        options.mst_correct_rt, stdev_max_rt_per_run,
-                       options.mst_local_stdev, options.mst_use_ref, options.force)
+                       options.mst_local_stdev, options.mst_use_ref, options.force, 
+                       optimized_cython)
         print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
