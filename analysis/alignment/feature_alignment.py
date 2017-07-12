@@ -497,12 +497,15 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
         refrun_id, refrun = [ (i,run) for i, run in enumerate(exp.runs) if run.get_id() == ref][0]
         tree = [( i, refrun_id) for i in range(len(exp.runs)) if i != refrun_id]
     else:
+        start = time.time()
         tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
+        print("Computing tree took %0.2fs" % (time.time() - start) )
 
     print("Computed Tree:", tree)
 
     
     # Get alignments
+    start = time.time()
     tr_data = LightTransformationData()
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
@@ -510,6 +513,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
                        max_rt_diff, force=force)
 
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
+    print("Computing transformations for all edges took %0.2fs" % (time.time() - start) )
 
     # Perform work
     al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff, 
@@ -750,8 +754,8 @@ def main(options):
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
 
-
     # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+    start = time.time()
     for mpep in multipeptides:
         # check if we have found enough peakgroups which are below the cutoff
         count = 0
@@ -761,6 +765,7 @@ def main(options):
         if count < options.nr_high_conf_exp:
             for p in mpep.getAllPeptides():
                 p.unselect_all()
+    print("Filtering took %0.2fs" % (time.time() - start) )
 
     # print statistics, write output
     start = time.time()
