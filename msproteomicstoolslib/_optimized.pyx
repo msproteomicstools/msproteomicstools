@@ -492,7 +492,7 @@ cdef class CyPrecursor(object):
   
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double max_rt_diff,
+def static_cy_findBestPGFromTemplate(double expected_rt, object target_peptide, double max_rt_diff,
         already_seen, double aligned_fdr_cutoff, double fdr_cutoff, correctRT_using_pg,
         verbose):
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
@@ -514,22 +514,260 @@ def static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double 
 
     """
     # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
+    matching_peakgroups = []
+    cdef CyPeakgroupWrapperOnly pg_wr
+    cdef libcpp_vector[ c_peakgroup ] matching_v
+    for pg_ in target_peptide.getAllPeakgroups():
+        pg_wr = <CyPeakgroupWrapperOnly> pg_
+        if (abs(float(pg_wr.get_normalized_retentiontime()) - float(expected_rt)) < max_rt_diff):
+            if pg_wr.get_fdr_score() < aligned_fdr_cutoff:
+                if pg_wr.get_feature_id() + pg_wr.getPeptide().get_id() not in already_seen:
+                    matching_peakgroups.append(pg_wr)
+
+    for pg_ in target_peptide.getAllPeakgroups():
+        pg_wr = <CyPeakgroupWrapperOnly> pg_
+        if (abs(float(deref(pg_wr.inst).normalized_retentiontime) - float(expected_rt)) < max_rt_diff):
+            if deref(pg_wr.inst).fdr_score < aligned_fdr_cutoff:
+                if deref(pg_wr.inst).internal_id_ + pg_wr.getPeptide().get_id() not in already_seen:
+                    # matching_peakgroups.append(pg_wr)
+                    matching_v.push_back( deref(pg_wr.inst) )
+
+    #### matching_peakgroups = [pg_ for pg_ in target_peptide.getAllPeakgroups() 
+    ####     if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < max_rt_diff) and
+    ####         pg_.get_fdr_score() < aligned_fdr_cutoff and 
+    ####         pg_.get_feature_id() + pg_.getPeptide().get_id() not in already_seen]
+
+    #### cdef double rt
+    #### cdef double fdr_score
+    #### # matching_peakgroups = []
+    #### cdef libcpp_vector[c_peakgroup] CPeakgroups =  target_peptide.getPeakGroupsVector()
+    #### cdef libcpp_vector[c_peakgroup].iterator it = target_peptide.getPeakGroupsVector().begin()
+
+    #### cdef libcpp_vector[c_peakgroup] matching_peakgroups
+
+    #### while it != target_peptide.getPeakGroupsVector().end():
+    #### # for pg_ in target_peptide.getAllPeakgroups():
+    ####     ## pg_ = deref(it)
+    ####     rt = deref(it).normalized_retentiontime
+    ####     fdr_score = deref(it).fdr_score
+    ####     if fdr_score < aligned_fdr_cutoff:
+    ####         if (abs(rt - float(expected_rt)) < max_rt_diff):
+    ####             if deref(it).internal_id_ + target_peptide.get_id() not in already_seen:
+    ####                 matching_peakgroups.push_back( deref(it) )
+    ####     inc(it)
+
+
+    # If there are no peak groups present in the target run, we simply
+    # return the expected retention time.
+    ### if len(matching_peakgroups) == 0:
+    if matching_v.empty():
+        return None, expected_rt
+
+    cdef libcpp_vector[ c_peakgroup ].iterator iter_m = matching_v.begin()
+    cdef libcpp_vector[ c_peakgroup ].iterator bestScoring_pg = matching_v.begin()
+    cdef double best_fdr = deref(iter_m).fdr_score
+    while iter_m != matching_v.end():
+        if (deref(iter_m).fdr_score <= best_fdr):
+            best_fdr = deref(iter_m).fdr_score
+            bestScoring_pg = iter_m
+        inc(iter_m)
+
+
+    # Select best scoring peakgroup among those in the matching RT window
+    ### bestScoringPG = min(matching_peakgroups, key=lambda x: float(x.get_fdr_score()))
+
+    bestScoringPG = CyPeakgroupWrapperOnly()
+    bestScoringPG.inst = address(deref(bestScoring_pg))
+    # bestScoringPG.peptide = target_peptide ## TODO:
+
+    #### # Printing for debug mode
+    #### if verbose and False:
+    ####     closestPG = min(matching_peakgroups, key=lambda x: abs(float(x.get_normalized_retentiontime()) - expected_rt))
+    ####     print("    closest:", closestPG.print_out(), "diff", abs(closestPG.get_normalized_retentiontime() - expected_rt) )
+    ####     print("    bestScoring:", bestScoringPG.print_out(), "diff", abs(bestScoringPG.get_normalized_retentiontime() - expected_rt) )
+    ####     print()
+
+    ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._aligned_fdr_cutoff]) > 1:
+    ###     self.nr_multiple_align += 1
+    ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._fdr_cutoff]) > 1:
+    ###     self.nr_ambiguous += 1
+
+    # Decide which retention time to return:
+    #  - the threading one based on the alignment
+    #  - the one of the best peakgroup
+    if correctRT_using_pg:
+        return bestScoringPG, deref(bestScoring_pg).normalized_retentiontime
+    else:
+        return bestScoringPG, expected_rt
+
+def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed, 
+        dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        bool verbose):
+    """Align peakgroups against the given seed.
+
+    Using the given seed, the algorithm will traverse the MST tree and add
+    the best matching peakgroup of that node to the result.
+
+    Args:
+        tree(list(tuple)): a minimum spanning tree (MST) represented as
+            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+            need to correspond to run ids.
+        tr_data(:class:`.LightTransformationData`): structure to hold
+            binary transformations between two different retention time spaces
+        m(Multipeptide): one multipeptides on which the alignment should be performed
+        seed(PeakGroupBase): one peakgroup chosen as the seed
+        already_seen(dict): list of peakgroups already aligned (e.g. in a
+            previous cluster) and which should be ignored
+
+    Returns:
+        list(PeakGroupBase): List of peakgroups belonging to this cluster
+    """
+    ### print ("def static_findAllPGForSeed(tree, tr_data, m, seed, ", test_optimized(5, 6) )
+    if verbose: 
+        print("111111111111111111111111 findAllPGForSeed started" )
+        print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRun().get_id() )
+
+    seed_rt = seed.get_normalized_retentiontime()
+
+    # Keep track of which nodes we have already visited in the graph
+    # (also storing the rt at which we found the signal in this run).
+    rt_map = { seed.getPeptide().getRun().get_id() : seed_rt } 
+    visited = { seed.getPeptide().getRun().get_id() : seed } 
+
+    while len(visited.keys()) < m.get_nr_runs():
+        for e1, e2 in tree:
+            if e1 in visited.keys() and not e2 in visited.keys():
+                if verbose:
+                    print("  try to align", e2, "from already known node", e1)
+                newPG, rt = static_findBestPG(m, e1, e2, tr_data, rt_map[e1], 
+                                    already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+                                    max_rt_diff, stdev_max_rt_per_run, use_local_stdev,
+                                    verbose)
+                        
+                rt_map[e2] = rt
+                visited[e2] = newPG
+            if e2 in visited.keys() and not e1 in visited.keys():
+                if verbose: 
+                    print( "  try to align", e1, "from", e2)
+                newPG, rt = static_findBestPG(m, e2, e1, tr_data, rt_map[e2], 
+                                    already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+                                    max_rt_diff, stdev_max_rt_per_run, use_local_stdev,
+                                    verbose)
+                rt_map[e1] = rt
+                visited[e1] = newPG
+
+    # Now in each run at most one (zero or one) peakgroup got selected for
+    # the current peptide label group. This means that for each run, either
+    # heavy or light was selected (but not both) and now we should align
+    # the other isotopic channels as well.
+    if verbose: 
+        print( "Re-align isotopic channels:")
+
+    isotopically_added_pg = []
+    for pg in visited.values():
+        if pg is not None:
+
+            # Iterate through all sibling peptides (same peptide but
+            # different isotopic composition) and pick a peak using the
+            # already aligned channel as a reference.
+            ref_peptide = pg.getPeptide()
+            for pep in ref_peptide.getPrecursorGroup():
+                if ref_peptide != pep:
+                    if verbose: 
+                        print("  Using reference %s at RT %s to align peptide %s." % (ref_peptide, pg.get_normalized_retentiontime(), pep))
+                    newPG, rt = static_cy_findBestPGFromTemplate(pg.get_normalized_retentiontime(), pep, max_rt_diff_isotope, already_seen,
+            aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
+                    isotopically_added_pg.append(newPG)
+
+    if verbose: 
+        print("Done with re-alignment of isotopic channels")
+
+    return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
+
+def static_findBestPG(m, source, target, CyLightTransformationData tr_data, double source_rt, 
+        dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev,
+        bool verbose):
+    """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
+
+    Args:
+        m(Multipeptide): one multipeptides on which the alignment should be performed
+        source(string): id of the source run (where RT is known)
+        target(string): id of the target run (in which the best peakgroup should be selected)
+        tr_data(format.TransformationCollection.LightTransformationData):
+            structure to hold binary transformations between two different
+            retention time spaces
+        source_rt(float): retention time of the correct peakgroup in the source run
+        already_seen(dict): list of peakgroups already aligned (e.g. in a
+            previous cluster) and which should be ignored
+
+    Returns:
+        list(PeakGroupBase): List of peakgroups belonging to this cluster
+    """
+    # Get expected RT (transformation of source into target domain)
+    cdef CyLinearInterpolateWrapper cytrafo = tr_data.getTrafoCy(source, target)
+    cdef double expected_rt = cytrafo.predict_cy(source_rt)
+    # expected_rt = tr_data.getTrafo(source, target).predict([source_rt])[0]
+
+    ## if True:
+    ##     print(expected_rt, expected_rt_x)
+
+    if verbose:
+        print("  Expected RT", expected_rt, " (source RT)", source_rt )
+        print("  --- and back again :::  ", tr_data.getTrafo(target, source).predict([expected_rt])[0] )
+
+    # If there is no peptide present in the target run, we simply return
+    # the expected retention time.
+    if not m.hasPrecursorGroup(target):
+        return None, expected_rt
+
+    if stdev_max_rt_per_run is not None:
+        max_rt_diff = stdev_max_rt_per_run * tr_data.getStdevCy(source, target)
+
+        # Whether to use the standard deviation in this local region of the
+        # chromatogram (if available)
+        if use_local_stdev:
+            max_rt_diff = stdev_max_rt_per_run * tr_data.getTrafo(source, target).last_dispersion
+
+        max_rt_diff = max(max_rt_diff, max_rt_diff)
+
+    if verbose:
+        print("  Used rt diff:", max_rt_diff)
+
+    ### print (type( source ) )
+    ### print (type( m ) )
+    ### print (type( m.getPrecursorGroup(target) ) )
+    return static_findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen, 
+             aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
+    ## return static_cy_findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen, 
+    ##         aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
+
+cdef static_findBestPGFromTemplate(double expected_rt, target_peptide, double max_rt_diff,
+        dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        bool verbose):
+    """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
+
+        Parameters
+        ----------
+        expected_rt : float
+            Expected retention time
+        target_peptide: :class:`.PrecursorGroup`
+            Precursor group from the target run (contains multiple peak groups)
+        max_rt_diff : float
+            Maximal retention time difference (parameter)
+        already_seen : dict
+            list of peakgroups already aligned (e.g. in a previous cluster) and which should be ignored
+        aligned_fdr_cutoff : float
+        fdr_cutoff : float
+        correctRT_using_pg: boolean
+        verbose: boolean
+    """
+    # Select matching peakgroups from the target run (within the user-defined maximal rt deviation)
     matching_peakgroups = [pg_ for pg_ in target_peptide.getAllPeakgroups() 
         if (abs(float(pg_.get_normalized_retentiontime()) - float(expected_rt)) < max_rt_diff) and
             pg_.get_fdr_score() < aligned_fdr_cutoff and 
-            pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen]
-
-    cdef double rt
-    cdef double fdr_score
-    matching_peakgroups = []
-    for pg_ in target_peptide.getAllPeakgroups() :
-        rt = float(pg_.get_normalized_retentiontime())
-        fdr_score = float(pg_.get_fdr_score())
-        if fdr_score < aligned_fdr_cutoff:
-            if (abs(rt - float(expected_rt)) < max_rt_diff):
-                if pg_.get_feature_id() + pg_.peptide.get_id() not in already_seen:
-                    matching_peakgroups.append(pg_)
-
+            pg_.get_feature_id() + pg_.getPeptide().get_id() not in already_seen]
 
     # If there are no peak groups present in the target run, we simply
     # return the expected retention time.
@@ -558,3 +796,6 @@ def static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double 
         return bestScoringPG, bestScoringPG.get_normalized_retentiontime()
     else:
         return bestScoringPG, expected_rt
+
+
+
