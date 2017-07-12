@@ -2,6 +2,7 @@
 
 import os
 from setuptools import setup
+from distutils.extension import Extension
 
 # get py-earth from https://github.com/jcrudy/py-earth/
 
@@ -18,6 +19,9 @@ if (sys.version_info > (3, 0)):
     extra_installs = []
 else:
     extra_installs = []
+
+ext_modules = [Extension("msproteomicstoolslib._optimized", ["msproteomicstoolslib/_optimized.cpp"], language="c++")]
+
 
 setup(name='msproteomicstools',
       version='0.5.0',
@@ -40,6 +44,7 @@ setup(name='msproteomicstools',
       package_data={'msproteomicstoolslib.data_structures':
           ['modifications_default.tsv']},
       scripts=all_scripts,
+      ext_modules=ext_modules,
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
       url='https://code.google.com/p/msproteomicstools',
