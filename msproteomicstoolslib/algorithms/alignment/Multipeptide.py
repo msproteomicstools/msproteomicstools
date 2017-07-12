@@ -136,10 +136,10 @@ class Multipeptide(object):
         Returns:
             decoy(bool): Whether the peptide is decoy or not
         """
-        if len(self.getAllPeptides()) == 0:
+        if len(self._peptides) == 0:
             return False
 
-        return self.getAllPeptides()[0].get_decoy() 
+        return self._peptides.itervalues().next().get_decoy()
 
     def has_null_peptides(self):
         """
