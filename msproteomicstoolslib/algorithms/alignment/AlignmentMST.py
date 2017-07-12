@@ -39,10 +39,19 @@ from __future__ import print_function
 import numpy
 import math
 import scipy.stats
+from msproteomicstoolslib.format.TransformationCollection import LightTransformationData
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
+
+try:
+    from msproteomicstoolslib._optimized import static_findAllPGForSeed
+    # also check whether we can actually do it b/c of transformation!!!
+except ImportError:
+    print("WARNING: cannot import optimized MST alignment, will use Python version (slower).")
+    from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed, static_findBestPG, static_findBestPGFromTemplate
 
 def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
     """Compute distance matrix of all runs.
