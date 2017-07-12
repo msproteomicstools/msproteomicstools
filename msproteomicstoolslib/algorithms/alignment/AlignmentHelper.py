@@ -208,7 +208,18 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
         stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
         print("stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s))
 
-    # Add data
-    tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
-    tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
+    # Add data and trafo description.
+    # The CyLightTransformationData actually requires to get a specific type of
+    # transformation, the CyLinearInterpolateWrapper which may not be directly
+    # passed to this function. We will try to recover the underlying linear
+    # wrapper and then stick it into the tr_data object. If this fails, we just
+    # revert to the regular behavior.
+    try:
+        sm_0_1_lwp = sm_0_1.internal_interpolation.getLWP()
+        sm_1_0_lwp = sm_1_0.internal_interpolation.getLWP()
+        tr_data.addTrafo(id_0, id_1, sm_0_1_lwp, stdev_0_1)
+        tr_data.addTrafo(id_1, id_0, sm_1_0_lwp, stdev_1_0)
+    except Exception:
+        tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
+        tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
 
