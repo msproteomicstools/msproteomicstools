@@ -239,8 +239,8 @@ cdef class CyPrecursor(object):
     cdef libcpp_string curr_id_
     cdef libcpp_string protein_name_ 
     cdef libcpp_string sequence_ 
+    cdef CyPrecursorGroup precursor_group
     cdef object run
-    cdef object precursor_group
 
     def __init__(self, bytes this_id, run):
         self.curr_id_ = libcpp_string(<char*> this_id)
@@ -602,7 +602,7 @@ cdef class CyPrecursorGroup(object):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def static_cy_findBestPGFromTemplate(double expected_rt, object target_peptide, double max_rt_diff,
+def static_cy_findBestPGFromTemplate(double expected_rt, CyPrecursorGroup target_peptide, double max_rt_diff,
         already_seen, double aligned_fdr_cutoff, double fdr_cutoff, correctRT_using_pg,
         verbose):
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
@@ -710,7 +710,9 @@ def static_cy_findBestPGFromTemplate(double expected_rt, object target_peptide, 
     else:
         return bestScoringPG, expected_rt
 
-def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed, 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def static_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose):
@@ -733,24 +735,21 @@ def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed,
     Returns:
         list(PeakGroupBase): List of peakgroups belonging to this cluster
     """
-    ### print ("def static_findAllPGForSeed(tree, tr_data, m, seed, ", test_optimized(5, 6) )
-    if verbose: 
-        print("111111111111111111111111 findAllPGForSeed started" )
-        print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRun().get_id() )
 
-    seed_rt = seed.get_normalized_retentiontime()
+    seed_rt = seed.get_normalized_retentiontime_cy()
 
     # Keep track of which nodes we have already visited in the graph
     # (also storing the rt at which we found the signal in this run).
-    rt_map = { seed.getPeptide().getRun().get_id() : seed_rt } 
-    visited = { seed.getPeptide().getRun().get_id() : seed } 
+    cdef dict rt_map = { seed.getPeptide().getRunId() : seed_rt }
+    cdef dict visited = { seed.getPeptide().getRunId() : seed } 
 
-    while len(visited.keys()) < m.get_nr_runs():
+    cdef int nr_runs = multip.get_nr_runs()
+    while len(visited.keys()) < nr_runs:
         for e1, e2 in tree:
             if e1 in visited.keys() and not e2 in visited.keys():
                 if verbose:
                     print("  try to align", e2, "from already known node", e1)
-                newPG, rt = static_findBestPG(m, e1, e2, tr_data, rt_map[e1], 
+                newPG, rt = static_findBestPG(multip, e1, e2, tr_data, rt_map[e1], 
                                     already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                                     max_rt_diff, stdev_max_rt_per_run, use_local_stdev,
                                     verbose)
@@ -760,7 +759,7 @@ def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed,
             if e2 in visited.keys() and not e1 in visited.keys():
                 if verbose: 
                     print( "  try to align", e1, "from", e2)
-                newPG, rt = static_findBestPG(m, e2, e1, tr_data, rt_map[e2], 
+                newPG, rt = static_findBestPG(multip, e2, e1, tr_data, rt_map[e2], 
                                     already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                                     max_rt_diff, stdev_max_rt_per_run, use_local_stdev,
                                     verbose)
@@ -782,12 +781,14 @@ def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed,
             # different isotopic composition) and pick a peak using the
             # already aligned channel as a reference.
             ref_peptide = pg.getPeptide()
-            for pep in ref_peptide.getPrecursorGroup():
-                if ref_peptide != pep:
+            run_id = ref_peptide.getRunId()
+
+            for pep in multip.getPrecursorGroup(run_id):
+                if ref_peptide.get_id() != pep.get_id():
                     if verbose: 
                         print("  Using reference %s at RT %s to align peptide %s." % (ref_peptide, pg.get_normalized_retentiontime(), pep))
-                    newPG, rt = static_cy_findBestPGFromTemplate(pg.get_normalized_retentiontime(), pep, max_rt_diff_isotope, already_seen,
-            aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
+                    newPG, rt = static_findBestPGFromTemplate(pg.get_normalized_retentiontime(), pep, max_rt_diff_isotope, already_seen,
+                                                                aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
                     isotopically_added_pg.append(newPG)
 
     if verbose: 
@@ -795,6 +796,8 @@ def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed,
 
     return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef static_findBestPG(multip, source, target, CyLightTransformationData tr_data, double source_rt, 
         dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev,
@@ -829,7 +832,8 @@ cdef static_findBestPG(multip, source, target, CyLightTransformationData tr_data
 
     # If there is no peptide present in the target run, we simply return
     # the expected retention time.
-    if not multip.hasPrecursorGroup(target):
+    cdef bool has_gr = multip.hasPrecursorGroup(target)
+    if not has_gr:
         return None, expected_rt
 
     if stdev_max_rt_per_run is not None:
@@ -853,7 +857,9 @@ cdef static_findBestPG(multip, source, target, CyLightTransformationData tr_data
     ## return static_cy_findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen, 
     ##         aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
 
-cdef static_findBestPGFromTemplate(double expected_rt, target_peptide, double max_rt_diff,
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef static_findBestPGFromTemplate(double expected_rt, CyPrecursorGroup target_peptide, double max_rt_diff,
         dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         bool verbose):
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
