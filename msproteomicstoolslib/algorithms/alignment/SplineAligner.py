@@ -71,7 +71,14 @@ class SplineAligner():
       self.tmpdir_ = external_r_tmpdir
       self.max_data_ = maxdata
       self._cacher = None
+      self._cy_cacher = None
       self._experiment = experiment
+
+      try:
+          from msproteomicstoolslib.algorithms.alignment.DataCacher import CyDataCacher
+          self._cy_cacher = CyDataCacher()
+      except ImportError:
+          print("WARNING: cannot import CyDataCacher, will use Python version (slower).")
 
     def _determine_best_run(self, experiment):
 
@@ -122,7 +129,10 @@ class SplineAligner():
 
             # only append with at least 2 values ...
             if len([v for v in cached_vals if not v is None] ) > 1:
-                self._cacher.append(cached_vals)
+                if self._cy_cacher is not None:
+                    self._cy_cacher.appendValuesForPeptide(cached_vals)
+                else:
+                    self._cacher.append(cached_vals)
 
     def _getRTData_cached(self, bestrun, run, multipeptides):
         """ Return retention time data for reference and slave run """
@@ -133,11 +143,18 @@ class SplineAligner():
         run_nr = [k for k,r in enumerate(self._experiment.runs) if r.get_id() == run.get_id() ][0]
         bestrun_nr = [k for k,r in enumerate(self._experiment.runs) if r.get_id() == bestrun.get_id() ][0]
 
+        if self._cy_cacher is not None:
+
+            data1 = []
+            data2 = []
+            self._cy_cacher.retrieveValues(data1, data2, bestrun_nr, run_nr)
+            return data1, data2
+
         data_tmp = []
         for m in self._cacher:
 
-            rund = m[ run_nr ]
-            bestrund = m[ bestrun_nr ]
+            bestrund = m[ bestrun_nr ] # data1
+            rund = m[ run_nr ] # data2
 
             # Skip empty entries
             if rund is None or bestrund is None:
@@ -145,7 +162,7 @@ class SplineAligner():
 
             data_tmp.append( (
                 min( rund[0], bestrund[0]),
-                bestrund[1], rund[1]) )
+                bestrund[1], rund[1]) ) # data1, data2
 
         maxdata = self.max_data_
         if maxdata == -1:
@@ -158,7 +175,7 @@ class SplineAligner():
             data1.append(d1)
             data2.append(d2)
 
-        return data1,data2
+        return data1, data2
 
     def _getRTData_legacy(self, bestrun, run, multipeptides):
         """ Return retention time data for reference and slave run """
