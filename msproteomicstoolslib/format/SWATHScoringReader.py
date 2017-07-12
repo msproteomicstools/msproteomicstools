@@ -288,8 +288,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
+          p.setProteinName(protein_name)
+          p.setSequence(sequence)
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
 
