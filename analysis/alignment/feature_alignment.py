@@ -86,14 +86,14 @@ class AlignmentStatistics(object):
             # Count how many precursors / peptides / proteins fall below the threshold
             if m.find_best_peptide_pg().get_fdr_score() < fdr_cutoff:
                 astats.nr_good_precursors += 1
-                astats.good_peptides.update([m.getAllPeptides()[0].sequence])
-                astats.good_proteins.update([m.getAllPeptides()[0].protein_name])
+                astats.good_peptides.update([m.getAllPeptides()[0].getSequence()])
+                astats.good_proteins.update([m.getAllPeptides()[0].getProteinName()])
 
             # Count how many precursors / peptides / proteins were quantified
             if len(m.get_selected_peakgroups()) > 0:
                 astats.nr_quant_precursors += 1
-                astats.quant_peptides.update([m.getAllPeptides()[0].sequence])
-                astats.quant_proteins.update([m.getAllPeptides()[0].protein_name])
+                astats.quant_peptides.update([m.getAllPeptides()[0].getSequence()])
+                astats.quant_proteins.update([m.getAllPeptides()[0].getProteinName()])
 
             for p in m.getAllPeptides():
 
@@ -178,9 +178,9 @@ class Experiment(MRExperiment):
 
         # count the decoys
         d.nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
-                          if prec.find_best_peptide_pg().peptide.get_decoy()])
+                          if prec.find_best_peptide_pg().getPeptide().get_decoy()])
         d.nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
-                          if not prec.find_best_peptide_pg().peptide.get_decoy()])
+                          if not prec.find_best_peptide_pg().getPeptide().get_decoy()])
         # estimate the real fdr by calculating the decoy ratio and dividing it
         # by the decoy ration obtained at @fdr_cutoff => which gives us the
         # decoy in/decrease realtive to fdr_cutoff. To calculate the absolute
@@ -199,19 +199,19 @@ class Experiment(MRExperiment):
 
         # Count presence in all runs (before alignment)
         precursors_in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
-        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides 
+        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().getPeptide().getProteinName() for m in multipeptides 
                                                         if m.all_above_cutoff(fdr_cutoff) and 
-                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
-        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides 
+                                                        not m.find_best_peptide_pg().getPeptide().get_decoy()]))
+        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().getPeptide().getSequence() for m in multipeptides 
                                                         if m.all_above_cutoff(fdr_cutoff) and 
-                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
+                                                        not m.find_best_peptide_pg().getPeptide().get_decoy()]))
 
         # Count presence in all runs (before alignment)
         precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
-        nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs 
-                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs 
-                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        nr_peptides_target = len(set([prec.find_best_peptide_pg().getPeptide().getSequence() for prec in precursors_in_all_runs 
+                                      if not prec.find_best_peptide_pg().getPeptide().get_decoy()]))
+        nr_proteins_target = len(set([prec.find_best_peptide_pg().getPeptide().getProteinName() for prec in precursors_in_all_runs 
+                                      if not prec.find_best_peptide_pg().getPeptide().get_decoy()]))
 
         nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
         max_pg = alignment.nr_good_precursors * len(self.runs)
@@ -221,8 +221,8 @@ class Experiment(MRExperiment):
         # Get single/multiple hits stats
         from itertools import groupby
         precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
-        target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified 
-                                     if not prec.find_best_peptide_pg().peptide.get_decoy()]
+        target_quant_protein_list = [ prec.find_best_peptide_pg().getPeptide().getProteinName() for prec in precursors_quantified 
+                                     if not prec.find_best_peptide_pg().getPeptide().get_decoy()]
         target_quant_protein_list.sort()
         nr_sh_target_proteins = sum( [len(list(group)) == 1 for key, group in groupby(target_quant_protein_list)] )
         nr_mh_target_proteins = sum( [len(list(group)) > 1 for key, group in groupby(target_quant_protein_list)] )
@@ -260,7 +260,7 @@ class Experiment(MRExperiment):
         print("Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins))
 
         # Get decoy estimates
-        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
+        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().getPeptide().get_decoy()])
         if len(precursors_in_all_runs) > 0:
             print("Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100))
@@ -398,15 +398,15 @@ class Experiment(MRExperiment):
                   if f_id in selected_ids_dict:
                       # Check the "id" and "transition_group_id" field.
                       # Unfortunately the id can be non-unique, there we check both.
-                      trgroup_id = selected_ids_dict[f_id].peptide.get_id()
+                      trgroup_id = selected_ids_dict[f_id].getPeptide().get_id()
                       unique_peptide_id = row[ header_dict[name_of_trgr_col]]
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
-                          row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
+                          row_to_write += [selected_ids_dict[f_id].getPeptide().getRun().get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
                           # Replace run_id with the aligned id (align_runid) ->
                           # otherwise the run_id is not guaranteed to be unique 
                           if file_format == "openswath" : 
-                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
+                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].getPeptide().getRun().get_id()
                           writer.writerow(row_to_write)
 
         # 5. Write out the .tr transformation files
