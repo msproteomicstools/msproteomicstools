@@ -3,6 +3,8 @@
 #include <vector>
 #include <stdexcept>
 
+#include <iostream>
+
 struct c_peakgroup {
 
 public:
@@ -22,13 +24,22 @@ public:
   c_linear_interpolate() {}
   c_linear_interpolate(std::vector<double>& x, std::vector<double>& y, double abs_err)
   {
-    // TODO: has to be sorted!
-    x_ = x;
-    y_ = y;
-
-    if (!isSorted()) {throw std::invalid_argument("Needs sorted arrays.");}
     if (x.size() < 2) {throw std::invalid_argument("Needs at least 2 values."); }
     if (x.size() != y.size()) {throw std::invalid_argument("Needs equal size for x any y."); }
+
+    // remove duplicate entries
+    x_.push_back(x[0]);
+    y_.push_back(y[0]);
+    for (size_t k = 1; k < x.size(); k++)
+    {
+      if (x[k] > x_.back() ) 
+      {
+        x_.push_back(x[k]);
+        y_.push_back(y[k]);
+      }
+    }
+
+    if (!isSorted()) {throw std::invalid_argument("Needs sorted arrays.");}
   }
 
   bool isSorted()
@@ -80,6 +91,13 @@ public:
       x_lo--;
       y_lo--;
     }
+
+    // deal with duplicates
+    // while (x_hi != x_.end() && (*x_hi- *x_lo) == 0)
+    // {
+    //   x_hi++;
+    //   y_hi++;
+    // }
 
     double slope = (*y_hi - *y_lo) / (*x_hi- *x_lo);
     double y_new = slope * (xnew - *x_lo) + *y_lo;
