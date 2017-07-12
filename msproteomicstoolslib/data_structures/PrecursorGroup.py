@@ -38,7 +38,7 @@ $Authors: Hannes Roest$
 from msproteomicstoolslib.util.assertions import pre_condition, post_condition, class_invariant
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
-class PrecursorGroup():
+class PrecursorGroup(object):
     """A set of precursors that are isotopically modified versions of each other.
 
     A collection of precursors that are isotopically modified versions of the
@@ -70,7 +70,7 @@ class PrecursorGroup():
         # for precursor in self.precursors_: print precursor.sequence
         if len(self.precursors_) > 0:
             # All precursor sequences should all be equal to the first sequence
-            assert(all( [precursor.sequence == self.precursors_[0].sequence for precursor in self.precursors_] )) 
+            assert(all( [precursor.getSequence() == self.precursors_[0].getSequence() for precursor in self.precursors_] )) 
         return True
 
     @class_invariant(__classInvariant__)
@@ -87,7 +87,7 @@ class PrecursorGroup():
         addPrecursor(self, precursor)
         Add precursor to peptide group
         """
-        precursor.precursor_group = self
+        precursor.set_precursor_group( self )
         self.precursors_.append(precursor)
 
     @class_invariant(__classInvariant__)
