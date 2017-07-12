@@ -17,7 +17,6 @@ cython -a --cplus msproteomicstoolslib/_optimized.pyx &&  python setup.py  build
 import numpy as np
 import operator
 
-
 cdef class CyLightTransformationData(object):
     """
     A lightweight data structure to store a transformation between retention times of multiple runs.
@@ -88,8 +87,6 @@ cdef class CyLightTransformationData(object):
     def getReferenceRunID(self):
         return self.reference
 
-
-
 ctypedef np.float32_t DATA_TYPE
 
 cdef extern from "peakgroup.h":
@@ -108,9 +105,7 @@ cdef extern from "peakgroup.h":
         c_linear_interpolate(libcpp_vector[double] & x, libcpp_vector[double] & y, double abs_err)
         double predict(double xnew)
 
-
 cdef class CyLinearInterpolateWrapper(object):
-
     cdef c_linear_interpolate * inst 
 
     def __dealloc__(self):
@@ -685,7 +680,7 @@ def static_findAllPGForSeed(tree, tr_data, m, CyPeakgroupWrapperOnly seed,
 
     return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
 
-def static_findBestPG(m, source, target, CyLightTransformationData tr_data, double source_rt, 
+cdef static_findBestPG(multip, source, target, CyLightTransformationData tr_data, double source_rt, 
         dict already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev,
         bool verbose):
@@ -719,7 +714,7 @@ def static_findBestPG(m, source, target, CyLightTransformationData tr_data, doub
 
     # If there is no peptide present in the target run, we simply return
     # the expected retention time.
-    if not m.hasPrecursorGroup(target):
+    if not multip.hasPrecursorGroup(target):
         return None, expected_rt
 
     if stdev_max_rt_per_run is not None:
@@ -738,7 +733,7 @@ def static_findBestPG(m, source, target, CyLightTransformationData tr_data, doub
     ### print (type( source ) )
     ### print (type( m ) )
     ### print (type( m.getPrecursorGroup(target) ) )
-    return static_findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen, 
+    return static_findBestPGFromTemplate(expected_rt, multip.getPrecursorGroup(target), max_rt_diff, already_seen, 
              aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
     ## return static_cy_findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen, 
     ##         aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
