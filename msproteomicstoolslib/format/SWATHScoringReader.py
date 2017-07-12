@@ -710,6 +710,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
     elif fileType == "traml":
         return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
 
+    nomatch_found = set([])
     for file_nr, f in enumerate(aligned_pg_files):
         header_dict = {}
         if f.endswith('.gz'):
@@ -751,7 +752,6 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                     protein_mapping[protein_name] = tmp
 
 
-
             # 1. Get the original filename (find a non-NA entry) and the corresponding run id
             if len(this_row) == 0: 
                 continue
@@ -761,8 +761,13 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
             if aligned_id in mapping:
                 continue 
 
-
             aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
+
+            # allow cross-OS transfer of files
+            tmp = aligned_fname.split("\\")
+            aligned_fname = tmp[-1]
+            tmp = aligned_fname.split("/")
+            aligned_fname = tmp[-1]
 
             # 2. Go through all chromatogram input files and try to find
             # one that matches the one from align_origfilename
@@ -785,11 +790,14 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
             if not aligned_id in mapping:
                 if verbose or throwOnMismatch:
-                    print("- No match found for :", aligned_fname, "in any of", \
-                            [os.path.basename(rfile) for rfile in rawdata_files])
-                    print("- This is generally a very bad sign and you might have " +\
-                            "to either rename your files to have matching filenames " +\
-                            "or provide an input yaml file describing the matching in detail")
+                    nomatch_found.update( [aligned_fname] )
                 if throwOnMismatch:
                     raise Exception("Mismatch, alignment filename could not be matched to input chromatogram")
+
+        if verbose:
+            print("- No match found for :", list(nomatch_found), "in any of", \
+              [os.path.basename(rfile) for rfile in rawdata_files])
+            print("- This may be a bad sign if you expected a match here. You might have " +\
+                    "to either rename your files to have matching filenames " +\
+                    "or provide an input yaml file describing the matching in detail.")
 
