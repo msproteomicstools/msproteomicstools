@@ -115,7 +115,7 @@ class SplineAligner():
                     # We need to have a single, good peak group below the threshold (not a decoy)
                     if len(al_pg) == 1:
                         pep = m.getPrecursorGroup(r.get_id()).getOverallBestPeakgroup()
-                        if not pep.peptide.get_decoy() and pep.get_fdr_score() < self.alignment_fdr_threshold_:
+                        if not pep.getPeptide().get_decoy() and pep.get_fdr_score() < self.alignment_fdr_threshold_:
                             val = (pep.get_fdr_score(), pep.get_normalized_retentiontime())
 
                 cached_vals.append(val)
