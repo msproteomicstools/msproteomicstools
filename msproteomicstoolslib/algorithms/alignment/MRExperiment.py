@@ -92,37 +92,36 @@ class MRExperiment(object):
         verbosity : int
             How verbose to be
         """
-        union_transition_groups = []
-        union_proteins = []
-        union_target_transition_groups = []
 
+        # Identify across all runs which transition groups are above the cutoff
+        union_transition_groups = []
+        union_target_transition_groups = []
+        union_proteins = []
+
+        self.union_transition_groups_set = set([])
+        self.union_proteins_set = set([])
+        self.union_target_transition_groups_set = set()
         for i,r in enumerate(self.runs):
-            if verbose or verbosity >= 10: 
-                stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
-                stdout.flush()
-            union_target_transition_groups.append( 
-              [peak.getPeptide().getPrecursorGroup().getPeptideGroupLabel() 
-                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.getPeptide().get_decoy()] )
-            union_transition_groups.append( 
-              [peak.getPeptide().getPrecursorGroup().getPeptideGroupLabel() 
-                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
-            union_proteins.append( list(set(
-              [peak.getPeptide().getProteinName() 
-                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) 
-                    if not peak.getPeptide().get_decoy()])) )
+            gr = []
+            gr_target = []
+            gr_protein = []
+            for precursor_group in r:
+                for peptide_precursor in precursor_group:
+                    if (peptide_precursor.get_best_peakgroup().get_fdr_score() < fdr_cutoff):
+                        gr.append( precursor_group.getPeptideGroupLabel() )
+                        if not precursor_group.get_decoy():
+                            gr_target.append(precursor_group.getPeptideGroupLabel())
+                            gr_protein.append(peptide_precursor.getProteinName())
+            union_transition_groups.append(gr)
+            union_target_transition_groups.append(gr_target)
+            union_proteins.append(list(set(gr_protein)))
+
+            self.union_target_transition_groups_set = self.union_target_transition_groups_set.union(gr_target)
+            self.union_transition_groups_set = self.union_transition_groups_set.union(gr)
+            self.union_proteins_set = self.union_proteins_set.union(gr_protein)
 
         if verbose or verbosity >= 10: 
             stdout.write("\r\r\n") # clean up
-
-        union_target_transition_groups_set = set(union_target_transition_groups[0])
-        self.union_transition_groups_set = set(union_transition_groups[0])
-        self.union_proteins_set = set(union_proteins[0])
-        for groups in union_transition_groups:
-          self.union_transition_groups_set = self.union_transition_groups_set.union( groups )
-        for groups in union_target_transition_groups:
-          union_target_transition_groups_set = union_target_transition_groups_set.union( groups )
-        for proteins in union_proteins:
-          self.union_proteins_set = self.union_proteins_set.union( proteins )
 
         all_prec = sum([len(s) for s in union_transition_groups])
         target_prec = sum([len(s) for s in union_target_transition_groups])
@@ -131,7 +130,7 @@ class MRExperiment(object):
             print("===================================")
             print("Finished parsing, number of precursors and peptides per run")
             print("All precursors", [len(s) for s in union_transition_groups], "(union of all runs %s)" % len(self.union_transition_groups_set))
-            print("All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(union_target_transition_groups_set))
+            print("All target precursors", [len(s) for s in union_target_transition_groups], "(union of all runs %s)" % len(self.union_target_transition_groups_set))
             print("All target proteins", [len(s) for s in union_proteins], "(union of all runs %s)" % len(self.union_proteins_set))
             if all_prec > 0:
                 print("Decoy percentage on precursor level %0.4f%%" % ( (all_prec - target_prec) * 100.0 / all_prec ))
@@ -153,5 +152,4 @@ class MRExperiment(object):
 
         # Return sorted multipeptides for consistency across all Python versions
         return(sorted(multipeptides, key=lambda x: str(x)))
-
 
