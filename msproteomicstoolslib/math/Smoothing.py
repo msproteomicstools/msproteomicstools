@@ -373,7 +373,7 @@ class SmoothingPy:
         yhat_new = s.predict(xhat)
         return yhat_new
 
-class LowessSmoothingBase:
+class LowessSmoothingBase(object):
     """Smoothing using Lowess smoother and then interpolate on the result
     """
 
@@ -634,17 +634,36 @@ class SmoothingInterpolation:
     def initialize(self, data1, data2):
         # data1 is the predictor (e.g. the input) -> x
         # data2 is the response (e.g. what we want to predict) -> y
-        from scipy.interpolate import interp1d
+        self.use_cy = True
+
         data1s, data2s = zip(*sorted(zip(data1, data2)))
-        self.f = interp1d(data1s, data2s)
+
+        try:
+            from msproteomicstoolslib._optimized import CyLinearInterpolateWrapper
+            self.f = CyLinearInterpolateWrapper(data1s, data2s, 0.0)
+        except ImportError:
+            print("WARNING: cannot import CyLinearInterpolateWrapper, will use Python version (slower).")
+            from scipy.interpolate import interp1d
+            self.f = interp1d(data1s, data2s)
+            self.use_cy = False
 
         # Also prepare linear transformation
         self.linear_sm = SmoothingLinear()
         self.linear_sm.initialize(data1, data2)
 
+    def getLWP(self):
+        if self.use_cy:
+            return self.f
+        else:
+            raise Exception("Cannot return CyLinearInterpolateWrapper wrapper!")
+
     def predict(self, xhat):
         try:
-            predicted_result = self.f(xhat) # interpolation fxn
+            if self.use_cy:
+                predicted_result = self.f.predict(xhat) # interpolation fxn
+                return predicted_result
+            else:
+                predicted_result = self.f(xhat) # interpolation fxn
         except ValueError:
             # outside bound, use linear
             return self.linear_sm.predict(xhat)
