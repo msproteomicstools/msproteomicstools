@@ -646,7 +646,7 @@ def handle_args():
     parser.add_argument('--method', default='best_overall', help="Method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall, LocalMST, LocalMSTAllCluster).")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)", metavar="")
-    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, nonCVSpline, CVSpline, Earth)", metavar="diRT")
+    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, lowess_biostats, lowess_statsmodels, lowess_cython, nonCVSpline, CVSpline, Earth, WeightedNearestNeighbour, SmoothLLDMedian, None)", metavar="diRT")
     parser.add_argument('--force', action='store_true', default=False, help="Force alignment")
 
     mst_parser = parser.add_argument_group('options for the MST')
