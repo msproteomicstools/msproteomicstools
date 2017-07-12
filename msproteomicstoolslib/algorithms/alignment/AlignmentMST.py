@@ -48,7 +48,9 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 
 try:
     from msproteomicstoolslib._optimized import static_findAllPGForSeed
-    # also check whether we can actually do it b/c of transformation!!!
+    # Using static_findAllPGForSeed tends to have a measurable impact of about
+    # 10% improvement on alignment speed: 53.78s Cython vs 59.06 using the
+    # older method
 except ImportError:
     print("WARNING: cannot import optimized MST alignment, will use Python version (slower).")
     from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed, static_findBestPG, static_findBestPGFromTemplate
