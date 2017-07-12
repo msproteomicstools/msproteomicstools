@@ -101,15 +101,15 @@ class MRExperiment(object):
                 stdout.write("\rParsing run %s out of %s" % (i+1, len(self.runs) ))
                 stdout.flush()
             union_target_transition_groups.append( 
-              [peak.peptide.precursor_group.getPeptideGroupLabel() 
-                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.peptide.get_decoy()] )
+              [peak.getPeptide().getPrecursorGroup().getPeptideGroupLabel() 
+                for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) if not peak.getPeptide().get_decoy()] )
             union_transition_groups.append( 
-              [peak.peptide.precursor_group.getPeptideGroupLabel() 
+              [peak.getPeptide().getPrecursorGroup().getPeptideGroupLabel() 
                 for peak in r.get_best_peaks_with_cutoff(fdr_cutoff)] )
             union_proteins.append( list(set(
-              [peak.peptide.protein_name 
+              [peak.getPeptide().getProteinName() 
                 for peak in r.get_best_peaks_with_cutoff(fdr_cutoff) 
-                    if not peak.peptide.get_decoy()])) )
+                    if not peak.getPeptide().get_decoy()])) )
 
         if verbose or verbosity >= 10: 
             stdout.write("\r\r\n") # clean up
