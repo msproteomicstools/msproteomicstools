@@ -214,6 +214,9 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.sequence_col = "Sequence"
         self.read_cluster_id = read_cluster_id
         if readmethod == "minimal":
+            from msproteomicstoolslib._optimized import CyPrecursor
+            self.Precursor = CyPrecursor
+        elif readmethod == "old-minimal":
             self.Precursor = Precursor
         elif readmethod == "gui":
             self.Precursor = GeneralPrecursor
@@ -294,6 +297,9 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "minimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+        elif self.readmethod == "old-minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
