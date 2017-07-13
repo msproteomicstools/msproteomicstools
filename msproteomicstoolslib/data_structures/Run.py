@@ -69,7 +69,7 @@ class Run():
         Aligned filename (e.g. the column "align_origfilename")
     """
 
-    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None):
+    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None, useCython=False):
         self.header = header
         self.header_dict = header_dict
         self.runid = runid
@@ -79,8 +79,11 @@ class Run():
         self.all_precursor_groups_ = {}
   
         try:
-            from msproteomicstoolslib.cython._optimized import CyPrecursorGroup
-            self.PrecursorGroup = CyPrecursorGroup
+            if useCython:
+                from msproteomicstoolslib.cython._optimized import CyPrecursorGroup
+                self.PrecursorGroup = CyPrecursorGroup
+            else:
+                self.PrecursorGroup = PrecursorGroup
         except ImportError:
             self.PrecursorGroup = PrecursorGroup
 
