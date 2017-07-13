@@ -47,7 +47,7 @@ import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
 
 try:
-    from msproteomicstoolslib._optimized import static_findAllPGForSeed
+    from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_findAllPGForSeed
     # Using static_findAllPGForSeed tends to have a measurable impact of about
     # 10% improvement on alignment speed: 53.78s Cython vs 59.06 using the
     # older method
@@ -235,8 +235,49 @@ class TreeConsensusAlignment():
             if best.get_fdr_score() >= self._fdr_cutoff:
                 continue
 
+
+            from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed as backup_find
+            use = "legacy"
+            use = "new"
+            use = "allcy"
+
+            if use == "legacy":
+                pg_list = backup_find(tree, tr_data, m, best, {}, 
+                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                    self.verbose)
+
+            elif use == "new":
+                pg_list = static_findAllPGForSeed(tree, tr_data, m, best, {}, 
+                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                    self.verbose)
+            elif use == "allcy":
+                ### we are missing nr 25!!! 
+                pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
+                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                    self.verbose)
+            for pg_ in pg_list:
+                pg_.select_this_peakgroup()
+
+
+    def alignBestCluster_legacy(self, multipeptides, tree, tr_data):
+        from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed
+        for m in multipeptides:
+
+            # Find the overall best peptide
+            best = m.find_best_peptide_pg()
+
+            if best.get_fdr_score() >= self._fdr_cutoff:
+                continue
+
             # Use this peptide to generate a cluster
-            for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
+            # for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
+            for pg_ in static_findAllPGForSeed(tree, tr_data, m, best, {}, 
+                                self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                self.verbose):
                 pg_.select_this_peakgroup()
 
     def alignAllCluster(self, multipeptides, tree, tr_data):
