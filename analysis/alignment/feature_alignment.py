@@ -671,7 +671,7 @@ def handle_args():
     experimental_parser.add_argument('--use_dscore_filter', action='store_true', default=False)
     experimental_parser.add_argument("--dscore_cutoff", default=1.96, type=float, help="Discard all peakgroups below this d-score", metavar='1.96')
     experimental_parser.add_argument("--nr_high_conf_exp", default=1, type=int, help="Number of experiments in which the peptide needs to be identified with confidence above fdr_cutoff", metavar='1')
-    experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)", metavar="minimal")
+    experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (cminimal,minimal,full)", metavar="minimal")
     experimental_parser.add_argument("--tmpdir", dest="tmpdir", default="/tmp/", help="Temporary directory")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
 
@@ -724,10 +724,14 @@ def main(options):
 
     # Read the files
     start = time.time()
+
+    optimized_cython = options.realign_method in [ "splineR_external", "lowess", "lowess_biostats", "lowess_statsmodels", "lowess_cython"]
+    optimized_cython = optimized_cython and options.readmethod == "cminimal"
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format,
                                           options.readmethod, readfilter,
-                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
-    runs = reader.parse_files(options.realign_method != "diRT", options.verbosity)
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping, 
+                                          read_cluster_id = False)
+    runs = reader.parse_files(options.realign_method != "diRT", options.verbosity, optimized_cython)
 
     # Create experiment
     this_exp = Experiment()
@@ -750,9 +754,6 @@ def main(options):
             stdev_max_rt_per_run = options.mst_stdev_max_per_run
         else:
             stdev_max_rt_per_run = None
-            
-        optimized_cython = options.realign_method in [ "splineR_external", "lowess", "lowess_biostats", "lowess_statsmodels", "lowess_cython"]
-        optimized_cython = optimized_cython and options.readmethod == "minimal"
 
         tree_out = doMSTAlignment(this_exp,
                        multipeptides, float(options.rt_diff_cutoff), 

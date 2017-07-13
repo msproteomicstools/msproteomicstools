@@ -118,7 +118,7 @@ class SWATHScoringReader:
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
-    def parse_files(self, read_exp_RT=True, verbosity=10):
+    def parse_files(self, read_exp_RT=True, verbosity=10, useCython=False):
       """Parse the input file(s) (CSV).
 
       Args:
@@ -177,7 +177,7 @@ class SWATHScoringReader:
                     aligned_fname = this_row[header_dict[ "align_origfilename"] ]
                 if "filename" in header_dict:
                     orig_fname = this_row[header_dict[ "filename"] ]
-                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname)
+                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
                 runs.append(current_run)
                 print(current_run, "maps to ", orig_fname)
             else: 
@@ -298,10 +298,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
 
-        if self.readmethod == "minimal":
+        if self.readmethod == "cminimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
-        elif self.readmethod == "old-minimal":
+        elif self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
