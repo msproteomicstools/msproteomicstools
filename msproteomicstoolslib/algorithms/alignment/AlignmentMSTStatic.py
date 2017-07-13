@@ -72,14 +72,14 @@ def static_findAllPGForSeed(tree, tr_data, m, seed,
     ### print ("def static_findAllPGForSeed(tree, tr_data, m, seed, ", test_optimized(5, 6) )
     if verbose: 
         print("111111111111111111111111 findAllPGForSeed started" )
-        print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRun().get_id() )
+        print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRunId() )
 
     seed_rt = seed.get_normalized_retentiontime()
 
     # Keep track of which nodes we have already visited in the graph
     # (also storing the rt at which we found the signal in this run).
-    rt_map = { seed.getPeptide().getRun().get_id() : seed_rt } 
-    visited = { seed.getPeptide().getRun().get_id() : seed } 
+    rt_map = { seed.getPeptide().getRunId() : seed_rt } 
+    visited = { seed.getPeptide().getRunId() : seed } 
 
     while len(visited.keys()) < m.get_nr_runs():
         for e1, e2 in tree:
@@ -118,12 +118,13 @@ def static_findAllPGForSeed(tree, tr_data, m, seed,
             # different isotopic composition) and pick a peak using the
             # already aligned channel as a reference.
             ref_peptide = pg.getPeptide()
-            for pep in ref_peptide.getPrecursorGroup():
+            run_id = ref_peptide.getRunId()
+            for pep in m.getPrecursorGroup(run_id):
                 if ref_peptide != pep:
                     if verbose: 
                         print("  Using reference %s at RT %s to align peptide %s." % (ref_peptide, pg.get_normalized_retentiontime(), pep))
                     newPG, rt = static_findBestPGFromTemplate(pg.get_normalized_retentiontime(), pep, max_rt_diff_isotope, already_seen,
-            aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
+                                                              aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, verbose)
                     isotopically_added_pg.append(newPG)
 
     if verbose: 
