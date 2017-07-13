@@ -422,6 +422,14 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
     This faster lowess should be in version 0.5.0 of statsmodels (anaconda
     currently has version 0.6.0). However, Ubuntu only has version 0.5.0 from
     14.04 onwards, so be careful.
+
+	frac: float
+        Between 0 and 1. The fraction of the data used
+        when estimating each y-value.
+        it: int
+        The number of residual-based reweightings
+        to perform.
+
     """
 
     def __init__(self):
@@ -438,9 +446,26 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
 
         # NOTE: delta parameter is only available from statsmodels > 0.5.0
         delta = (max(data1) - min(data1)) * 0.01
+        frac = 0.1
+        
+        if len(data1) < 100:
+            frac = 1.0
 
-        # Input data is y/x -> needs switch
-        result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=0.1, it=10)
+        k = 0
+        while k <= 10:
+            k += 1
+            # Input data is y/x -> needs switch
+            result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
+            # print (result)
+
+            if any( [math.isnan(r[1]) for r in result] ):
+                print ("WARNING: lowess returned NA data points! We are trying to fix it")
+                delta = delta * k
+                result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
+                frac = 1.0
+            else:
+                break
+
         return [ r[0] for r in result], [r[1] for r in result]
 
 class LowessSmoothingCyLowess(LowessSmoothingBase):
