@@ -389,14 +389,14 @@ class TreeConsensusAlignment():
         """
         if self.verbose: 
             print("111111111111111111111111 findAllPGForSeed started" )
-            print("  Seed", seed.print_out(), "from run", seed.peptide.run.get_id() )
+            print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRun().get_id() )
 
         seed_rt = seed.get_normalized_retentiontime()
 
         # Keep track of which nodes we have already visited in the graph
         # (also storing the rt at which we found the signal in this run).
-        rt_map = { seed.peptide.run.get_id() : seed_rt } 
-        visited = { seed.peptide.run.get_id() : seed } 
+        rt_map = { seed.getPeptide().getRun().get_id() : seed_rt } 
+        visited = { seed.getPeptide().getRun().get_id() : seed } 
 
         while len(visited.keys()) < m.get_nr_runs():
             for e1, e2 in tree:
