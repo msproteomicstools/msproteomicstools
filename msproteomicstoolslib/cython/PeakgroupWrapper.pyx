@@ -41,6 +41,14 @@ cdef class CyPeakgroupWrapperOnly(object):
     def __init__(self):
         pass
 
+    def __richcmp__(self, other, op):
+        # op_str = {0: '<', 1: '<=', 2: '==', 3: '!=', 4: '>', 5: '>='}[op]
+        """
+        Larger than operator, allows sorting in Python 3.x
+        """
+        if op == 4:
+            return self.get_feature_id() > other.get_feature_id()
+
     # Do not allow setting of any parameters (since data is not stored here)
     def set_fdr_score(self, fdr_score):
         raise Exception("Cannot set in immutable object")
@@ -54,11 +62,14 @@ cdef class CyPeakgroupWrapperOnly(object):
     def set_intensity(self, intensity):
         raise Exception("Cannot set in immutable object")
 
+    def get_intensity(self):
+        return deref(self.inst).intensity_
+
     def getPeptide(self):
         return self.peptide
 
     def get_dscore(self):
-        return self.dscore_
+        return deref(self.inst).dscore_
 
     ## Select / De-select peakgroup
     def select_this_peakgroup(self):
