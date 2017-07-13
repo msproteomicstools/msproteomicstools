@@ -254,11 +254,7 @@ class TreeConsensusAlignment():
                 continue
 
             # Use this peptide to generate a cluster
-            # for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
-            for pg_ in static_findAllPGForSeed(tree, tr_data, m, best, {}, 
-                                self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
-                                self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
-                                self.verbose):
+            for pg_ in self._findAllPGForSeed(tree, tr_data, m, best, {}):
                 pg_.select_this_peakgroup()
 
     def alignAllCluster(self, multipeptides, tree, tr_data):
