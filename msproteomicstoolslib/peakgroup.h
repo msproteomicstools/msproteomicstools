@@ -5,6 +5,9 @@
 
 #include <iostream>
 
+// forward decl
+struct c_precursor;
+
 struct c_peakgroup {
 
 public:
@@ -15,7 +18,37 @@ public:
   double dscore_;
   int cluster_id_;
 
+  c_precursor* precursor;
+
   c_peakgroup() {};
+  c_precursor* getPeptide() {return precursor;};
+
+  // copy constructor
+  c_peakgroup( const c_peakgroup &rhs)
+  {
+    // std::cout << " copy costr: c_peakgroup" << std::endl;
+    fdr_score   = rhs.fdr_score;
+    normalized_retentiontime = rhs.normalized_retentiontime;
+    internal_id_= rhs.internal_id_;  
+    intensity_  =  rhs.intensity_;    
+    dscore_     =  rhs.dscore_;       
+    cluster_id_ =  rhs.cluster_id_;   
+    precursor   =  rhs.precursor;     
+  }
+
+  c_peakgroup& operator = (const c_peakgroup &rhs)
+  {
+    // std::cout << " assignment operator : c_peakgroup" << std::endl;
+    fdr_score   = rhs.fdr_score;
+    normalized_retentiontime = rhs.normalized_retentiontime;
+    internal_id_= rhs.internal_id_;  
+    intensity_  =  rhs.intensity_;    
+    dscore_     =  rhs.dscore_;       
+    cluster_id_ =  rhs.cluster_id_;   
+    precursor   =  rhs.precursor;     
+  }
+
+
 };
 
 struct c_precursor {
@@ -34,6 +67,7 @@ public:
 
   std::string getRunId() {return run_id_;}
 
+  std::string get_id() {return curr_id_;}
   void add_peakgroup_tpl(c_peakgroup & pg, std::string tpl_id, int cluster_id=-1)
   {
     peakgroups.push_back(pg);
@@ -59,7 +93,6 @@ public:
   }
 
 };
-
 
 class c_linear_interpolate {
     typedef std::vector<double>::iterator itT;
