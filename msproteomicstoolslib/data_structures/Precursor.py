@@ -125,6 +125,9 @@ class GeneralPrecursor(PrecursorBase):
 
     def get_run_id(self):
       return self.run.get_id()
+
+    def getRunId(self):
+      return self.run.get_id()
   
     def append(self, transitiongroup):
         assert self.id == transitiongroup.get_id()
@@ -248,6 +251,9 @@ class Precursor(PrecursorBase):
 
     def getPrecursorGroup(self):
         return self.precursor_group 
+
+    def getRunId(self):
+      return self.run.get_id()
 
     def get_run_id(self):
       return self.run.get_id()
