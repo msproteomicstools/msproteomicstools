@@ -22,7 +22,7 @@ from libcpp cimport bool
 @cython.wraparound(False)
 def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
-        double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose):
     """Align peakgroups against the given seed.
 
@@ -211,7 +211,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
 cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_string source, libcpp_string target, 
         CyLightTransformationData tr_data, double source_rt, 
         libcpp_map[libcpp_string, int] already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
-        double max_rt_diff, double stdev_max_rt_per_run, bool use_local_stdev, double &rt,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double &rt,
         bool verbose):
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
