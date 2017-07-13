@@ -398,11 +398,11 @@ class Experiment(MRExperiment):
                       unique_peptide_id = row[ header_dict[name_of_trgr_col]]
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
-                          row_to_write += [selected_ids_dict[f_id].getPeptide().getRun().get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
+                          row_to_write += [selected_ids_dict[f_id].getPeptide().getRunId(), f, selected_ids_dict[f_id].get_cluster_id()]
                           # Replace run_id with the aligned id (align_runid) ->
                           # otherwise the run_id is not guaranteed to be unique 
                           if file_format == "openswath" : 
-                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].getPeptide().getRun().get_id()
+                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].getPeptide().getRunId()
                           writer.writerow(row_to_write)
 
         # 5. Write out the .tr transformation files
