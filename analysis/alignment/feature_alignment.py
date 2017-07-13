@@ -727,6 +727,9 @@ def main(options):
 
     optimized_cython = options.realign_method in [ "splineR_external", "lowess", "lowess_biostats", "lowess_statsmodels", "lowess_cython"]
     optimized_cython = optimized_cython and options.readmethod == "cminimal"
+    if optimized_cython:
+        print("Provided arguments that allow execution of optimized cython code")
+
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format,
                                           options.readmethod, readfilter,
                                           enable_isotopic_grouping = not options.disable_isotopic_grouping, 
