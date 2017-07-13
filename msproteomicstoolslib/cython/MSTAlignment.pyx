@@ -196,11 +196,11 @@ cdef static_findBestPGFromTemplate(double expected_rt, target_peptide, double ma
     if len(matching_peakgroups) == 0:
         return None, expected_rt
 
-    print (" matching pg length", len(matching_peakgroups) )
+    # print (" matching pg length", len(matching_peakgroups) )
 
     # Select best scoring peakgroup among those in the matching RT window
     bestScoringPG = min(matching_peakgroups, key=lambda x: float(x.get_fdr_score()))
-    print (" best scoring ", bestScoringPG)
+    # print (" best scoring ", bestScoringPG)
 
     # Printing for debug mode
     if verbose:
