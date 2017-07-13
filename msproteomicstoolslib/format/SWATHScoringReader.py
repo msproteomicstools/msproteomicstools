@@ -204,7 +204,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     Parser for OpenSWATH output
     """
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=False):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
