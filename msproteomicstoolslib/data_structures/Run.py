@@ -79,7 +79,7 @@ class Run():
         self.all_precursor_groups_ = {}
   
         try:
-            from msproteomicstoolslib._optimized import CyPrecursorGroup
+            from msproteomicstoolslib.cython._optimized import CyPrecursorGroup
             self.PrecursorGroup = CyPrecursorGroup
         except ImportError:
             self.PrecursorGroup = PrecursorGroup
