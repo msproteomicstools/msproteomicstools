@@ -54,9 +54,6 @@ cdef class CyPeakgroupWrapperOnly(object):
     def set_intensity(self, intensity):
         raise Exception("Cannot set in immutable object")
 
-    cdef CyPrecursor getPeptide(self):
-        return self.peptide
-
     def getPeptide(self):
         return self.peptide
 
