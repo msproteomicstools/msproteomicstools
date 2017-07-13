@@ -459,7 +459,7 @@ class TreeConsensusAlignment():
         if self.verbose:
             print("  Used rt diff:", max_rt_diff)
 
-        return self. _findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen)
+        return self._findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen)
 
     def _findBestPGFromTemplate(self, expected_rt, target_peptide, max_rt_diff, already_seen):
         """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
