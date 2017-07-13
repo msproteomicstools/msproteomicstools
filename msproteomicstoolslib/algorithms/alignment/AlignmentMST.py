@@ -235,29 +235,10 @@ class TreeConsensusAlignment():
             if best.get_fdr_score() >= self._fdr_cutoff:
                 continue
 
-
-            from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed as backup_find
-            use = "legacy"
-            use = "new"
-            use = "allcy"
-
-            if use == "legacy":
-                pg_list = backup_find(tree, tr_data, m, best, {}, 
-                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
-                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
-                                    self.verbose)
-
-            elif use == "new":
-                pg_list = static_findAllPGForSeed(tree, tr_data, m, best, {}, 
-                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
-                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
-                                    self.verbose)
-            elif use == "allcy":
-                ### we are missing nr 25!!! 
-                pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
-                                    self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
-                                    self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
-                                    self.verbose)
+            pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
+                                self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                self.verbose)
             for pg_ in pg_list:
                 pg_.select_this_peakgroup()
 
