@@ -213,18 +213,19 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
         self.read_cluster_id = read_cluster_id
-        if readmethod == "minimal":
+        if readmethod == "cminimal":
             from msproteomicstoolslib.cython.Precursor import CyPrecursor
             from msproteomicstoolslib.cython._optimized import CyPrecursorWrapperOnly
             self.Precursor = CyPrecursor
             self.Precursor = CyPrecursorWrapperOnly
-        elif readmethod == "old-minimal":
+        elif readmethod == "minimal":
             self.Precursor = Precursor
         elif readmethod == "gui":
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GuiPeakGroup
             self.sequence_col = "FullPeptideName"
         else:
+            # complete
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
