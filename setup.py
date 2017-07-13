@@ -3,6 +3,7 @@
 import os
 from setuptools import setup
 from distutils.extension import Extension
+from Cython.Build import cythonize
 
 # get py-earth from https://github.com/jcrudy/py-earth/
 
@@ -20,8 +21,12 @@ if (sys.version_info > (3, 0)):
 else:
     extra_installs = []
 
-ext_modules = [Extension("msproteomicstoolslib._optimized", ["msproteomicstoolslib/_optimized.cpp"], language="c++")]
 
+ext_modules = [
+        cythonize("msproteomicstoolslib/cython/_optimized.pyx", language="c++")[0],
+        cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
+        cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
+        ]
 
 setup(name='msproteomicstools',
       version='0.5.0',
