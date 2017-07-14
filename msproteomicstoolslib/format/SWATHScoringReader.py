@@ -97,7 +97,7 @@ class SWATHScoringReader:
 
     @staticmethod
     def newReader(infiles, filetype, readmethod="minimal",
-                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=False):
+                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         """
         newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False)
 
