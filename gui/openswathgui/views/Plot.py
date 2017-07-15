@@ -407,12 +407,12 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
 
         self.labels = []
         self.has_mscore = False
-        if mscore is not None: 
+        if mscore is not None and len(ranges) < 2:
             self.labels = []
             self.has_mscore = True
 
-            self.l_width = ranges[0]
-            self.r_width = ranges[1]
+            self.l_width = ranges[0][0]
+            self.r_width = ranges[0][1]
 
             # create and add labels -> see drawCanvas
             try:
