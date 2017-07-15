@@ -76,10 +76,6 @@ from openswathgui.models.PeptideTree import PeptideTree
 #
 from openswathgui.views.PeptideTree import PeptidesTreeView
 from openswathgui.views.Plot import have_guiqwt 
-if USE_GUIQWT and have_guiqwt:
-    from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
-else:
-    from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
 
 # 
 ## The widget for the graphing area on the right
@@ -102,8 +98,19 @@ class GraphArea(QtGui.QWidget):
         self.nr_rows = 3
         self.autoscale_y_axis = True
         self.plots = []
+
+        self.changePlotEngine(USE_GUIQWT)
+
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
+
+    def changePlotEngine(self, use_guiqwt):
+        if use_guiqwt and have_guiqwt:
+            from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
+            self.MultiLinePlot = MultiLinePlot
+        else:
+            from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
+            self.MultiLinePlot = MultiLinePlot
          
     @QtCore.pyqtSlot(float, float, float, float)
     def plotZoomChanged(self, xmin, xmax, ymin, ymax):
@@ -147,13 +154,13 @@ class GraphArea(QtGui.QWidget):
         
         self.plots = []
 
-        self.plot = MultiLinePlot(edit=False, toolbar=False )
+        self.plot = self.MultiLinePlot(edit=False, toolbar=False )
         self.plot.create_curves([1,2,3], [ [0,0] ] )
         self._add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
-        self.plot2 = MultiLinePlot(edit=False, toolbar=False )
+        self.plot2 = self.MultiLinePlot(edit=False, toolbar=False )
         self.plot2.create_curves([1,2], [ [0,0] ])
         self._add_new(self.plot2)
         self.plots.append(self.plot2)
@@ -171,7 +178,7 @@ class GraphArea(QtGui.QWidget):
 
         for i, run in enumerate(datamodel.get_runs()):
 
-            self.plot = MultiLinePlot(edit=False, toolbar=False,
+            self.plot = self.MultiLinePlot(edit=False, toolbar=False,
                                       options=dict(xlabel="Time (s)", ylabel="Intensity") )
             self.plot.setDataModel(run)
 
@@ -477,7 +484,6 @@ class ApplicationView(QtGui.QWidget):
         print "clicked iittt"
 
 
-
 #
 ## Settings object
 # 
@@ -489,6 +495,7 @@ class Settings(object):
         self.autoscale_y_axis = True
         self.nr_rows = 3
         self.window_title = 'TAPIR'
+        self.use_guiqwt = USE_GUIQWT
 
         if runMode == "proteomics":
             self.first_column_name_ = 'Identifier'
@@ -516,11 +523,17 @@ class ConfigDialog(QtGui.QDialog):
         Responds to the close and save action
         """
 
+        if not have_guiqwt and self.use_guiqwt.isChecked():
+            box = QtGui.QMessageBox.about(self, "Error", "QtGui is not available, please remove it.")
+            box.setIcont(QtGui.QMessageBox.Critical)
+            return
+
         self.settings.window_title = str(self.window_title.text())
         self.settings.nr_rows = int(self.nr_rows.text())
         self.settings.show_legend = self.show_legend.isChecked()
         self.settings.draw_transitions = self.draw_transitions.isChecked()
         self.settings.autoscale_y_axis = self.autoscale_y_axis.isChecked()
+        self.settings.use_guiqwt = self.use_guiqwt.isChecked()
         self.parent.updateSettings(self.settings)
         self.close()
 
@@ -539,6 +552,7 @@ class ConfigDialog(QtGui.QDialog):
         self.show_legend = QtGui.QCheckBox("Show legend");
         self.draw_transitions = QtGui.QCheckBox("Draw individual transitions");
         self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
+        self.use_guiqwt = QtGui.QCheckBox("Use guiqwt advanced graphics (slower)");
         label_rows = QtGui.QLabel("Number of window rows");
         self.nr_rows = QtGui.QLineEdit();
         label_rows = QtGui.QLabel("Window Title");
@@ -547,6 +561,7 @@ class ConfigDialog(QtGui.QDialog):
         self.show_legend.setChecked( self.settings.show_legend )
         self.draw_transitions.setChecked( self.settings.draw_transitions )
         self.autoscale_y_axis.setChecked( self.settings.autoscale_y_axis )
+        self.use_guiqwt.setChecked( self.settings.use_guiqwt )
         self.nr_rows.setText( str(self.settings.nr_rows) )
         self.window_title.setText( str(self.settings.window_title) )
 
@@ -554,6 +569,7 @@ class ConfigDialog(QtGui.QDialog):
         updateLayout.addWidget(self.show_legend);
         updateLayout.addWidget(self.draw_transitions);
         updateLayout.addWidget(self.autoscale_y_axis);
+        updateLayout.addWidget(self.use_guiqwt);
         updateLayout.addWidget(label_rows);
         updateLayout.addWidget(self.nr_rows);
         updateLayout.addWidget(self.window_title);
@@ -726,6 +742,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.application.graph_layout.nr_rows = settings.nr_rows
         self.application.graph_layout.autoscale_y_axis = settings.autoscale_y_axis
+        self.application.graph_layout.changePlotEngine(settings.use_guiqwt)
         self.data_model.setDrawTransitions( settings.draw_transitions )
         self.setWindowTitle(self.settings.window_title)
         self._refresh_view()
