@@ -90,7 +90,7 @@ class GraphArea(QtGui.QWidget):
         self.plots: The underlying list of plots (either of type :class:`.GuiQwtMultiLinePlot` or :class:`.QwtMultiLinePlot`)
     """
 
-    def __init__(self):
+    def __init__(self, use_guiqwt = USE_GUIQWT):
         super(GraphArea, self).__init__()
 
         self._initUI()
@@ -99,7 +99,7 @@ class GraphArea(QtGui.QWidget):
         self.autoscale_y_axis = True
         self.plots = []
 
-        self.changePlotEngine(USE_GUIQWT)
+        self.changePlotEngine(use_guiqwt)
 
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
@@ -444,7 +444,7 @@ class ApplicationView(QtGui.QWidget):
         self.leftside.selectionChanged.connect(self.treeSelectionChanged)
 
         # Do the main application (graphing area on the right side)
-        self.graph_layout = GraphArea()
+        self.graph_layout = GraphArea(settings.use_guiqwt)
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
         horizontal_splitter.addWidget(self.leftside)
         horizontal_splitter.addWidget(self.graph_layout)
@@ -489,13 +489,13 @@ class ApplicationView(QtGui.QWidget):
 # 
 class Settings(object):
 
-    def __init__(self, runMode):
+    def __init__(self, runMode, use_guiqwt = False):
         self.show_legend = True
         self.draw_transitions = False
         self.autoscale_y_axis = True
         self.nr_rows = 3
         self.window_title = 'TAPIR'
-        self.use_guiqwt = USE_GUIQWT
+        self.use_guiqwt = use_guiqwt
 
         if runMode == "proteomics":
             self.first_column_name_ = 'Identifier'
@@ -783,6 +783,8 @@ def handle_args():
                         help = 'Type of files describing the relations (simple, openswath, yaml)')
     parser.add_argument('--runMode', dest="run_mode", required=False, default="proteomics",
                         help = 'Mode to run in (proteomics, metabolomics)')
+    parser.add_argument('--use_guiqwt', dest="use_guiqwt", required=False, default="False",
+                        help = 'Whether to use guiQwt (False,True)')
     args = parser.parse_args(sys.argv[1:])
     return args
 
@@ -790,7 +792,7 @@ if __name__ == '__main__':
 
     # Handle command line options
     options = handle_args()
-    settings = Settings(options.run_mode)
+    settings = Settings(options.run_mode, options.use_guiqwt == "True")
 
     # Set up Qt application
     app = QtGui.QApplication(sys.argv)
