@@ -35,6 +35,8 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+import re
+
 class FormatHelper(object):
 
     def __init__(self):
@@ -124,23 +126,24 @@ class FormatHelper(object):
                 print "Format determination: Could not convert", trgr_nr, "to int."
                 return False
             if self._is_number(sequence):
-                print "Format determination: Does not look like sequence ", sequence
+                print "Format determination: Does not look like sequence", sequence
                 return False
             elif sequence.find("UniMod") != -1:
                 # Looks like sequence, has UniMod tag in it, should be ok
                 pass
             else:
-                valid = re.match('^[A-Z]+$', sequence) is not None
-                if not valid:
-                    print "Format determination: Does not look like sequence ", sequence
-                    return False
+                pass
+                # valid = re.match('^[A-Z]+$', sequence) is not None
+                # if not valid:
+                #     print "Format determination: Does not look like sequence", sequence
+                #     return False
 
             if charge_is_qualifier:
                 if not self._is_number(qualifier):
-                    print "Format determination: Does not look like number ", qualifier
+                    print "Format determination: Does not look like number", qualifier
                     return False
             elif self._is_number(qualifier):
-                print "Format determination: Does look like number ", qualifier
+                print "Format determination: Does look like number", qualifier
                 return False
             
             return True
