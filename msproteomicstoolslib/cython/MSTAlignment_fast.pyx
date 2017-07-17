@@ -8,6 +8,7 @@ cimport numpy as np
 from libcpp.string cimport string as libcpp_string
 from libcpp.vector cimport vector as libcpp_vector
 from libcpp.map cimport map as libcpp_map
+from libcpp.unordered_set cimport unordered_set as libcpp_unordered_set
 from libcpp.pair cimport pair as libcpp_pair
 from cython.operator cimport dereference as deref, preincrement as inc, address as address
 from libcpp cimport bool
@@ -18,9 +19,95 @@ from libcpp cimport bool
 ## include "PrecursorWrapper.pyx"
 ## include "PrecursorGroup.pyx"
 
+cdef cppclass c_settings:
+
+    double aligned_fdr_cutoff 
+    double fdr_cutoff
+    bool correctRT_using_pg
+    double max_rt_diff
+    bool use_local_stdev
+    double max_rt_diff_isotope
+    bool verbose
+
+cdef cppclass c_node:
+
+    libcpp_string internal_id
+    libcpp_vector[c_node*] neighbors
+
+cdef cppclass cpp_tree:
+
+    libcpp_map[libcpp_string, c_node*] nodes
+
+cdef visit_tree_simple(cpp_tree tree, c_node * current, libcpp_unordered_set[libcpp_string] visited):
+
+    # mark as visited
+    visited.insert( deref(current).internal_id )
+    cdef c_node* node1
+    cdef c_node* node2
+    cdef libcpp_string e1
+    cdef libcpp_vector[c_node*].iterator n_it = deref(current).neighbors.begin()
+    while (n_it != deref(current).neighbors.end()):
+        if visited.find( deref(deref(n_it)).internal_id) != visited.end():
+            # have visited this neighbor already
+            inc(n_it)
+        else:
+            # have not visited this edge (current, neighbor) yet
+            node1 = current
+            node2 = deref(n_it)
+            # do work
+            print ("visit!", deref(node1).internal_id, deref(node2).internal_id)
+            # recursive call
+            visit_tree_simple(tree, node2, visited)
+            inc(n_it)
+
+
+cdef visit_tree_x(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip, CyPeakgroupWrapperOnly seed, 
+        dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
+        libcpp_map[libcpp_string, c_peakgroup*] * c_visited,
+        bool verbose):
+
+    # mark as visited
+    deref(visited).insert( deref(current).internal_id )
+    cdef c_node* node1
+    cdef c_node* node2
+    cdef libcpp_string e1
+    cdef libcpp_string e2
+    cdef libcpp_pair[double, c_peakgroup*] retval
+    cdef libcpp_vector[c_node*].iterator n_it = deref(current).neighbors.begin()
+    cdef c_peakgroup * newPG
+    # already_seen = {}
+    while (n_it != deref(current).neighbors.end()):
+        if deref(visited).find( deref(deref(n_it)).internal_id) != deref(visited).end():
+            # have visited this neighbor already
+            inc(n_it)
+        else:
+            # have not visited this edge (current, neighbor) yet
+            node1 = current
+            node2 = deref(n_it)
+            e1 = node1.internal_id
+            e2 = node2.internal_id
+            # do work
+            # print (" -- got c_rt_map !", c_rt_map[e1]) 
+            retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], 
+                                _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+                                max_rt_diff, stdev_max_rt_per_run, use_local_stdev, current_rt,
+                                verbose)
+            # print ("got result!")
+            newPG = retval.second
+            rt = retval.first # target_rt
+            deref(c_visited)[ e2 ] = newPG
+            # print ("visit!", deref(node1).internal_id, deref(node2).internal_id, c_visited.size())
+            deref(c_rt_map)[ e2 ] = rt
+            # recursive call
+            visit_tree_x(tree, node2, visited, tr_data, multip, seed, _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope, c_rt_map, current_rt, c_visited, verbose)
+            inc(n_it)
+    
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def static_cy_alignBestCluster(multipeptides, tree, tr_data,
+def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
         double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose):
@@ -46,6 +133,45 @@ def static_cy_alignBestCluster(multipeptides, tree, tr_data,
         None
     """
 
+    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ] c_tree = py_tree
+    cdef cpp_tree tree
+
+    # Tree is a list of tuple( str, str)
+    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ].iterator tree_it
+    tree_it = c_tree.begin()
+    cdef c_node* node1
+    cdef c_node* node2
+    cdef libcpp_string e1
+    cdef libcpp_string e2
+    while tree_it != c_tree.end():
+
+        e1 = deref(tree_it).first
+        e2 = deref(tree_it).second
+        if tree.nodes.find(e1) == tree.nodes.end():
+            # create new e1 node
+            node1 = new c_node()
+            deref(node1).internal_id = e1
+            tree.nodes[e1] = node1
+        if tree.nodes.find(e2) == tree.nodes.end():
+            # create new e2 node
+            node2 = new c_node()
+            deref(node2).internal_id = e2
+            tree.nodes[e2] = node2
+
+        node1 = tree.nodes[e1]
+        node2 = tree.nodes[e2]
+
+        # Add them both as neighbors to each other
+        deref(node1).neighbors.push_back(node2)
+        deref(node2).neighbors.push_back(node1)
+
+        inc(tree_it)
+
+
+    # Just testing! 
+    cdef libcpp_unordered_set[libcpp_string] visited
+    visit_tree_simple(tree, node1, visited)
+
     for m in multipeptides:
 
         # Find the overall best peptide
@@ -54,7 +180,7 @@ def static_cy_alignBestCluster(multipeptides, tree, tr_data,
         if best.get_fdr_score() >= fdr_cutoff:
             continue
 
-        pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
+        pg_list = static_cy_fast_findAllPGForSeed(address(tree), tr_data, m, best, {}, 
                             aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                             float(max_rt_diff), stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
                             verbose)
@@ -62,6 +188,208 @@ def static_cy_alignBestCluster(multipeptides, tree, tr_data,
         for pg_ in pg_list:
             pg_.select_this_peakgroup()
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
+        dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        bool verbose):
+    """Align peakgroups against the given seed.
+
+    Using the given seed, the algorithm will traverse the MST tree and add
+    the best matching peakgroup of that node to the result.
+
+    Args:
+        tree(list(tuple)): a minimum spanning tree (MST) represented as
+            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+            need to correspond to run ids.
+        tr_data(:class:`.LightTransformationData`): structure to hold
+            binary transformations between two different retention time spaces
+        m(Multipeptide): one multipeptides on which the alignment should be performed
+        seed(PeakGroupBase): one peakgroup chosen as the seed
+        already_seen(dict): list of peakgroups already aligned (e.g. in a
+            previous cluster) and which should be ignored
+
+    Returns:
+        list(PeakGroupBase): List of peakgroups belonging to this cluster
+    """
+
+    seed_rt = seed.get_normalized_retentiontime_cy()
+
+    cdef libcpp_map[libcpp_string, int] already_seen
+
+    # Keep track of which nodes we have already visited in the graph
+    # (also storing the rt at which we found the signal in this run).
+    cdef libcpp_map[libcpp_string, c_peakgroup*] c_visited
+    cdef libcpp_map[libcpp_string, double] c_rt_map
+    # cdef libcpp_vector[c_peakgroup].iterator pg_it
+
+    cdef libcpp_string seed_run_id = seed.getPeptide().getRunId()
+    c_visited[ seed_run_id ] = seed.inst
+    c_rt_map[ seed_run_id ] = seed_rt
+
+    cdef libcpp_pair[double, c_peakgroup*] retval
+
+    cdef c_peakgroup * newPG
+    cdef double rt
+    cdef int nr_runs = multip.get_nr_runs()
+
+    # Tree is a list of tuple( str, str)
+    cdef libcpp_string e1
+    cdef libcpp_string e2
+    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ].iterator tree_it
+
+
+    cdef c_node * current = c_tree.nodes[ seed_run_id ]
+    cdef libcpp_unordered_set[libcpp_string] visited
+    # print "call visit tree"
+    visit_tree_x(c_tree, current, address(visited), tr_data, multip, seed, 
+        _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+        max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
+        address(c_rt_map), seed_rt, address(c_visited), verbose)
+    # print "done visit tree"
+    # print "visited ", c_visited.size()
+
+
+
+
+    ##### ## while len(visited.keys()) < nr_runs:
+    ##### while c_visited.size() < nr_runs:
+    #####     tree_it = c_tree.begin()
+    #####     while tree_it != c_tree.end():
+    #####         e1 = deref(tree_it).first
+    #####         e2 = deref(tree_it).second
+    #####   
+    #####         #if e1 in visited.keys() and not e2 in visited.keys():
+    #####         if c_visited.find(e1) != c_visited.end() and c_visited.find(e2) == c_visited.end():
+    #####             if verbose:
+    #####                 print("  try to align", e2, "from already known node", e1)
+    #####             newPG = NULL
+    #####             retval = static_cy_findBestPG(multip, e1, e2, tr_data, c_rt_map[e1], 
+    #####                                 already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+    #####                                 max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt,
+    #####                                 verbose)
+    #####                     
+    #####             newPG = retval.second
+    #####             rt = retval.first
+    #####             c_visited[ e2 ] = newPG
+    #####             c_rt_map[ e2 ] = rt
+    #####         # if e2 in visited.keys() and not e1 in visited.keys():
+    #####         if c_visited.find(e2) != c_visited.end() and c_visited.find(e1) == c_visited.end():
+    #####             if verbose:
+    #####                 print( "  try to align", e1, "from", e2)
+    #####             newPG = NULL
+    #####             retval = static_cy_findBestPG(multip, e2, e1, tr_data, c_rt_map[e2], 
+    #####                                 already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+    #####                                 max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt,
+    #####                                 verbose)
+    #####             newPG = retval.second
+    #####             rt = retval.first
+    #####             c_rt_map[ e1 ] = rt
+    #####             c_visited[ e1 ] = newPG
+
+    #####         inc(tree_it)
+
+    # Now in each run at most one (zero or one) peakgroup got selected for
+    # the current peptide label group. This means that for each run, either
+    # heavy or light was selected (but not both) and now we should align
+    # the other isotopic channels as well.
+    if verbose:
+        print( "Re-align isotopic channels:")
+
+    cdef libcpp_vector[c_peakgroup*] isotopically_added_pg_c
+    cdef libcpp_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
+    cdef c_peakgroup* pg_
+    cdef c_precursor* ref_peptide
+    cdef CyPrecursorWrapperOnly pep
+
+    # for pg in visited.values():
+    while pg_it != c_visited.end():
+        pg_ = deref(pg_it).second
+        if pg_ != NULL:
+
+            # Iterate through all sibling peptides (same peptide but
+            # different isotopic composition) and pick a peak using the
+            # already aligned channel as a reference.
+            ref_peptide = deref(pg_).getPeptide()
+            run_id = deref(ref_peptide).getRunId()
+
+            # Iterate over CyPrecursorGroup
+            for pep_ in multip.getPrecursorGroup(run_id):
+                pep = pep_
+                if deref(ref_peptide).get_id() != pep.get_id_c():
+                    if verbose: 
+                        print("  Using reference %s at RT %s to align peptide %s." % (ref_peptide.get_id(), deref(pg_).normalized_retentiontime, pep))
+                    newPG = NULL
+                    retval = static_cy_findBestPGFromTemplate(deref(pg_).normalized_retentiontime, pep, max_rt_diff_isotope, already_seen,
+                                                          aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, rt, verbose)
+                    newPG = retval.second
+                    rt = retval.first
+                    isotopically_added_pg_c.push_back(newPG)
+
+                else:
+                    pass
+        inc(pg_it)
+
+    if verbose:
+        print("Done with re-alignment of isotopic channels")
+
+    # Now we need to assemble the peak groups back together
+    # We need to construct the Python objects and make sure that memory
+    # management is done by the original object and not the Python GC engine.
+    # Therefore we take the pointers for constructing new Python objects but
+    # take care not to take ownership.
+    # return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
+    res = []
+    cdef libcpp_vector[c_peakgroup*].iterator pg_it2 = isotopically_added_pg_c.begin()
+    if True:
+        pg_it = c_visited.begin()
+        while pg_it != c_visited.end():
+            pg_ = deref(pg_it).second
+            if pg_ != NULL:
+
+                result_pep = CyPrecursorWrapperOnly(None, None, False)
+                result_pep.inst = deref(pg_).getPeptide()
+
+                result = CyPeakgroupWrapperOnly()
+                result.inst = pg_
+                result.peptide = result_pep
+                res.append(result)
+
+            inc(pg_it)
+
+        pg_it2 = isotopically_added_pg_c.begin()
+        while pg_it2 != isotopically_added_pg_c.end():
+            pg_ = deref(pg_it2)
+            if pg_ != NULL:
+                result_pep = CyPrecursorWrapperOnly(None, None, False)
+                result_pep.inst = deref(pg_).getPeptide()
+
+                result = CyPeakgroupWrapperOnly()
+                result.inst = pg_
+                result.peptide = result_pep
+                res.append(result)
+
+            inc(pg_it2)
+    else:
+        # This is the other option, just mark these as selected right away...
+        pg_it = c_visited.begin()
+        while pg_it != c_visited.end():
+            pg_ = deref(pg_it).second
+            if pg_ != NULL:
+                deref(pg_).cluster_id_ = 1
+            inc(pg_it)
+
+        pg_it2 = isotopically_added_pg_c.begin()
+        while pg_it2 != isotopically_added_pg_c.end():
+            pg_ = deref(pg_it2)
+            if pg_ != NULL:
+                deref(pg_).cluster_id_ = 1
+                ref_peptide = deref(pg_).getPeptide()
+            inc(pg_it2)
+
+    return res
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -276,9 +604,12 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
     """
 
     # Get expected RT (transformation of source into target domain)
+    # print ("try to get cytrafo", source, target)
     cdef CyLinearInterpolateWrapper cytrafo = tr_data.getTrafoCy(source, target)
+    # print ("got it: cytrafo", source, target)
     cdef libcpp_pair[double, c_peakgroup*] retval
     retval.second = NULL
+    # print ("try to get cytrafo", source_rt)
     cdef double expected_rt = cytrafo.predict_cy(source_rt)
 
     if verbose:
