@@ -16,6 +16,7 @@ def filterChromByTSV(infile, outfile, csvfile):
     labels = []
     for line in rr:
         labels.extend( line[ headerdict['aggr_Fragment_Annotation']   ].split(";") )
+        labels.extend( line[ headerdict['aggr_prec_Fragment_Annotation']   ].split(";") )
 
     labels = [ "'" + l + "'" for l in labels]
     labels_stmt = get_ids_stmt(labels)
@@ -110,10 +111,6 @@ def filterChromByNativeID(infile, outfile, selector):
     assert(nr_spec == 0)
 
     copyDatabase(c, conn, outfile, keep_ids)
-
-    c.execute("VACUUM;")
-    conn.commit()
-
 
 ####### PARAMETERS
 def handle_args():
