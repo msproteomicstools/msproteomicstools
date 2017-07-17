@@ -30,6 +30,12 @@ cdef cppclass mst_settings:
     bool verbose
     double stdev_max_rt_per_run
     bool use_stdev_max_rt_per_run
+    int nr_multiple_align 
+    int nr_ambiguous 
+
+    ###     self.nr_multiple_align += 1
+    ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._fdr_cutoff]) > 1:
+    ###     self.nr_ambiguous += 1
 
 cdef cppclass c_node:
 
@@ -66,13 +72,13 @@ cdef visit_tree_simple(cpp_tree tree, c_node * current, libcpp_unordered_set[lib
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip,
-        dict _already_seen, libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
+        libcpp_map[libcpp_string, int] already_seen, libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
         libcpp_map[libcpp_string, c_peakgroup*] * c_visited,
-        bool verbose, mst_settings settings):
+        bool verbose, mst_settings * settings):
 
     # mark as visited
     deref(visited).insert( deref(current).internal_id )
-
+    
     cdef c_node* node1
     cdef c_node* node2
     cdef libcpp_string e1
@@ -80,7 +86,6 @@ cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unord
     cdef libcpp_pair[double, c_peakgroup*] retval
     cdef libcpp_vector[c_node*].iterator n_it = deref(current).neighbors.begin()
     cdef c_peakgroup * newPG
-    # already_seen = {}
     while (n_it != deref(current).neighbors.end()):
         if deref(visited).find( deref(deref(n_it)).internal_id) != deref(visited).end():
             # have visited this neighbor already
@@ -93,14 +98,14 @@ cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unord
             e2 = node2.internal_id
 
             # do work
-            retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], _already_seen, settings)
+            retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], already_seen, settings)
 
             newPG = retval.second
             rt = retval.first # target_rt
             deref(c_visited)[ e2 ] = newPG
             deref(c_rt_map)[ e2 ] = rt
             # recursive call
-            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, _already_seen, c_rt_map, current_rt, c_visited, verbose, settings)
+            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, already_seen, c_rt_map, current_rt, c_visited, verbose, settings)
 
             inc(n_it)
 
@@ -183,6 +188,8 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
     settings.use_stdev_max_rt_per_run = (stdev_max_rt_per_run is not None)
     settings.max_rt_diff_isotope = max_rt_diff_isotope
     settings.verbose             = verbose            
+    settings.nr_multiple_align = 0
+    settings.nr_ambiguous = 0
     if settings.use_stdev_max_rt_per_run:
         settings.stdev_max_rt_per_run = stdev_max_rt_per_run    
 
@@ -197,17 +204,19 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
         pg_list = static_cy_fast_findAllPGForSeed(address(tree), tr_data, m, best, {}, 
                             aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                             float(max_rt_diff), stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
-                            verbose, settings)
+                            verbose, address(settings))
 
         for pg_ in pg_list:
             pg_.select_this_peakgroup()
+
+    return (settings.nr_multiple_align, settings.nr_ambiguous)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
-        bool verbose, mst_settings settings):
+        bool verbose, mst_settings * settings):
     """Align peakgroups against the given seed.
 
     Using the given seed, the algorithm will traverse the MST tree and add
@@ -241,18 +250,12 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     c_visited[ seed_run_id ] = seed.inst
     c_rt_map[ seed_run_id ] = seed_rt
 
-    cdef libcpp_pair[double, c_peakgroup*] retval
-
-    cdef c_peakgroup * newPG
-    cdef double rt
-    cdef int nr_runs = multip.get_nr_runs()
-
     cdef c_node * current = c_tree.nodes[ seed_run_id ]
     cdef libcpp_unordered_set[libcpp_string] visited
 
     # Main routine, recursively visiting the tree
     cy_findAllPGForSeedTreeIter(c_tree, current, address(visited), tr_data, multip,
-        _already_seen, address(c_rt_map), seed_rt, address(c_visited), verbose, settings)
+        already_seen, address(c_rt_map), seed_rt, address(c_visited), verbose, settings)
 
     # Now in each run at most one (zero or one) peakgroup got selected for
     # the current peptide label group. This means that for each run, either
@@ -266,6 +269,9 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     cdef c_peakgroup* pg_
     cdef c_precursor* ref_peptide
     cdef CyPrecursorWrapperOnly pep
+
+    cdef libcpp_pair[double, c_peakgroup*] retval
+    cdef c_peakgroup * newPG
 
     # for pg in visited.values():
     while pg_it != c_visited.end():
@@ -287,7 +293,7 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
                     newPG = NULL
                     retval = static_cy_findBestPGFromTemplate(deref(pg_).normalized_retentiontime, pep, max_rt_diff_isotope, already_seen, settings)
                     newPG = retval.second
-                    rt = retval.first
+                    # rt = retval.first
                     isotopically_added_pg_c.push_back(newPG)
 
                 else:
@@ -429,7 +435,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
                     print("  try to align", e2, "from already known node", e1)
                 newPG = NULL
                 retval = static_cy_findBestPG(multip, e1, e2, tr_data, c_rt_map[e1], 
-                                    already_seen, settings)
+                                    already_seen, address(settings))
                         
                 newPG = retval.second
                 rt = retval.first
@@ -441,7 +447,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
                     print( "  try to align", e1, "from", e2)
                 newPG = NULL
                 retval = static_cy_findBestPG(multip, e2, e1, tr_data, c_rt_map[e2], 
-                                    already_seen, settings)
+                                    already_seen, address(settings))
                 newPG = retval.second
                 rt = retval.first
                 c_rt_map[ e1 ] = rt
@@ -480,7 +486,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
                     if verbose: 
                         print("  Using reference %s at RT %s to align peptide %s." % (ref_peptide.get_id(), deref(pg_).normalized_retentiontime, pep))
                     newPG = NULL
-                    retval = static_cy_findBestPGFromTemplate(deref(pg_).normalized_retentiontime, pep, max_rt_diff_isotope, already_seen, settings)
+                    retval = static_cy_findBestPGFromTemplate(deref(pg_).normalized_retentiontime, pep, max_rt_diff_isotope, already_seen, address(settings))
                     newPG = retval.second
                     rt = retval.first
                     isotopically_added_pg_c.push_back(newPG)
@@ -552,7 +558,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
 @cython.wraparound(False)
 cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_string source, libcpp_string target, 
         CyLightTransformationData tr_data, double source_rt, 
-        libcpp_map[libcpp_string, int] already_seen, mst_settings settings):
+        libcpp_map[libcpp_string, int] already_seen, mst_settings * settings):
 
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
@@ -589,6 +595,7 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
         return retval
         # return None, expected_rt
 
+    cdef double max_rt_diff = settings.max_rt_diff
     if settings.use_stdev_max_rt_per_run:
         max_rt_diff = settings.stdev_max_rt_per_run * tr_data.getStdevCy(source, target)
 
@@ -607,8 +614,8 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double max_rt_diff,
-        libcpp_map[libcpp_string, int] already_seen, mst_settings settings):
+cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double maximal_rt_diff,
+        libcpp_map[libcpp_string, int] already_seen, mst_settings * settings):
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
         Parameters
@@ -664,18 +671,18 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPGFromTemplate(double e
     cdef CyPrecursorWrapperOnly cypr
     cdef c_precursor * pep
     cdef libcpp_string id_string
-    if True:
-        for precursor in target_peptide.getAllPrecursors():
-            cypr = precursor
-            pg_it = cypr.get_all_peakgroups_cy_begin()
-            pep = cypr.getPeptidePrecursor()
-            while pg_it != cypr.get_all_peakgroups_cy_end():
-                if abs(deref(pg_it).normalized_retentiontime - expected_rt) < settings.max_rt_diff:
-                    if deref(pg_it).fdr_score < settings.aligned_fdr_cutoff:
-                        id_string = deref(pg_it).internal_id_ + deref(pep).curr_id_
-                        if already_seen.find(id_string) == already_seen.end():
-                            matching_pg.push_back( address(deref(pg_it) ))
-                inc(pg_it)
+
+    for precursor in target_peptide.getAllPrecursors():
+        cypr = precursor
+        pg_it = cypr.get_all_peakgroups_cy_begin()
+        pep = cypr.getPeptidePrecursor()
+        while pg_it != cypr.get_all_peakgroups_cy_end():
+            if abs(deref(pg_it).normalized_retentiontime - expected_rt) < maximal_rt_diff:
+                if deref(pg_it).fdr_score < settings.aligned_fdr_cutoff:
+                    id_string = deref(pg_it).internal_id_ + deref(pep).curr_id_
+                    if already_seen.find(id_string) == already_seen.end():
+                        matching_pg.push_back( address(deref(pg_it) ))
+            inc(pg_it)
 
     # If there are no peak groups present in the target run, we simply
     # return the expected retention time.
@@ -690,18 +697,26 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPGFromTemplate(double e
     cdef libcpp_vector[ c_peakgroup* ].iterator iter_m = matching_pg.begin()
     cdef libcpp_vector[ c_peakgroup* ].iterator bestScoring_pg = matching_pg.begin()
     cdef double best_fdr = deref(iter_m).fdr_score
+    cdef int nr_below_fdr = 0
+    cdef int nr_below_align = 0
     while iter_m != matching_pg.end():
         if (deref(iter_m).fdr_score <= best_fdr):
             best_fdr = deref(iter_m).fdr_score
             bestScoring_pg = iter_m
+        if (deref(iter_m).fdr_score <= settings.fdr_cutoff):
+            nr_below_fdr += 1
+        if (deref(iter_m).fdr_score <= settings.aligned_fdr_cutoff):
+            nr_below_align += 1
         inc(iter_m)
-
-    #### # Printing for debug mode
 
     ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._aligned_fdr_cutoff]) > 1:
     ###     self.nr_multiple_align += 1
     ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._fdr_cutoff]) > 1:
     ###     self.nr_ambiguous += 1
+    if (nr_below_fdr > 1):
+            settings.nr_ambiguous += 1
+    if (nr_below_align > 1):
+            settings.nr_multiple_align += 1
 
     # Decide which retention time to return:
     #  - the threading one based on the alignment
