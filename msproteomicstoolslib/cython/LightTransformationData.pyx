@@ -1,3 +1,7 @@
+# distutils: language = c++
+# cython: c_string_encoding=ascii  # for cython>=0.19
+# encoding: latin-1
+
 import numpy as np
 
 include "_linear_interpol.pyx"
