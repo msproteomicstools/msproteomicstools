@@ -45,9 +45,6 @@ cdef cy_findAllPGForSeedTreeIter(c_node * current,
     A C++ MST tree which contains references to all nodes
     """
 
-    # mark as visited
-    ## deref(visited).insert( deref(current).internal_id )
-    
     cdef c_node* node1
     cdef c_node* node2
     cdef libcpp_string e1
@@ -73,6 +70,7 @@ cdef cy_findAllPGForSeedTreeIter(c_node * current,
             rt = retval.first # target_rt
             deref(c_visited)[ e2 ] = newPG
             deref(c_rt_map)[ e2 ] = rt
+
             # recursive call
             cy_findAllPGForSeedTreeIter(node2, tr_data, multip, already_seen, c_rt_map, c_visited, settings)
 
@@ -221,7 +219,6 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     c_rt_map[ seed_run_id ] = seed_rt
 
     cdef c_node * current = c_tree.nodes[ seed_run_id ]
-    # cdef libcpp_unordered_set[libcpp_string] visited
 
     # Main routine, recursively visiting the tree
     cy_findAllPGForSeedTreeIter(current, tr_data, multip,
@@ -279,6 +276,16 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     # Therefore we take the pointers for constructing new Python objects but
     # take care not to take ownership.
     # return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
+    res = static_cy_assemblePG(c_visited, isotopically_added_pg_c)
+    return res
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef static_cy_assemblePG(libcpp_unordered_map[libcpp_string, c_peakgroup*] & c_visited, libcpp_vector[c_peakgroup*] & isotopically_added_pg_c):
+
+    cdef c_peakgroup* pg_
+    cdef c_precursor* ref_peptide
+    cdef libcpp_unordered_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
     res = []
     cdef libcpp_vector[c_peakgroup*].iterator pg_it2 = isotopically_added_pg_c.begin()
     if True:
@@ -473,54 +480,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
     # Therefore we take the pointers for constructing new Python objects but
     # take care not to take ownership.
     # return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
-    res = []
-    cdef libcpp_vector[c_peakgroup*].iterator pg_it2 = isotopically_added_pg_c.begin()
-    if True:
-        pg_it = c_visited.begin()
-        while pg_it != c_visited.end():
-            pg_ = deref(pg_it).second
-            if pg_ != NULL:
-
-                result_pep = CyPrecursorWrapperOnly(None, None, False)
-                result_pep.inst = deref(pg_).getPeptide()
-
-                result = CyPeakgroupWrapperOnly()
-                result.inst = pg_
-                result.peptide = result_pep
-                res.append(result)
-
-            inc(pg_it)
-
-        pg_it2 = isotopically_added_pg_c.begin()
-        while pg_it2 != isotopically_added_pg_c.end():
-            pg_ = deref(pg_it2)
-            if pg_ != NULL:
-                result_pep = CyPrecursorWrapperOnly(None, None, False)
-                result_pep.inst = deref(pg_).getPeptide()
-
-                result = CyPeakgroupWrapperOnly()
-                result.inst = pg_
-                result.peptide = result_pep
-                res.append(result)
-
-            inc(pg_it2)
-    else:
-        # This is the other option, just mark these as selected right away...
-        pg_it = c_visited.begin()
-        while pg_it != c_visited.end():
-            pg_ = deref(pg_it).second
-            if pg_ != NULL:
-                deref(pg_).cluster_id_ = 1
-            inc(pg_it)
-
-        pg_it2 = isotopically_added_pg_c.begin()
-        while pg_it2 != isotopically_added_pg_c.end():
-            pg_ = deref(pg_it2)
-            if pg_ != NULL:
-                deref(pg_).cluster_id_ = 1
-                ref_peptide = deref(pg_).getPeptide()
-            inc(pg_it2)
-
+    res = static_cy_assemblePG(c_visited, isotopically_added_pg_c)
     return res
 
 @cython.boundscheck(False)
