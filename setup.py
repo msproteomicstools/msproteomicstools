@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import numpy
 from setuptools import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
@@ -51,6 +52,7 @@ setup(name='msproteomicstools',
           ['modifications_default.tsv']},
       scripts=all_scripts,
       ext_modules=ext_modules,
+      include_dirs=[numpy.get_include()],
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
       url='https://code.google.com/p/msproteomicstools',
