@@ -61,7 +61,9 @@ cdef visit_tree_simple(cpp_tree tree, c_node * current, libcpp_unordered_set[lib
             inc(n_it)
 
 
-cdef visit_tree_x(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip, CyPeakgroupWrapperOnly seed, 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
@@ -70,6 +72,7 @@ cdef visit_tree_x(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp
 
     # mark as visited
     deref(visited).insert( deref(current).internal_id )
+
     cdef c_node* node1
     cdef c_node* node2
     cdef libcpp_string e1
@@ -88,52 +91,26 @@ cdef visit_tree_x(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp
             node2 = deref(n_it)
             e1 = node1.internal_id
             e2 = node2.internal_id
+
             # do work
-            # print (" -- got c_rt_map !", c_rt_map[e1]) 
             retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], 
                                 _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                                 max_rt_diff, stdev_max_rt_per_run, use_local_stdev, current_rt,
                                 verbose)
-            # print ("got result!")
+
             newPG = retval.second
             rt = retval.first # target_rt
             deref(c_visited)[ e2 ] = newPG
-            # print ("visit!", deref(node1).internal_id, deref(node2).internal_id, c_visited.size())
             deref(c_rt_map)[ e2 ] = rt
             # recursive call
-            visit_tree_x(tree, node2, visited, tr_data, multip, seed, _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope, c_rt_map, current_rt, c_visited, verbose)
+            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, seed, _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope, c_rt_map, current_rt, c_visited, verbose)
+
             inc(n_it)
-    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
-        double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
-        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
-        bool verbose):
-    """Use the MST to report the first cluster containing the best peptide (overall).
-
-    The algorithm will go through all multipeptides and mark those
-    peakgroups which it deems to belong to the best peakgroup cluster (only
-    the first cluster will be reported).
-
-    Args:
-        multipeptides(list of :class:`.Multipeptide`): a list of
-            multipeptides on which the alignment should be performed. After
-            alignment, each peakgroup that should be quantified can be
-            retrieved by calling get_selected_peakgroups() on the multipeptide.
-        tree(list of tuple): a minimum spanning tree (MST) represented as
-            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
-            need to correspond to run ids.
-        tr_data(format.TransformationCollection.LightTransformationData):
-            structure to hold binary transformations between two different
-            retention time spaces
-
-    Returns:
-        None
-    """
-
-    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ] c_tree = py_tree
+cdef cpp_tree createTree(libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ] c_tree):
+    
     cdef cpp_tree tree
 
     # Tree is a list of tuple( str, str)
@@ -167,10 +144,38 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
 
         inc(tree_it)
 
+    return tree
 
-    # Just testing! 
-    cdef libcpp_unordered_set[libcpp_string] visited
-    visit_tree_simple(tree, node1, visited)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
+        double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        bool verbose):
+    """Use the MST to report the first cluster containing the best peptide (overall).
+
+    The algorithm will go through all multipeptides and mark those
+    peakgroups which it deems to belong to the best peakgroup cluster (only
+    the first cluster will be reported).
+
+    Args:
+        multipeptides(list of :class:`.Multipeptide`): a list of
+            multipeptides on which the alignment should be performed. After
+            alignment, each peakgroup that should be quantified can be
+            retrieved by calling get_selected_peakgroups() on the multipeptide.
+        tree(list of tuple): a minimum spanning tree (MST) represented as
+            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+            need to correspond to run ids.
+        tr_data(format.TransformationCollection.LightTransformationData):
+            structure to hold binary transformations between two different
+            retention time spaces
+
+    Returns:
+        None
+    """
+
+    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ] c_tree = py_tree
+    cdef cpp_tree tree = createTree(c_tree)
 
     for m in multipeptides:
 
@@ -187,7 +192,6 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
 
         for pg_ in pg_list:
             pg_.select_this_peakgroup()
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -223,7 +227,6 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     # (also storing the rt at which we found the signal in this run).
     cdef libcpp_map[libcpp_string, c_peakgroup*] c_visited
     cdef libcpp_map[libcpp_string, double] c_rt_map
-    # cdef libcpp_vector[c_peakgroup].iterator pg_it
 
     cdef libcpp_string seed_run_id = seed.getPeptide().getRunId()
     c_visited[ seed_run_id ] = seed.inst
@@ -235,61 +238,14 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     cdef double rt
     cdef int nr_runs = multip.get_nr_runs()
 
-    # Tree is a list of tuple( str, str)
-    cdef libcpp_string e1
-    cdef libcpp_string e2
-    cdef libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_string] ].iterator tree_it
-
-
     cdef c_node * current = c_tree.nodes[ seed_run_id ]
     cdef libcpp_unordered_set[libcpp_string] visited
-    # print "call visit tree"
-    visit_tree_x(c_tree, current, address(visited), tr_data, multip, seed, 
+
+    # Main routine, recursively visiting the tree
+    cy_findAllPGForSeedTreeIter(c_tree, current, address(visited), tr_data, multip, seed, 
         _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
         max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
         address(c_rt_map), seed_rt, address(c_visited), verbose)
-    # print "done visit tree"
-    # print "visited ", c_visited.size()
-
-
-
-
-    ##### ## while len(visited.keys()) < nr_runs:
-    ##### while c_visited.size() < nr_runs:
-    #####     tree_it = c_tree.begin()
-    #####     while tree_it != c_tree.end():
-    #####         e1 = deref(tree_it).first
-    #####         e2 = deref(tree_it).second
-    #####   
-    #####         #if e1 in visited.keys() and not e2 in visited.keys():
-    #####         if c_visited.find(e1) != c_visited.end() and c_visited.find(e2) == c_visited.end():
-    #####             if verbose:
-    #####                 print("  try to align", e2, "from already known node", e1)
-    #####             newPG = NULL
-    #####             retval = static_cy_findBestPG(multip, e1, e2, tr_data, c_rt_map[e1], 
-    #####                                 already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-    #####                                 max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt,
-    #####                                 verbose)
-    #####                     
-    #####             newPG = retval.second
-    #####             rt = retval.first
-    #####             c_visited[ e2 ] = newPG
-    #####             c_rt_map[ e2 ] = rt
-    #####         # if e2 in visited.keys() and not e1 in visited.keys():
-    #####         if c_visited.find(e2) != c_visited.end() and c_visited.find(e1) == c_visited.end():
-    #####             if verbose:
-    #####                 print( "  try to align", e1, "from", e2)
-    #####             newPG = NULL
-    #####             retval = static_cy_findBestPG(multip, e2, e1, tr_data, c_rt_map[e2], 
-    #####                                 already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-    #####                                 max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt,
-    #####                                 verbose)
-    #####             newPG = retval.second
-    #####             rt = retval.first
-    #####             c_rt_map[ e1 ] = rt
-    #####             c_visited[ e1 ] = newPG
-
-    #####         inc(tree_it)
 
     # Now in each run at most one (zero or one) peakgroup got selected for
     # the current peptide label group. This means that for each run, either
@@ -604,12 +560,9 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
     """
 
     # Get expected RT (transformation of source into target domain)
-    # print ("try to get cytrafo", source, target)
     cdef CyLinearInterpolateWrapper cytrafo = tr_data.getTrafoCy(source, target)
-    # print ("got it: cytrafo", source, target)
     cdef libcpp_pair[double, c_peakgroup*] retval
     retval.second = NULL
-    # print ("try to get cytrafo", source_rt)
     cdef double expected_rt = cytrafo.predict_cy(source_rt)
 
     if verbose:
