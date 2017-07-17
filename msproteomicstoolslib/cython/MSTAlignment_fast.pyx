@@ -65,10 +65,8 @@ cdef visit_tree_simple(cpp_tree tree, c_node * current, libcpp_unordered_set[lib
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip, CyPeakgroupWrapperOnly seed, 
-        dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
-        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
-        libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
+cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip,
+        dict _already_seen, libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
         libcpp_map[libcpp_string, c_peakgroup*] * c_visited,
         bool verbose, mst_settings settings):
 
@@ -95,17 +93,14 @@ cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unord
             e2 = node2.internal_id
 
             # do work
-            retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], 
-                                _already_seen, settings) #aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-                                # max_rt_diff, stdev_max_rt_per_run, use_local_stdev, current_rt,
-                                #verbose)
+            retval = static_cy_findBestPG(multip, e1, e2, tr_data, deref(c_rt_map)[e1], _already_seen, settings)
 
             newPG = retval.second
             rt = retval.first # target_rt
             deref(c_visited)[ e2 ] = newPG
             deref(c_rt_map)[ e2 ] = rt
             # recursive call
-            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, seed, _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg, max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope, c_rt_map, current_rt, c_visited, verbose, settings)
+            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, _already_seen, c_rt_map, current_rt, c_visited, verbose, settings)
 
             inc(n_it)
 
@@ -256,10 +251,8 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     cdef libcpp_unordered_set[libcpp_string] visited
 
     # Main routine, recursively visiting the tree
-    cy_findAllPGForSeedTreeIter(c_tree, current, address(visited), tr_data, multip, seed, 
-        _already_seen, aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-        max_rt_diff, stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
-        address(c_rt_map), seed_rt, address(c_visited), verbose, settings)
+    cy_findAllPGForSeedTreeIter(c_tree, current, address(visited), tr_data, multip,
+        _already_seen, address(c_rt_map), seed_rt, address(c_visited), verbose, settings)
 
     # Now in each run at most one (zero or one) peakgroup got selected for
     # the current peptide label group. This means that for each run, either
@@ -437,8 +430,6 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
                 newPG = NULL
                 retval = static_cy_findBestPG(multip, e1, e2, tr_data, c_rt_map[e1], 
                                     already_seen, settings)
-                #aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-                # max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt, verbose)
                         
                 newPG = retval.second
                 rt = retval.first
@@ -451,8 +442,6 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
                 newPG = NULL
                 retval = static_cy_findBestPG(multip, e2, e1, tr_data, c_rt_map[e2], 
                                     already_seen, settings)
-                # aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
-                # max_rt_diff, stdev_max_rt_per_run, use_local_stdev, rt, verbose)
                 newPG = retval.second
                 rt = retval.first
                 c_rt_map[ e1 ] = rt
@@ -563,8 +552,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
 @cython.wraparound(False)
 cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_string source, libcpp_string target, 
         CyLightTransformationData tr_data, double source_rt, 
-        libcpp_map[libcpp_string, int] already_seen,
-        mst_settings settings):
+        libcpp_map[libcpp_string, int] already_seen, mst_settings settings):
 
     """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
 
