@@ -181,6 +181,21 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
                 tmp.append(peptide_name)
             protein_mapping[protein_name] = tmp
 
+def getAlignedFilename(this_row, header_dict):
+
+    if this_row[ header_dict["align_origfilename"] ] == "NA":
+        return None, None
+    aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
+
+    aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
+
+    # allow cross-OS transfer of files
+    tmp = aligned_fname.split("\\")
+    aligned_fname = tmp[-1]
+    tmp = aligned_fname.split("/")
+    aligned_fname = tmp[-1]
+    return aligned_fname, aligned_id
+
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):
         
@@ -219,25 +234,16 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
         for this_row in reader:
 
+            if len(this_row) == 0: 
+                continue
+
             # Get the transition mapping ... 
             mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping)
 
             # 1. Get the original filename (find a non-NA entry) and the corresponding run id
-            if len(this_row) == 0: 
-                continue
-            if this_row[ header_dict["align_origfilename"] ] == "NA":
-                continue
-            aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
-            if aligned_id in mapping:
+            aligned_fname, aligned_id = getAlignedFilename(this_row, header_dict)
+            if aligned_id is None or aligned_id in mapping:
                 continue 
-
-            aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
-
-            # allow cross-OS transfer of files
-            tmp = aligned_fname.split("\\")
-            aligned_fname = tmp[-1]
-            tmp = aligned_fname.split("/")
-            aligned_fname = tmp[-1]
 
             # 2. Go through all chromatogram input files and try to find
             # one that matches the one from align_origfilename
