@@ -145,10 +145,7 @@ class SplineAligner():
 
         if self._cy_cacher is not None:
 
-            data1 = []
-            data2 = []
-            self._cy_cacher.retrieveValues(data1, data2, bestrun_nr, run_nr)
-            return data1, data2
+            return self._cy_cacher.retrieveValues(bestrun_nr, run_nr)
 
         data_tmp = []
         for m in self._cacher:
