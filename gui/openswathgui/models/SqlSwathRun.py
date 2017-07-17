@@ -57,14 +57,19 @@ class SqlSwathRun():
 
     """
 
-    def __init__(self, run, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
-        self._run = run
+    def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        print "runid ", runid
+        if runid is not None:
+            assert len(runid) == 1
+
+        self.runid = runid[0] # TODO 
         self._filename = filename
         self._basename = os.path.basename(filename)
 
         self._range_mapping = {}
         self._score_mapping = {}
         self._intensity_mapping = {}
+        self._assay_mapping = {}
 
         self._run = SqlDataAccess(filename)
 
@@ -84,6 +89,7 @@ class SqlSwathRun():
           and not sequences_mapping is None and not len(sequences_mapping) == 0:
             self._precursor_mapping = precursor_mapping
             self._sequences_mapping = sequences_mapping
+            self._id_mapping = dict(self._get_id_mapping())
         else:
             self._group_by_precursor()
             self._group_precursors_by_sequence()
@@ -100,6 +106,13 @@ class SqlSwathRun():
 
     def get_range_data(self, precursor):
         return self._range_mapping.get(precursor, [ [0,0] ])
+
+    def get_assay_data(self, precursor):
+        r = self._assay_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
 
     def get_score_data(self, precursor):
         r = self._score_mapping.get(precursor, None)
@@ -119,6 +132,19 @@ class SqlSwathRun():
     ## Initialization
     #
 
+    def _get_id_mapping(self):
+        """
+        Map SQL ids to transition group identifiers
+        """
+
+        import sqlite3
+        conn = sqlite3.connect(self._filename)
+        c = conn.cursor()
+
+        id_mapping = [row for row in c.execute("SELECT NATIVE_ID, ID FROM CHROMATOGRAM" )]
+
+        return id_mapping
+
     def _group_by_precursor(self):
         """
         Populate the mapping between precursors and the chromatogram ids.
@@ -128,11 +154,9 @@ class SqlSwathRun():
         but not different charge states.
         """
 
-        import sqlite3
-        conn = sqlite3.connect(self._filename)
-        c = conn.cursor()
-
-        id_mapping = [row for row in c.execute("SELECT NATIVE_ID, ID FROM CHROMATOGRAM" )]
+        id_mapping = self._get_id_mapping()
+        # TODO: could also be done in SQL
+        self._id_mapping = dict(id_mapping)
 
         openswath_format = self._has_openswath_format([m[0] for m in id_mapping])
 
@@ -146,9 +170,6 @@ class SqlSwathRun():
             tmp = self._precursor_mapping.get(trgr_nr, [])
             tmp.append(key)
             self._precursor_mapping[trgr_nr] = tmp
-
-        # TODO: could also be done in SQL
-        self._id_mapping = dict(id_mapping)
 
     def _has_openswath_format(self, keys):
         f = FormatHelper()
@@ -234,3 +255,36 @@ class SqlSwathRun():
 
     def get_all_proteins(self):
         return self._protein_mapping
+
+    # 
+    ## Data manipulation
+    #
+    def remove_precursors(self, toremove):
+        """ Remove a set of precursors from the run (this can be done to filter
+        down the list of precursors to display).
+        """
+        for key in toremove:
+            self._precursor_mapping.pop(key, None)
+        self._group_precursors_by_sequence()
+
+        # Re-initialize self to produce correct mapping
+        ## self._initialize()
+
+    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity, assay_rt):
+
+        tmp = self._range_mapping.get(precursor_id, [])
+        tmp.append( [leftWidth, rightWidth ] )
+        self._range_mapping[precursor_id] = tmp
+
+        tmp = self._score_mapping.get(precursor_id, [])
+        tmp.append(fdrscore)
+        self._score_mapping[precursor_id] = tmp
+
+        tmp = self._intensity_mapping.get(precursor_id, [])
+        tmp.append(intensity)
+        self._intensity_mapping[precursor_id] = tmp
+
+        tmp = self._assay_mapping.get(precursor_id, [])
+        tmp.append(assay_rt)
+        self._assay_mapping[precursor_id] = tmp
+
