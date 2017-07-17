@@ -38,6 +38,7 @@ $Authors: Hannes Roest$
 from __future__ import print_function
 from sys import stdout, maxsize
 import csv
+import os
 
 maxInt = maxsize
 decrement = True
@@ -157,15 +158,20 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
       "Charge" in header_dict and \
       "aggr_Fragment_Annotation" in header_dict:
         transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
+        pr_transitions = this_row[ header_dict["aggr_prec_Fragment_Annotation"] ].split(";")
         if len(transitions[-1]) == 0:
             transitions = transitions[:-1]
+        if len(pr_transitions[-1]) == 0:
+            pr_transitions = pr_transitions[:-1]
         peptide_name = this_row[header_dict["FullPeptideName"]]
         charge_state = this_row[header_dict["Charge"]]
         key = peptide_name + "/" + charge_state
+        prkey = peptide_name + "/" + charge_state + "_pr"
         precursors_mapping [ key ] = transitions
+        precursors_mapping [ prkey ] = pr_transitions
         mapped_precursors = sequences_mapping.get( peptide_name, [] )
-        mapped_precursors.append(key)
-        sequences_mapping[peptide_name] = [ key ]
+        mapped_precursors.extend([key, prkey])
+        sequences_mapping[peptide_name] = mapped_precursors #  = [ key, prkey ]
 
         if "ProteinName" in header_dict:
             protein_name = this_row[header_dict["ProteinName"]]
