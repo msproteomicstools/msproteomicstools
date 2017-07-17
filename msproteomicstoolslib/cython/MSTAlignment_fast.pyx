@@ -20,6 +20,51 @@ from libcpp cimport bool
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def static_cy_alignBestCluster(multipeptides, tree, tr_data,
+        double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
+        double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
+        bool verbose):
+    """Use the MST to report the first cluster containing the best peptide (overall).
+
+    The algorithm will go through all multipeptides and mark those
+    peakgroups which it deems to belong to the best peakgroup cluster (only
+    the first cluster will be reported).
+
+    Args:
+        multipeptides(list of :class:`.Multipeptide`): a list of
+            multipeptides on which the alignment should be performed. After
+            alignment, each peakgroup that should be quantified can be
+            retrieved by calling get_selected_peakgroups() on the multipeptide.
+        tree(list of tuple): a minimum spanning tree (MST) represented as
+            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
+            need to correspond to run ids.
+        tr_data(format.TransformationCollection.LightTransformationData):
+            structure to hold binary transformations between two different
+            retention time spaces
+
+    Returns:
+        None
+    """
+
+    for m in multipeptides:
+
+        # Find the overall best peptide
+        best = m.find_best_peptide_pg()
+
+        if best.get_fdr_score() >= fdr_cutoff:
+            continue
+
+        pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
+                            aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
+                            float(max_rt_diff), stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
+                            verbose)
+
+        for pg_ in pg_list:
+            pg_.select_this_peakgroup()
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
