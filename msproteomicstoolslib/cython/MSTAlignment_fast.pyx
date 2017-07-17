@@ -615,7 +615,6 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
         print("  Used rt diff:", max_rt_diff)
 
     cdef CyPrecursorGroup target_peptide = multip.getPrecursorGroup(target)
-    cdef double rt
     return static_cy_findBestPGFromTemplate(expected_rt, target_peptide, max_rt_diff, already_seen, settings)
 
 @cython.boundscheck(False)
