@@ -168,13 +168,10 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
         if best.get_fdr_score() >= fdr_cutoff:
             continue
 
-        pg_list = static_cy_fast_findAllPGForSeed(address(tree), tr_data, m, best, {}, 
+        static_cy_fast_findAllPGForSeed(address(tree), tr_data, m, best, {}, 
                             aligned_fdr_cutoff, fdr_cutoff, correctRT_using_pg,
                             float(max_rt_diff), stdev_max_rt_per_run, use_local_stdev, max_rt_diff_isotope,
                             verbose, address(settings))
-
-        for pg_ in pg_list:
-            pg_.select_this_peakgroup()
 
     return (settings.nr_multiple_align, settings.nr_ambiguous)
 
@@ -270,22 +267,43 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
     if verbose:
         print("Done with re-alignment of isotopic channels")
 
-    # Now we need to assemble the peak groups back together
-    # We need to construct the Python objects and make sure that memory
-    # management is done by the original object and not the Python GC engine.
-    # Therefore we take the pointers for constructing new Python objects but
-    # take care not to take ownership.
-    # return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
-    res = static_cy_assemblePG(c_visited, isotopically_added_pg_c)
-    return res
+    # Now we need to select all the peakgroups
+
+    if True:
+        # This is the other option, just mark these as selected right away...
+        pg_it = c_visited.begin()
+        while pg_it != c_visited.end():
+            pg_ = deref(pg_it).second
+            if pg_ != NULL:
+                deref(pg_).cluster_id_ = 1
+            inc(pg_it)
+
+        pg_it2 = isotopically_added_pg_c.begin()
+        while pg_it2 != isotopically_added_pg_c.end():
+            pg_ = deref(pg_it2)
+            if pg_ != NULL:
+                deref(pg_).cluster_id_ = 1
+                ref_peptide = deref(pg_).getPeptide()
+            inc(pg_it2)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef static_cy_assemblePG(libcpp_unordered_map[libcpp_string, c_peakgroup*] & c_visited, libcpp_vector[c_peakgroup*] & isotopically_added_pg_c):
+cdef static_cy_assemblePG(libcpp_map[libcpp_string, c_peakgroup*] & c_visited, libcpp_vector[c_peakgroup*] & isotopically_added_pg_c):
+    """
+        Now we need to assemble the peak groups back together
+        We need to construct the Python objects and make sure that memory
+        management is done by the original object and not the Python GC engine.
+        Therefore we take the pointers for constructing new Python objects but
+        take care not to take ownership.
+
+        In Python:
+
+        return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
+    """
 
     cdef c_peakgroup* pg_
     cdef c_precursor* ref_peptide
-    cdef libcpp_unordered_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
+    cdef libcpp_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
     res = []
     cdef libcpp_vector[c_peakgroup*].iterator pg_it2 = isotopically_added_pg_c.begin()
     if True:
@@ -475,10 +493,6 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
         print("Done with re-alignment of isotopic channels")
 
     # Now we need to assemble the peak groups back together
-    # We need to construct the Python objects and make sure that memory
-    # management is done by the original object and not the Python GC engine.
-    # Therefore we take the pointers for constructing new Python objects but
-    # take care not to take ownership.
     # return [pg for pg in list(visited.values()) + isotopically_added_pg if pg is not None]
     res = static_cy_assemblePG(c_visited, isotopically_added_pg_c)
     return res
