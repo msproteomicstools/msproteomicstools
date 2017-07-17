@@ -9,6 +9,7 @@ from libcpp.string cimport string as libcpp_string
 from libcpp.vector cimport vector as libcpp_vector
 from libcpp.map cimport map as libcpp_map
 from libcpp.unordered_set cimport unordered_set as libcpp_unordered_set
+from libcpp.unordered_map cimport unordered_map as libcpp_unordered_map
 from libcpp.pair cimport pair as libcpp_pair
 from cython.operator cimport dereference as deref, preincrement as inc, address as address
 from libcpp cimport bool
@@ -18,6 +19,7 @@ from libcpp cimport bool
 ## include "PeakgroupWrapper.pyx"
 ## include "PrecursorWrapper.pyx"
 ## include "PrecursorGroup.pyx"
+include "CppTree.pyx"
 
 cdef cppclass mst_settings:
 
@@ -33,51 +35,18 @@ cdef cppclass mst_settings:
     int nr_multiple_align 
     int nr_ambiguous 
 
-    ###     self.nr_multiple_align += 1
-    ### if len([pg_ for pg_ in matching_peakgroups if pg_.get_fdr_score() < self._fdr_cutoff]) > 1:
-    ###     self.nr_ambiguous += 1
-
-cdef cppclass c_node:
-
-    libcpp_string internal_id
-    libcpp_vector[c_node*] neighbors
-
-cdef cppclass cpp_tree:
-
-    libcpp_map[libcpp_string, c_node*] nodes
-
-cdef visit_tree_simple(cpp_tree tree, c_node * current, libcpp_unordered_set[libcpp_string] visited):
-
-    # mark as visited
-    visited.insert( deref(current).internal_id )
-    cdef c_node* node1
-    cdef c_node* node2
-    cdef libcpp_string e1
-    cdef libcpp_vector[c_node*].iterator n_it = deref(current).neighbors.begin()
-    while (n_it != deref(current).neighbors.end()):
-        if visited.find( deref(deref(n_it)).internal_id) != visited.end():
-            # have visited this neighbor already
-            inc(n_it)
-        else:
-            # have not visited this edge (current, neighbor) yet
-            node1 = current
-            node2 = deref(n_it)
-            # do work
-            print ("visit!", deref(node1).internal_id, deref(node2).internal_id)
-            # recursive call
-            visit_tree_simple(tree, node2, visited)
-            inc(n_it)
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unordered_set[libcpp_string] * visited, tr_data, multip,
-        libcpp_map[libcpp_string, int] already_seen, libcpp_map[libcpp_string, double] * c_rt_map, double current_rt,
-        libcpp_map[libcpp_string, c_peakgroup*] * c_visited,
-        bool verbose, mst_settings * settings):
+cdef cy_findAllPGForSeedTreeIter(c_node * current,
+        tr_data, multip, libcpp_map[libcpp_string, int] already_seen, libcpp_map[libcpp_string, double] * c_rt_map,
+        libcpp_unordered_map[libcpp_string, c_peakgroup*] * c_visited, mst_settings * settings):
+    """
+    A C++ MST tree which contains references to all nodes
+    """
 
     # mark as visited
-    deref(visited).insert( deref(current).internal_id )
+    ## deref(visited).insert( deref(current).internal_id )
     
     cdef c_node* node1
     cdef c_node* node2
@@ -87,7 +56,7 @@ cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unord
     cdef libcpp_vector[c_node*].iterator n_it = deref(current).neighbors.begin()
     cdef c_peakgroup * newPG
     while (n_it != deref(current).neighbors.end()):
-        if deref(visited).find( deref(deref(n_it)).internal_id) != deref(visited).end():
+        if deref(c_visited).find( deref(deref(n_it)).internal_id) != deref(c_visited).end():
             # have visited this neighbor already
             inc(n_it)
         else:
@@ -105,7 +74,7 @@ cdef cy_findAllPGForSeedTreeIter(cpp_tree * tree, c_node * current, libcpp_unord
             deref(c_visited)[ e2 ] = newPG
             deref(c_rt_map)[ e2 ] = rt
             # recursive call
-            cy_findAllPGForSeedTreeIter(tree, node2, visited, tr_data, multip, already_seen, c_rt_map, current_rt, c_visited, verbose, settings)
+            cy_findAllPGForSeedTreeIter(node2, tr_data, multip, already_seen, c_rt_map, c_visited, settings)
 
             inc(n_it)
 
@@ -237,25 +206,26 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
         list(PeakGroupBase): List of peakgroups belonging to this cluster
     """
 
-    seed_rt = seed.get_normalized_retentiontime_cy()
+    cdef double seed_rt = seed.get_normalized_retentiontime_cy()
 
     cdef libcpp_map[libcpp_string, int] already_seen
 
     # Keep track of which nodes we have already visited in the graph
     # (also storing the rt at which we found the signal in this run).
-    cdef libcpp_map[libcpp_string, c_peakgroup*] c_visited
+    cdef libcpp_unordered_map[libcpp_string, c_peakgroup*] c_visited
     cdef libcpp_map[libcpp_string, double] c_rt_map
 
+    # Initialize data structures 
     cdef libcpp_string seed_run_id = seed.getPeptide().getRunId()
     c_visited[ seed_run_id ] = seed.inst
     c_rt_map[ seed_run_id ] = seed_rt
 
     cdef c_node * current = c_tree.nodes[ seed_run_id ]
-    cdef libcpp_unordered_set[libcpp_string] visited
+    # cdef libcpp_unordered_set[libcpp_string] visited
 
     # Main routine, recursively visiting the tree
-    cy_findAllPGForSeedTreeIter(c_tree, current, address(visited), tr_data, multip,
-        already_seen, address(c_rt_map), seed_rt, address(c_visited), verbose, settings)
+    cy_findAllPGForSeedTreeIter(current, tr_data, multip,
+        already_seen, address(c_rt_map), address(c_visited), settings)
 
     # Now in each run at most one (zero or one) peakgroup got selected for
     # the current peptide label group. This means that for each run, either
@@ -265,7 +235,7 @@ cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakg
         print( "Re-align isotopic channels:")
 
     cdef libcpp_vector[c_peakgroup*] isotopically_added_pg_c
-    cdef libcpp_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
+    cdef libcpp_unordered_map[libcpp_string, c_peakgroup*].iterator pg_it = c_visited.begin()
     cdef c_peakgroup* pg_
     cdef c_precursor* ref_peptide
     cdef CyPrecursorWrapperOnly pep
@@ -405,7 +375,6 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
     # (also storing the rt at which we found the signal in this run).
     cdef libcpp_map[libcpp_string, c_peakgroup*] c_visited
     cdef libcpp_map[libcpp_string, double] c_rt_map
-    # cdef libcpp_vector[c_peakgroup].iterator pg_it
 
     c_visited[ seed.getPeptide().getRunId() ] = seed.inst
     c_rt_map[ seed.getPeptide().getRunId() ] = seed_rt
@@ -560,7 +529,7 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
         CyLightTransformationData tr_data, double source_rt, 
         libcpp_map[libcpp_string, int] already_seen, mst_settings * settings):
 
-    """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
+    """Find the best-scoring matching peakgroup in the "target" run within the RT window.
 
     Args:
         m(Multipeptide): one multipeptides on which the alignment should be performed
@@ -616,7 +585,7 @@ cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPG(multip, libcpp_strin
 @cython.wraparound(False)
 cdef libcpp_pair[double, c_peakgroup*] static_cy_findBestPGFromTemplate(double expected_rt, target_peptide, double maximal_rt_diff,
         libcpp_map[libcpp_string, int] already_seen, mst_settings * settings):
-    """Find (best) matching peakgroup in "target" which matches to the source_rt RT.
+    """Find the best-scoring matching peakgroup in "target_peptide" within the RT window.
 
         Parameters
         ----------
