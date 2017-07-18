@@ -47,7 +47,7 @@ import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
 
 try:
-    from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_findAllPGForSeed
+    from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_alignBestCluster
     # Using static_findAllPGForSeed tends to have a measurable impact of about
     # 10% improvement on alignment speed: 53.78s Cython vs 59.06 using the
     # older method
@@ -227,21 +227,12 @@ class TreeConsensusAlignment():
             None
         """
 
-        for m in multipeptides:
-
-            # Find the overall best peptide
-            best = m.find_best_peptide_pg()
-
-            if best.get_fdr_score() >= self._fdr_cutoff:
-                continue
-
-            pg_list = static_cy_findAllPGForSeed(tree, tr_data, m, best, {}, 
+        nr_m, nr_ambig = static_cy_alignBestCluster(multipeptides, tree, tr_data,
                                 self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
-                                self._max_rt_diff, self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                float(self._max_rt_diff), self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
                                 self.verbose)
-            for pg_ in pg_list:
-                pg_.select_this_peakgroup()
-
+        self.nr_multiple_align = nr_m
+        self.nr_ambiguous = nr_ambig
 
     def alignBestCluster_legacy(self, multipeptides, tree, tr_data):
         from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed
