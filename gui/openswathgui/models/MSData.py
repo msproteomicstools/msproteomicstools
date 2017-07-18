@@ -258,7 +258,7 @@ class DataModel(object):
         reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="gui", errorHandling="loose")
         new_exp = Experiment()
         new_exp.runs = reader.parse_files(REALIGN_RUNS)
-        multipeptides = new_exp.get_all_multipeptides(FDR_CUTOFF, verbose=False)
+        multipeptides = new_exp.get_all_multipeptides(self.fdr_cutoff, verbose=False)
 
         # Build map of the PeptideName/Charge to the individual multipeptide
         peakgroup_map = {}
