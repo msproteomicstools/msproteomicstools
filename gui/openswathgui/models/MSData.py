@@ -163,6 +163,13 @@ class DataModel(object):
     #
     ## Data loading
     #
+    def loadSqMassFiles(self, filenames):
+
+        # Read the chromatograms
+        swathfiles = SwathRunCollection()
+        swathfiles.initialize_from_sql(filenames)
+        self.runs = [run for run in swathfiles.getSwathFiles()]
+
     def loadFiles(self, filenames):
         """
         Load a set of chromatogram files (no peakgroup information).
