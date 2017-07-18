@@ -775,11 +775,11 @@ class WeightedNearestNeighbour(LocalKernel):
     calculate the transformation.  This method may be affected by single
     outlier close to the transformation point.
 
-    Each neighboring point is given a weight equal to 
+    Each neighboring point is given a weight equal to  ::
 
-               1
-    --------------------------
-      abs( distance ) ** exp 
+		   1
+	--------------------------
+	  abs( distance ) ** exp 
 
 
     up to a minimal distance min_diff after which the weight cannot increase any more.
