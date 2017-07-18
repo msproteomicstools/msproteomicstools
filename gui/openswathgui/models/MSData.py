@@ -211,11 +211,14 @@ class DataModel(object):
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        if self.only_show_quantified:
+        if fileType == "sqmass":
+            swathfiles.initialize_from_sql_map(mapping, rawdata_files, precursors_mapping, sequences_mapping, protein_mapping)
+        elif self.only_show_quantified:
             swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping, protein_mapping)
         else:
             swathfiles.initialize_from_chromatograms(mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
+
         if not fileType in ["simple", "traml"]:
             self._read_peakgroup_files(aligned_pg_files, swathfiles)
 
