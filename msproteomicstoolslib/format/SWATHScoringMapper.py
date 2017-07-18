@@ -196,6 +196,65 @@ def getAlignedFilename(this_row, header_dict):
     aligned_fname = tmp[-1]
     return aligned_fname, aligned_id
 
+def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
+                 sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):
+
+    import sqlite3, csv, os
+
+    sqlfile_map = []
+    for k, filename in enumerate(rawdata_files):
+        conn = sqlite3.connect(filename)
+        c = conn.cursor()
+        d = list(c.execute("SELECT ID, FILENAME, NATIVE_ID FROM RUN"))
+        assert len(d) == 1
+        filename = d[0][1]
+        sqlfile_map.append([k, 0, os.path.basename(filename)])
+        mapping[k] = [None]
+
+    nomatch_found = set([])
+    for file_nr, f in enumerate(aligned_pg_files):
+        header_dict = {}
+        if f.endswith('.gz'):
+            import gzip 
+            filehandler = gzip.open(f,'rb')
+        else:
+            filehandler = open(f)
+        reader = csv.reader(filehandler, delimiter="\t")
+        header = next(reader)
+        for i,n in enumerate(header):
+            header_dict[n] = i
+        if not "align_origfilename" in header_dict or not "align_runid" in header_dict:
+            print (header_dict)
+            raise Exception("need column header align_origfilename and align_runid")
+
+        for this_row in reader:
+
+            # Get the transition mapping ... 
+            mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping)
+
+            # 1. Get the original filename (find a non-NA entry) and the corresponding run id
+            aligned_fname, aligned_id = getAlignedFilename(this_row, header_dict)
+
+            # 2. Go through all sql input files and try to find
+            # one that matches the one from align_origfilename
+            for sqlfile, runid, rfile in sqlfile_map:
+
+                # 2.1 remove common file endings from the raw data
+                rfile_base = rfile
+                for ending in [".gz", ".mzML", ".chrom", ".sqMass"]:
+                    rfile_base = rfile_base.split(ending)[0]
+
+                # 2.2 remove common file endings from the tsv data
+                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
+                    aligned_fname = aligned_fname.split(ending)[0]
+
+                # 2.3 Check if we have a match
+                # print aligned_fname, rfile_base
+                if aligned_fname == rfile_base:
+                    if False:
+                        print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
+                    mapping[sqlfile][runid] = aligned_id
+
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):
         
@@ -215,6 +274,8 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
         return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
     elif fileType == "traml":
         return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
+    elif fileType == "sqmass":
+        return sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
 
     nomatch_found = set([])
     for file_nr, f in enumerate(aligned_pg_files):
