@@ -224,13 +224,25 @@ class GraphArea(QtGui.QWidget):
             ranges = chr_transition.getRange(pl.run) 
             mscore = chr_transition.getProbScore(pl.run) 
             intensity = chr_transition.getIntensity(pl.run) 
+            assay_rt = chr_transition.getAssayRT(pl.run) 
+
+            xminsr = [r[0] for r in ranges]
+            xmaxsr = [r[1] for r in ranges]
+            xwidth = [r[1] - r[0] for r in ranges]
 
             # print "Got data for", i, "plot labels", labels, "from", chr_transition, "and nr data ", len(data)
             # print "Got mscore and int", mscore, intensity
+            # print "Got ranges ", ranges, labels, mscore, intensity
 
             # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
-            pl.update_all_curves(data, labels, ranges, mscore, intensity, show_legend)
-            pl.set_x_limits(min(xmins),max(xmaxs))
+            pl.update_all_curves(data, labels, ranges, mscore, intensity, assay_rt, show_legend)
+
+            if mscore is None:
+                pl.set_x_limits(min(xmins),max(xmaxs))
+            else:
+                pl.set_x_limits(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
+                pl.set_y_limits_auto(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
+
             pl.replot()
 
 #
