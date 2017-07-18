@@ -200,7 +200,7 @@ class GuiQwtMultiLinePlot(CurveDialog):
         if len(allmin) == 0 or len(allmax) == 0 : return
         self.set_y_limits(min(allmin), max(allmax) )
 
-    def update_all_curves(self, data, labels, ranges, mscore, intensity, show_legend=True):
+    def update_all_curves(self, data, labels, ranges, mscore, intensity, assay_rt, show_legend):
 
         assert len(data) == len(labels), "Length of labels %s does not correspond to length of data %s" % (len(labels), len(data))
         self.create_curves(labels, ranges, show_legend)
@@ -210,8 +210,11 @@ class GuiQwtMultiLinePlot(CurveDialog):
             self.get_plot().add_item( self.mscore_label )
             self.l2 = make.label("Int=%0.4g" % intensity, "TL", (0,25), "TL")
             self.get_plot().add_item( self.l2 )
+
             self.width = make.label("PeakWidth=%0.3fs" % (ranges[0][1]-ranges[0][0]), "TL", (0,50), "TL")
             self.get_plot().add_item( self.width )
+            self.assay_rt = make.label("Assay RT=%0.3fs" % (assay_rt), "TL", (0,75), "TL")
+            self.get_plot().add_item( self.assay_rt )
 
         for d, curve in zip(data, self.curves):
             curve.set_data( d[0], d[1] )
@@ -399,7 +402,7 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             rect3.setWidth(diam)
             painter.drawEllipse(rect3.toRect())
 
-    def update_all_curves(self, data, labels, ranges, mscore, intensity, show_legend):
+    def update_all_curves(self, data, labels, ranges, mscore, intensity, assay_rt, show_legend):
 
         assert len(data) == len(labels)
         # This takes about 70% of the time
@@ -419,7 +422,8 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
                 mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
                 intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
                 width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
-                self.labels.extend([mscore_txt, intensity_txt, width_txt])
+                assay_txt = QtGui.QStaticText ("Assay RT %0.3fs" % assay_rt)
+                self.labels.extend([mscore_txt, intensity_txt, width_txt, assay_txt])
             except AttributeError:
                 # old qt version?
                 pass
