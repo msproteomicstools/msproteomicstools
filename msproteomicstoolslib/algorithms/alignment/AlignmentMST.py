@@ -48,12 +48,14 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 
 try:
     from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_alignBestCluster
-    # Using static_findAllPGForSeed tends to have a measurable impact of about
-    # 10% improvement on alignment speed: 53.78s Cython vs 59.06 using the
-    # older method
+    # Using static_findAllPGForSeed tends to have a measurable impact on the
+    # alignment speed:
+    #  - 2.0 fold improvement for 12 runs
+    #  - 6.0 fold improvement for 48 runs
+    #  - 8.5 fold improvement for 95 runs
+    #  - 15 fold improvement for 282 runs
 except ImportError:
     print("WARNING: cannot import optimized MST alignment, will use Python version (slower).")
-    from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed, static_findBestPG, static_findBestPGFromTemplate
 
 def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
     """Compute distance matrix of all runs.
@@ -235,7 +237,6 @@ class TreeConsensusAlignment():
         self.nr_ambiguous = nr_ambig
 
     def alignBestCluster_legacy(self, multipeptides, tree, tr_data):
-        from msproteomicstoolslib.algorithms.alignment.AlignmentMSTStatic import static_findAllPGForSeed
         for m in multipeptides:
 
             # Find the overall best peptide
