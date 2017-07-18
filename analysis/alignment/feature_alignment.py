@@ -531,7 +531,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
         if optimized_cython:
             al.alignBestCluster(multipeptides, tree_mapped, tr_data)
         else:
-            print("WARNING: cannot utilize optimized MST alignment (needs readmethod = minimal), will use Python version (slower).")
+            print("WARNING: cannot utilize optimized MST alignment (needs readmethod = cminimal), will use Python version (slower).")
             al.alignBestCluster_legacy(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
