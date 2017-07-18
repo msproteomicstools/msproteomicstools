@@ -408,7 +408,7 @@ def static_cy_findAllPGForSeed(tree, tr_data, multip, CyPeakgroupWrapperOnly see
 
     cdef c_peakgroup * newPG
     cdef double rt
-    cdef int nr_runs = multip.get_nr_runs()
+    cdef size_t nr_runs = multip.get_nr_runs()
 
     # Tree is a list of tuple( str, str)
     cdef libcpp_string e1
