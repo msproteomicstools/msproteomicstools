@@ -85,14 +85,18 @@ class DataModel(object):
     """The main data model, provides access to all raw data
 
     It stores the references to individual :class:`.SwathRun` objects and can
-    be initialized from a list of files. 
+    be initialized from a list of files. Each "load" method is
+    responsible for setting the self.runs parameter.
 
     Attributes:
         runs(list of :class:`.SwathRun`): The MS runs which are handled by this class
+        runs(bool): Whether to draw individual transitions
     """
 
-    def __init__(self):
+    def __init__(self, fdr_cutoff = FDR_CUTOFF, only_quantified = ONLY_SHOW_QUANTIFIED):
         self.runs = []
+        self.fdr_cutoff = fdr_cutoff
+        self.only_show_quantified = only_quantified
         self.draw_transitions_ = False
 
     #
@@ -200,7 +204,7 @@ class DataModel(object):
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        if ONLY_SHOW_QUANTIFIED:
+        if self.only_show_quantified:
             swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping, protein_mapping)
         else:
             swathfiles.initialize_from_chromatograms(mapping)
@@ -237,6 +241,7 @@ class DataModel(object):
             - leftWidth
             - rightWidth
             - m_score
+            - assay_rt
             - Intensity
             - align_runid
             - transition_group_id
@@ -256,7 +261,7 @@ class DataModel(object):
             peakgroup_map[ identifier ] = m
 
         for swathrun in swathfiles.getSwathFiles():
-            if ONLY_SHOW_QUANTIFIED:
+            if self.only_show_quantified:
                 intersection = set(swathrun.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
                 todelete = set(swathrun.get_all_precursor_ids()).difference(intersection)
                 if len(intersection) == 0:
