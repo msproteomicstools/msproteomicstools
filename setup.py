@@ -8,6 +8,12 @@ from Cython.Build import cythonize
 
 # get py-earth from https://github.com/jcrudy/py-earth/
 
+import sys
+with_cython = False
+if "--with_cython" in sys.argv:
+    with_cython = True
+    sys.argv.remove("--with_cython")
+
 import fnmatch
 all_scripts = []
 for root, dirnames, filenames in os.walk('analysis'):
@@ -16,19 +22,16 @@ for root, dirnames, filenames in os.walk('analysis'):
 all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
-import sys
-if (sys.version_info > (3, 0)):
-    extra_installs = []
-else:
-    extra_installs = []
+extra_installs = []
 
-
-ext_modules = [
-        cythonize(Extension('msproteomicstoolslib/cython/_optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
-        cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
-        cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
-        cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
-        ]
+ext_modules = []
+if with_cython:
+    ext_modules = [
+	    cythonize(Extension('msproteomicstoolslib/cython/_optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
+	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
+	    ]
 
 setup(name='msproteomicstools',
       version='0.5.0',
