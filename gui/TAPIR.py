@@ -731,18 +731,28 @@ class MainWindow(QtGui.QMainWindow):
         if len(pyFileList) == 1 and (pyFileList[0].endswith(".yaml") or fileType == "yaml"):
             self.data_model.load_from_yaml(pyFileList[0])
         elif all( [f.lower().endswith("mzml") for f in pyFileList] ):
-            print "load files" 
             self.data_model.loadFiles(pyFileList)
+        elif all( [f.lower().endswith("sqmass") for f in pyFileList] ):
+            self.data_model.loadSqMassFiles(pyFileList)
         else:
+            if any( [f.lower().endswith("sqmass") for f in pyFileList] ):
 
-            # Separate the mzML and other files
-            mzmls = [f for f in pyFileList if f.lower().endswith("mzml")]
-            others = [f for f in pyFileList if not f.lower().endswith("mzml")]
+                # Separate the mzML and other files
+                sqmass = [f for f in pyFileList if f.lower().endswith("sqmass")]
+                others = [f for f in pyFileList if not f.lower().endswith("sqmass")]
 
-            if fileType == None and len(others) == 1 and others[0].lower().endswith("traml"):
-                fileType = "traml"
+                fileType = "sqmass"
+                self.data_model.loadMixedFiles(sqmass, others, fileType)
+            else:
 
-            self.data_model.loadMixedFiles(mzmls, others, fileType)
+                # Separate the mzML and other files
+                mzmls = [f for f in pyFileList if f.lower().endswith("mzml")]
+                others = [f for f in pyFileList if not f.lower().endswith("mzml")]
+
+                if fileType == None and len(others) == 1 and others[0].lower().endswith("traml"):
+                    fileType = "traml"
+
+                self.data_model.loadMixedFiles(mzmls, others, fileType)
 
         # After loading, refresh view and print load time
         self._refresh_view(time=time.time()-start)
