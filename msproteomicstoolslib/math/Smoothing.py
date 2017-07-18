@@ -456,7 +456,6 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
             k += 1
             # Input data is y/x -> needs switch
             result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
-            # print (result)
 
             if any( [math.isnan(r[1]) for r in result] ):
                 print ("WARNING: lowess returned NA data points! We are trying to fix it")
@@ -685,7 +684,7 @@ class SmoothingInterpolation:
     def predict(self, xhat):
         try:
             if self.use_cy:
-                predicted_result = self.f.predict(xhat) # interpolation fxn
+                predicted_result = self.f.predict(list(xhat)) # interpolation fxn
                 return predicted_result
             else:
                 predicted_result = self.f(xhat) # interpolation fxn
