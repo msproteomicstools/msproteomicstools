@@ -139,7 +139,7 @@ class Multipeptide(object):
         if len(self._peptides) == 0:
             return False
 
-        return self._peptides.itervalues().next().get_decoy()
+        return next(iter(self._peptides.values())).get_decoy()
 
     def has_null_peptides(self):
         """
