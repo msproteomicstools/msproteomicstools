@@ -265,7 +265,9 @@ class DataModel(object):
         for m in multipeptides:
             pg = m.find_best_peptide_pg()
             identifier = pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")
+            # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
             peakgroup_map[ identifier ] = m
+            peakgroup_map[ identifier + "_pr" ] = m
 
         for swathrun in swathfiles.getSwathFiles():
             if self.only_show_quantified:
