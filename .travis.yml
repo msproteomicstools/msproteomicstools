@@ -22,12 +22,12 @@ install:
   - pip install -U Cython
   - pip install -U statsmodels
   - pip install rpy2==2.3.9
-  - travis_retry python setup.py develop
+  - travis_retry python setup.py develop --with_cython
 script: 
   # Disable the rpy2 tests for Python 3.x
   # Disable the cython tests for now as the extension cannot be found on travis
-  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -a '!cython' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -a -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2' -w test/; fi
 cache: pip
