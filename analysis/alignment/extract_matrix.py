@@ -4,6 +4,10 @@ import sys
 import argparse
 from sys import stdout, maxsize
 import csv
+import sys
+
+csv.field_size_limit(sys.maxsize)
+
 
 maxInt = maxsize
 decrement = True

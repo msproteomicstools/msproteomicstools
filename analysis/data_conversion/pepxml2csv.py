@@ -39,6 +39,8 @@ from __future__ import print_function
 import sys
 import os.path
 #from msproteomicstoolslib.format import pepXMLReader
+import csv
+csv.field_size_limit(sys.maxsize)
 
 from pyteomics import pepxml
 
@@ -48,7 +50,6 @@ outfile = os.path.splitext(infile)[0] + '.csv'
 
 reader = pepxml.read(infile)
 
-import csv
 writer = csv.writer(open(outfile, 'w'), delimiter='\t')
 
 ## MYRIMATCH
