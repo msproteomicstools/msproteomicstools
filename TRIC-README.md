@@ -4,7 +4,7 @@ Table of Contents
 
 * [TRIC alignment](#alignment)
     * [Overview](#alignment-overview)
-    * [Algorithm](#design)
+    * [Algorithm](#Design-of-the-Algorithm)
     * [Running TRIC](#runtric)
         * [(Non)-linear pairwise alignment](#pairwise-alignment)
         * [Reference-based alignment](#ref-alignment)
@@ -31,7 +31,7 @@ to align the targeted proteomics runs (the nodes in the tree are runs and the
 edges are pairwise alignments). Generally this mode is better for a large
 number of runs or for chromatographically dissimilar samples.
 
-##<a name="design"></a> Design of the Algorithm 
+## Design of the Algorithm 
 
 ### Alignment Order and RT correction
 
