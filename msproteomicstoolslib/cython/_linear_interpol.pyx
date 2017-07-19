@@ -18,6 +18,23 @@ cdef extern from "_linear_interpol.h":
         double predict(double xnew)
 
 cdef class CyLinearInterpolateWrapper(object):
+    """
+    Cython wrapper around c_linear_interpolate
+
+    Another smoother that interpolates between the given data points. It is
+    fast because its written in C++.
+
+    This class expectes already smoothed x,y data (e.g. computed using a lowess
+    or spline smoothing) but for applying the transformation, new x-values will
+    be requested. The corresponding y values will be calculated by
+    interpolation.
+
+    The class provides the following methods:
+        - `def __init__(self, x, y, double abs_err)`: initialize with two vectors, x and y
+        - `def predict(self, list xnew)`: predict for Python
+        - `cdef double predict_cy(self, double xnew)`: predict for Cython (low overhead)
+
+    """
     cdef c_linear_interpolate * inst 
 
     def __dealloc__(self):
@@ -30,6 +47,9 @@ cdef class CyLinearInterpolateWrapper(object):
         self.inst = new c_linear_interpolate(v1, v2, abs_err)
 
     def predict(self, list xnew):
+        """
+        Prediction for Python, returns a Python list
+        """
         ynew = []
         cdef double x
         for xn in xnew:
@@ -37,6 +57,8 @@ cdef class CyLinearInterpolateWrapper(object):
         return ynew
 
     cdef double predict_cy(self, double xnew):
+        """
+        Prediction with low overhead, returns directly a double
+        """
         return deref(self.inst).predict(xnew)
-
 

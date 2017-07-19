@@ -8,6 +8,8 @@ include "_linear_interpol.pyx"
 
 cdef class CyLightTransformationData(object):
     """
+    Cython implementation of :class:`.LightTransformationData`
+
     A lightweight data structure to store a transformation between retention times of multiple runs.
     """
 

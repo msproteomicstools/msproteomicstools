@@ -36,8 +36,14 @@ cdef class CyDataCacher(object):
 
     def appendValuesForPeptide(self, cached_values):
         """
-        Store values for a single peptide 
-        - expects a list of length N with a pair of values per run: (fdr,rt)
+        Store the retention time values for a single peptide across all runs.
+
+        Parameters
+        ---------
+        cached_values : list( list( double ) )
+            A list of length N (number of runs) where for each run a pair of
+            values is provided: (fdr,rt). In case the peptide was identified,
+            None can be provided instead.
         """
         cdef libcpp_vector[double] fdr
         cdef libcpp_vector[double] rt
@@ -54,6 +60,22 @@ cdef class CyDataCacher(object):
         deref(self.inst).addValues(fdr, rt)
 
     def retrieveValues(self, int run1, int run2):
+        """
+        Retrieve all paired RT values for two given runs
+
+        Parameters
+        ---------
+        run1 : int
+            Index of the the first run
+        run2 : int
+            Index of the the second run
+
+
+        Returns
+        -------
+            tuple(list(double), list(double)) : the two lists containing matched RT values
+
+        """
         cdef libcpp_vector[double] rt1
         cdef libcpp_vector[double] rt2
         deref(self.inst).retrieveValues(rt1, rt2, run1, run2)

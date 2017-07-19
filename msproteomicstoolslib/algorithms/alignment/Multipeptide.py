@@ -80,11 +80,11 @@ class Multipeptide(object):
         """
         Get precursor group for the given run
 
-        Args:
-            runid (str): Run id of the group
+        Parameters
+        ----------
+        :param str runid: Run id of the group
 
-        Returns:
-            precursor_group (:class:`.PrecursorGroup`): Precursor group from the corresponding run
+        :rtype: :class:`.PrecursorGroup`: Precursor group from the corresponding run
         """
         return self._peptides[runid]
 
@@ -92,10 +92,7 @@ class Multipeptide(object):
         """
         Get all precursor groups
 
-        Returns
-        -------
-        precursor_group: list of :class:`.PrecursorGroup`
-            All Precursor group from the corresponding run
+        :rtype: list(:class:`.PrecursorGroup`): All Precursor group from the corresponding run
         """
         return sorted(self._peptides.values())
 
@@ -103,13 +100,8 @@ class Multipeptide(object):
         """
         Checks whether a given run has a precursor group
 
-        Args:
-            runid (str): Run id to check
-
-        Returns
-        -------
-        check : bool
-            Whether the given run has a precursor group
+        :param str runid: Run id to check
+        :rtype: bool: Whether the given run has a precursor group
         """
         return runid in self._peptides
 
@@ -133,8 +125,7 @@ class Multipeptide(object):
         """
         Whether the current peptide is a decoy or not
 
-        Returns:
-            decoy(bool): Whether the peptide is decoy or not
+        :rtype: bool: Whether the peptide is decoy or not
         """
         if len(self._peptides) == 0:
             return False

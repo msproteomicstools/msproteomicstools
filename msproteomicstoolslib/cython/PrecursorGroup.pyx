@@ -6,10 +6,14 @@ cimport libc.stdlib
 cimport numpy as np
 
 cdef class CyPrecursorGroup(object):
-    """A set of precursors that are isotopically modified versions of each other.
+    """See :class:`.PrecursorGroup` for a description.
 
-    A collection of precursors that are isotopically modified versions of the
-    same underlying peptide sequence. Generally these are heavy/light forms.
+    This implementation is pure Cython.
+
+    Attributes:
+        - self.peptide_group_label_: Identifier or precursor group 
+        - self.run_: Reference to the :class:`.Run` where this PrecursorGroup is from
+        - self.precursors_: List of :class:`.CyPrecursorWrapperOnly`
     """
 
     __slots__ = ["peptide_group_label_", "run_", "precursors_"]

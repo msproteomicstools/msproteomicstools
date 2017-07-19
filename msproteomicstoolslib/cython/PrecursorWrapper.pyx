@@ -25,12 +25,18 @@ cdef extern from "precursor.h":
 
 
 cdef class CyPrecursorWrapperOnly(object):
-    """
+    """ A set of peakgroups that belong to the same precursor in a single run.
+
+    Each precursor has a backreference to its precursor group identifier it
+    belongs to, the run it belongs to as well as its amino acid sequence and
+    protein name.
+
+    Each precursor has a list of :class:`.CyPeakgroupWrapperOnly` that are
+    found in the chromatogram of this precursor in this particular run.
     """
 
     cdef c_precursor * inst 
     cdef bool own_ptr
-
 
     def __dealloc__(self):
         if self.own_ptr:

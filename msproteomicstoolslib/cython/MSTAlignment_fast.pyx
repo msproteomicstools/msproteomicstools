@@ -121,23 +121,47 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
         double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose):
-    """Use the MST to report the first cluster containing the best peptide (overall).
-
-    The algorithm will go through all multipeptides and mark those
-    peakgroups which it deems to belong to the best peakgroup cluster (only
-    the first cluster will be reported).
+    """See :class:`.TreeConsensusAlignment` for a detailed description.
+    
+    This is a Cython implementation of
+    :any:`TreeConsensusAlignment.alignBestCluster`
+    which uses an minimum spanning tree (MST) for alignment.
 
     Args:
-        multipeptides(list of :class:`.Multipeptide`): a list of
-            multipeptides on which the alignment should be performed. After
-            alignment, each peakgroup that should be quantified can be
+        multipeptides(list of :class:`.Multipeptide`): 
+            a list of multipeptides on which the alignment should be performed.
+            After alignment, each peakgroup that should be quantified can be
             retrieved by calling get_selected_peakgroups() on the multipeptide.
-        tree(list of tuple): a minimum spanning tree (MST) represented as
-            list of edges (for example [('0', '1'), ('1', '2')] ). Node names
-            need to correspond to run ids.
-        tr_data(format.TransformationCollection.LightTransformationData):
+        tree(list of tuple):
+            a minimum spanning tree (MST) represented as list of edges (for
+            example [('0', '1'), ('1', '2')] ). Node names need to correspond
+            to run ids.
+        tr_data(:class:`.CyLightTransformationData`):
             structure to hold binary transformations between two different
             retention time spaces
+
+        aligned_fdr_cutoff(float):
+            maximal FDR that a peakgroup needs to reach to be considered
+            for extension (extension FDR)
+        fdr_cutoff(float): 
+            maximal FDR that at least one peakgroup needs to reach (seed
+            FDR)
+        correctRT_using_pg(bool): 
+            use the apex of the aligned peak group as the input for the
+            next alignment during MST traversal (opposed to using the
+            transformed RT plain)
+        max_rt_diff(float):
+            maximal difference in retention time to be used to look for a
+            matching peakgroup in an adjacent run
+        stdev_max_rt_per_run(float): 
+            use a different maximal RT tolerance for each alignment,
+            depending on the goodness of the alignment.  The RT tolerance
+            used by the algorithm will be the standard deviation times
+            stdev_max_rt_per_run.
+        use_local_stdev(float): 
+            use RT-local standard deviation (experimental)
+        max_rt_diff_isotope(float): 
+            maximal difference in retention time between two isotopic pairs or precursors with the same charge state
 
     Returns:
         None

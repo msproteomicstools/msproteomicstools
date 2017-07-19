@@ -29,7 +29,12 @@ cdef extern from "peakgroup.h":
 
 cdef class CyPeakgroupWrapperOnly(object):
     """
+    See :class:`.PeakGroupBase` for a detailed description.
+
+    This implementation stores a pointer to a C++ object holding the actual
+    data. The data access works very similarly as for any :class:`.PeakGroupBase`.
     """
+
 
     cdef c_peakgroup * inst 
     # cdef CyPrecursor peptide
