@@ -51,18 +51,18 @@ def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
     reported distance is 1 minus the Rsquared value (1-R^2) from the linear
     regression.
 
-    Args:
-        exp(MRExperiment): a collection of runs
-        multipeptides(list(Multipeptide)): a list of
-            multipeptides containing the matching of precursors across runs.
-        initial_alignment_cutoff(float): a filtering cutoff (in q-value) to
-            specify which points should be used for the calculation of the
-            distance. In general, only identification which are very certain
-            should be used for this and a q-value of 0.0001 is recommended --
-            given that there are enough points.
+    :param MRExperiment exp: a collection of runs
+    :param multipeptides: 
+        a list of multipeptides containing the matching of precursors
+        across runs.
+    :type multipeptides: list(:class:`.Multipeptide`) 
+    :param SplineAligner spl_aligner:
+        a spline aligner object that contains the run pairs
+    :param singleRowId: If only a single row of the matrix should be computed, provided the identifier of the corresponding run asdasfsf safsafsdf sadfds
+    :type singleRowId: str or None
+    :rtype: numpy (n x n) matrix(float)
+    :returns: distance matrix
 
-    Returns:
-        numpy (n x n) matrix(float): distance matrix
     """
 
     dist_matrix = numpy.zeros(shape=(len(exp.runs),len(exp.runs)))
