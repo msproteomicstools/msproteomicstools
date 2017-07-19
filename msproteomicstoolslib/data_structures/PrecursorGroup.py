@@ -39,10 +39,17 @@ from msproteomicstoolslib.util.assertions import pre_condition, post_condition, 
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
 class PrecursorGroup(object):
-    """A set of precursors that are isotopically modified versions of each other.
+    """A set of precursors that are isotopically modified versions or different
+    charge states of each other.
 
-    A collection of precursors that are isotopically modified versions of the
-    same underlying peptide sequence. Generally these are heavy/light forms.
+    A collection of precursors that are isotopically modified versions or
+    different charge states of the same underlying peptide sequence. Generally
+    these are heavy/light forms. This class groups these Precursors together.
+
+    Attributes:
+        - self.peptide_group_label_: Identifier or precursor group 
+        - self.run_: Reference to the :class:`.Run` where this PrecursorGroup is from
+        - self.precursors_: List of actual precursors
     """
 
     __slots__ = ["peptide_group_label_", "run_", "precursors_"]
