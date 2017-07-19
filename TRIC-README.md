@@ -2,19 +2,19 @@
 Table of Contents
 =================
 
-* [TRIC alignment](#alignment)
-    * [Overview](#alignment-overview)
+* [TRIC alignment](#tric-alignment)
+    * [Overview](#overview)
     * [Algorithm](#design-of-the-algorithm)
-    * [Running TRIC](#runtric)
+    * [Running TRIC](#running-tric)
         * [(Non)-linear pairwise alignment](#pairwise-alignment)
         * [Reference-based alignment](#ref-alignment)
         * [Tree-based alignment](#tree-alignment)
-* [TRIC requantification](#requant)
+* [TRIC requantification](#tric-requantification)
     * [Overview](#requant-overview)
 
-#<a name="alignment"></a> TRIC alignment
+# TRIC alignment
 
-##<a name="alignment-overview"></a> Overview
+## Overview
 
 TRIC uses a graph-based alignment strategy based on non-linear retention time
 correction to integrate information from all available runs. The input consists
@@ -86,7 +86,7 @@ signal within those boundaries, see [TRIC requantification](#requant).
 
 Please see the [main README file](README.md) for installation instructions.
 
-##<a name="runtric"></a> Running TRIC
+## Running TRIC
 
 To get an overview over all available options, please use 
 
@@ -243,7 +243,7 @@ Thus, a sample command for a tree-based alignment may look like this
 - ```--alignment_score``` Minimal score needed for a feature to be considered for alignment between runs (e.g. score needed to be considered an "anchor point" for pairwise alignment)
 - ```--fdr_cutoff``` A fixed m-score cutoff which does not take into account the number of runs (use ```target_fdr``` instead)
 
-#<a name="requant"></a> TRIC requantification
+# TRIC requantification
 
 ##<a name="requant-overview"></a> Overview
 
