@@ -4,7 +4,7 @@ Table of Contents
 
 * [TRIC alignment](#alignment)
     * [Overview](#alignment-overview)
-    * [Algorithm](#aesign-of-the-algorithm)
+    * [Algorithm](#design-of-the-algorithm)
     * [Running TRIC](#runtric)
         * [(Non)-linear pairwise alignment](#pairwise-alignment)
         * [Reference-based alignment](#ref-alignment)
