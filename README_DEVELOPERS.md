@@ -1,4 +1,6 @@
-Please follow the install instructions in the [main README file](README.md) before you continue reading
+Please follow the install instructions in the [main README file](README.md)
+before you continue reading For full documentation, see [the online
+documentation](http://msproteomicstools.hroest.ch/index.html).
 
 # Testing 
 

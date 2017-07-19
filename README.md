@@ -8,7 +8,8 @@ applied to proteomics. Speficically, it contains
 - a set of executables and scripts (available under ./analysis) including the TRIC alignment tool
 
 The code is under the 3-clause BSD licence (see the [LICENSE](LICENSE)
-and the [AUTHORS](AUTHORS.txt)  files).
+and the [AUTHORS](AUTHORS.txt)  files). For full documentation, see [the online
+documentation](http://msproteomicstools.hroest.ch/index.html).
 
 # TRIC
 
