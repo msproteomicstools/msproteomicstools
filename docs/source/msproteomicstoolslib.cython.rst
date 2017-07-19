@@ -58,7 +58,6 @@ CyLightTransformationData (optimized)
     :undoc-members:
     :show-inheritance:
 
-
 DataCacher (optimized)
 ^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: msproteomicstoolslib.algorithms.alignment.DataCacher.CyDataCacher
@@ -66,4 +65,7 @@ DataCacher (optimized)
     :undoc-members:
     :show-inheritance:
 
+MST Algorithm (optimized)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autofunction:: msproteomicstoolslib.cython._optimized.static_cy_alignBestCluster
 
