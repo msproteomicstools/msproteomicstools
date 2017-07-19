@@ -246,7 +246,7 @@ Thus, a sample command for a tree-based alignment may look like this
 
 # TRIC requantification
 
-## Requantification Overview
+## <a name="requant-overview"></a> Requantification Overview
 
 Even after alignment, a complete data matrix will not be achieved. There is a
 last step in the TRIC-based workflow that allows requantification of signal
