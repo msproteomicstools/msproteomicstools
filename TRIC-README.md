@@ -10,7 +10,8 @@ Table of Contents
         * [Reference-based alignment](#ref-alignment)
         * [Tree-based alignment](#tree-alignment)
 * [TRIC requantification](#tric-requantification)
-    * [Overview](#requant-overview)
+    * [Overview](#requantification-overview)
+    * [Advanced Parameters](#advanced-parameters)
 
 # TRIC alignment
 
@@ -245,7 +246,7 @@ Thus, a sample command for a tree-based alignment may look like this
 
 # TRIC requantification
 
-##<a name="requant-overview"></a> Overview
+## Requantification Overview
 
 Even after alignment, a complete data matrix will not be achieved. There is a
 last step in the TRIC-based workflow that allows requantification of signal
@@ -273,7 +274,7 @@ The individual parameters can be adjusted as follows:
 - `--method` Which method to use (singleShortestPath or singleClosestRun are recommended)
 - ```--realign_runs``` Same as ```realign_method``` above, see [(Non)-linear pairwise alignment options](#pairwise-alignment)
 
-### <a name="requant-alignment"></a> Alignment approach
+### Alignment approach
 
 There are multiple alignment approaches available, which can be controlled with ```--method```:
 
