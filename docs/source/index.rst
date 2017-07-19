@@ -21,7 +21,7 @@ Contents of the library:
     msproteomicstoolslib.math
     msproteomicstoolslib.data_structures
     msproteomicstoolslib.format
-    msproteomicstoolslib.util
+    msproteomicstoolslib.cython
 
 Contents of the GUI code:
 

@@ -9,4 +9,5 @@ msproteomicstoolslib
    msproteomicstoolslib.math
    msproteomicstoolslib.data_structures
    msproteomicstoolslib.format
-   msproteomicstoolslib.util
+   msproteomicstoolslib.cython
+
