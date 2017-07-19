@@ -20,7 +20,38 @@ else:
     extra_installs = []
 
 setup(name='msproteomicstools',
-      version='0.5.0',
+      version='0.6.0',
+      description='Tools for MS-based proteomics',
+      long_description='msproteomicstools - python module for MS-based proteomics',
+      url='https://github.com/msproteomicstools/msproteomicstools',
+      license='Modified BSD',
+      platforms=["any"],
+      classifiers=[
+      'Environment :: Console',
+      'Environment :: X11 Applications :: Qt',
+
+      'Intended Audience :: Science/Research',
+      'Intended Audience :: Developers',
+
+      'License :: OSI Approved :: BSD License',
+
+      'Topic :: Documentation :: Sphinx',
+
+      'Operating System :: OS Independent',
+
+      # Supported Python versions:
+      'Programming Language :: Python :: 2',
+      'Programming Language :: Python :: 2.7',
+      'Programming Language :: Python :: 3',
+      'Programming Language :: Python :: 3.4',
+      'Programming Language :: Python :: 3.5',
+      'Programming Language :: Python :: 3.6',
+
+      'Topic :: Scientific/Engineering :: Bio-Informatics',
+      'Topic :: Scientific/Engineering :: Chemistry',
+      ],
+
+      scripts=all_scripts,
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
@@ -39,20 +70,7 @@ setup(name='msproteomicstools',
       },
       package_data={'msproteomicstoolslib.data_structures':
           ['modifications_default.tsv']},
-      scripts=all_scripts,
-      description='Tools for MS-based proteomics',
-      long_description='msproteomicstools - python module for MS-based proteomics',
-      url='https://code.google.com/p/msproteomicstools',
-      license='Modified BSD',
-      platforms='any that supports python 2.7',
-      classifiers=[
-      'Environment :: Console',
-      'Intended Audience :: Science/Research',
-      'License :: OSI Approved :: BSD License',
-      'Operating System :: OS Independent',
-      'Topic :: Scientific/Engineering :: Bio-Informatics',
-      'Topic :: Scientific/Engineering :: Chemistry',
-      ],
+
       install_requires=[
           "numpy",
           "scipy",
@@ -74,5 +92,5 @@ setup(name='msproteomicstools',
       },
       test_suite="nose.collector",
       tests_require="nose",
-      )
+)
 
