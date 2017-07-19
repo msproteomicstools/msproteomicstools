@@ -29,7 +29,6 @@ if with_cython:
     ext_modules = [
 	    cythonize(Extension('msproteomicstoolslib/cython/_optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
 	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
-	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
 	    cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
 	    ]
 
@@ -37,6 +36,7 @@ setup(name='msproteomicstools',
       version='0.5.0',
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
+                  "msproteomicstoolslib.cython",
                   "msproteomicstoolslib.algorithms.alignment",
                   "msproteomicstoolslib.algorithms.shared",
                   "msproteomicstoolslib.algorithms.PADS",
