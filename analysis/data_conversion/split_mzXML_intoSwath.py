@@ -141,7 +141,11 @@ for line in source:
                 ms1map.write(mybuffer)
         else:
             mybuffer = rewrite_single_scan(mybuffer, swathscan)
-            windows[scanwindow].write(mybuffer)
+            try:
+                windows[scanwindow].write(mybuffer)
+            except IndexError:
+                print("window index %d does not fit in the array of length %d" % (scanwindow, window_size))
+                raise
             scanwindow += 1
     if not header_done: header += line
 
