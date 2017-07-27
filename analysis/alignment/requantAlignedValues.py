@@ -733,20 +733,25 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
         if chromatogram is None:
             print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
             return("NA")
-        if len(chromatogram.peaks) == 0:
+
+        peaks = chromatogram.peaks
+
+        if len(peaks) == 0:
             print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
             return("NA")
 
         # Check whether we even have data between left_start and right_end ... 
-        if chromatogram.peaks[0][0] > left_start or chromatogram.peaks[-1][0] < right_end:
+        if peaks[0][0] > left_start or peaks[-1][0] < right_end:
             cnt.integration_bnd_warnings += 1
-            # print "WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
-            #     chromatogram.peaks[0][0],chromatogram.peaks[-1][0], left_start, right_end)
+            # print ("WARNING: Chromatogram (%s,%s) does not cover full range (%s,%s)"  % (
+            #     peaks[0][0],peaks[-1][0], left_start, right_end) )
 
-        curr_int = sum( [p[1] for p in chromatogram.peaks if p[0] > left_start and p[0] < right_end ])
+        curr_int = sum( [p[1] for p in peaks if p[0] > left_start and p[0] < right_end ])
         peak_areas.append(curr_int)
-        # print integrated_sum, "chromatogram", sum(p[1] for p in chromatogram.peaks), \
-        # "integrated from \t%s\t%s in run %s" %( left_start, right_end, current_rid), newpg.get_value("transition_group_id")
+        if VERBOSE and False:
+            print ("chromatogram", chrom_id, "integrated", len( [p[1] for p in peaks if p[0] > left_start and p[0] < right_end ]),
+                    "peaks from \t%s\tto\t%s in run %s" %(left_start, right_end, current_rid), newpg.get_value("transition_group_id"))
+            print ("chromatogram", chrom_id, "integrated", [p for p in peaks if p[0] > left_start and p[0] < right_end ])
 
     integrated_sum = sum(peak_areas)
     aggr_annotation = ";".join(chrom_ids)
