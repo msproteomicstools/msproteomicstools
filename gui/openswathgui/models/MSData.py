@@ -85,14 +85,18 @@ class DataModel(object):
     """The main data model, provides access to all raw data
 
     It stores the references to individual :class:`.SwathRun` objects and can
-    be initialized from a list of files. 
+    be initialized from a list of files. Each "load" method is
+    responsible for setting the self.runs parameter.
 
     Attributes:
         runs(list of :class:`.SwathRun`): The MS runs which are handled by this class
+        runs(bool): Whether to draw individual transitions
     """
 
-    def __init__(self):
+    def __init__(self, fdr_cutoff = FDR_CUTOFF, only_quantified = ONLY_SHOW_QUANTIFIED):
         self.runs = []
+        self.fdr_cutoff = fdr_cutoff
+        self.only_show_quantified = only_quantified
         self.draw_transitions_ = False
 
     #
@@ -159,6 +163,13 @@ class DataModel(object):
     #
     ## Data loading
     #
+    def loadSqMassFiles(self, filenames):
+
+        # Read the chromatograms
+        swathfiles = SwathRunCollection()
+        swathfiles.initialize_from_sql(filenames)
+        self.runs = [run for run in swathfiles.getSwathFiles()]
+
     def loadFiles(self, filenames):
         """
         Load a set of chromatogram files (no peakgroup information).
@@ -200,11 +211,14 @@ class DataModel(object):
 
         # Read the chromatograms
         swathfiles = SwathRunCollection()
-        if ONLY_SHOW_QUANTIFIED:
+        if fileType == "sqmass":
+            swathfiles.initialize_from_sql_map(mapping, rawdata_files, precursors_mapping, sequences_mapping, protein_mapping)
+        elif self.only_show_quantified:
             swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping, protein_mapping)
         else:
             swathfiles.initialize_from_chromatograms(mapping)
         self.runs = [run for run in swathfiles.getSwathFiles()]
+
         if not fileType in ["simple", "traml"]:
             self._read_peakgroup_files(aligned_pg_files, swathfiles)
 
@@ -237,6 +251,7 @@ class DataModel(object):
             - leftWidth
             - rightWidth
             - m_score
+            - assay_rt
             - Intensity
             - align_runid
             - transition_group_id
@@ -246,17 +261,19 @@ class DataModel(object):
         reader = SWATHScoringReader.newReader(aligned_pg_files, "openswath", readmethod="gui", errorHandling="loose")
         new_exp = Experiment()
         new_exp.runs = reader.parse_files(REALIGN_RUNS)
-        multipeptides = new_exp.get_all_multipeptides(FDR_CUTOFF, verbose=False)
+        multipeptides = new_exp.get_all_multipeptides(self.fdr_cutoff, verbose=False)
 
         # Build map of the PeptideName/Charge to the individual multipeptide
         peakgroup_map = {}
         for m in multipeptides:
             pg = m.find_best_peptide_pg()
             identifier = pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")
+            # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
             peakgroup_map[ identifier ] = m
+            peakgroup_map[ identifier + "_pr" ] = m
 
         for swathrun in swathfiles.getSwathFiles():
-            if ONLY_SHOW_QUANTIFIED:
+            if self.only_show_quantified:
                 intersection = set(swathrun.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
                 todelete = set(swathrun.get_all_precursor_ids()).difference(intersection)
                 if len(intersection) == 0:
@@ -274,8 +291,9 @@ class DataModel(object):
                     for pg in m.getPrecursorGroup(swathrun.runid).getAllPeakgroups():
                         l,r       = [ float(pg.get_value("leftWidth")), float(pg.get_value("rightWidth")) ]
                         fdrscore  = float(pg.get_value("m_score"))
+                        assay_rt  = float(pg.get_value("assay_rt"))
                         intensity = float(pg.get_value("Intensity"))
-                        swathrun.add_peakgroup_data(precursor_id,l,r, fdrscore, intensity)
+                        swathrun.add_peakgroup_data(precursor_id, l, r, fdrscore, intensity, assay_rt)
 
     def _loadFiles_with_peakgroups(self, RawData, aligned_pg_files):
 
