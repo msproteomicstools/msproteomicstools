@@ -37,6 +37,12 @@ $Authors: Hannes Roest$
 
 from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
 
+py3 = False
+import sys
+if (sys.version_info > (3, 0)):
+     # Python 3 code in this block
+     py3 = True
+
 class Multipeptide(object):
     """ A collection of the same precursors (chromatograms) across multiple runs.
 
@@ -94,7 +100,10 @@ class Multipeptide(object):
 
         :rtype: list(:class:`.PrecursorGroup`): All Precursor group from the corresponding run
         """
-        return sorted(self._peptides.values())
+        if py3:
+            return sorted(self._peptides.values(), key=repr)
+        else:
+            return sorted(self._peptides.values())
 
     def hasPrecursorGroup(self, runid):
         """
