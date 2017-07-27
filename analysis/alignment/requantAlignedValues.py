@@ -747,7 +747,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile=No
     for m in sorted(multipeptides, key=lambda x: str(x)):
         # selected_peakgroups = [p.peakgroups[0] for p in m.get_peptides()]
         # if (len(selected_peakgroups)*2.0 / len(new_exp.runs) < fraction_needed_selected) : continue
-        for p in m.getAllPeptides():
+        for p in sorted(m.getAllPeptides(), key= lambda x: str(x)):
             for selected_pg in sorted(p.peakgroups):
                 if single_outfile is not None:
                     if single_outfile == selected_pg.get_value("run_id"):
