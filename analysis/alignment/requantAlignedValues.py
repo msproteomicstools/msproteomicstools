@@ -263,15 +263,22 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     precursors_mapping = {}
     sequences_mapping = {}
     protein_mapping = {}
-    inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
-    mapping_inv = dict((v[0], k) for k, v in mapping.items())
+
+    start = time.time()
+    # Do only a single run : read only one single file
+    swath_chromatograms = SwathChromatogramCollection()
+    if mzML_file.lower().endswith("sqmass"):
+        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
+        mapping_inv = dict((v[0], k) for k, v in mapping.items())
+        swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ])
+    else:
+        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
+        mapping_inv = dict((v[0], k) for k, v in mapping.items())
+        swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
+
     if VERBOSE:
         print (mapping)
 
-    # Do only a single run : read only one single file
-    start = time.time()
-    swath_chromatograms = SwathChromatogramCollection()
-    swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
     assert len(swath_chromatograms.getRunIDs() ) == 1
     rid = list(swath_chromatograms.getRunIDs())[0]
