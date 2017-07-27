@@ -196,6 +196,27 @@ class SwathChromatogramCollection(object):
             self.allruns[runid] = swathrun
             print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
+    def initialize_from_sql_map(self, runid_mapping, filenames, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        """Initialize from a set of sqMass chromatogram files.
+
+        Parameters
+        ----------
+        filenames : list(str)
+            A List of files
+        precursor_mapping : dict
+            An optional mapping of the form { FullPrecursorName : [transition_id, transition_id, ...] }
+        sequences_mapping : dict
+            An optional mapping of the form { StrippedSequence : [FullPrecursorName, FullPrecursorName, ...]}
+        """
+
+        self.swath_chromatograms = {}
+        print(runid_mapping)
+        for k, f in enumerate(filenames):
+            # self.swath_chromatograms[ runid ] = SqlSwathRun(runid_mapping[runid], f, False, precursor_mapping, sequences_mapping, protein_mapping)
+            runid = runid_mapping[k] # TODO!
+            print(runid)
+            self.allruns[ runid[0] ] = SqlSwathRun(runid, f, False, precursor_mapping, sequences_mapping, protein_mapping)
+
     def getRunIDs(self):
         return list(self.allruns.keys())
 
