@@ -209,8 +209,8 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
         c = conn.cursor()
         d = list(c.execute("SELECT ID, FILENAME, NATIVE_ID FROM RUN"))
         assert len(d) == 1
-        filename = d[0][1]
-        sqlfile_map.append([k, 0, os.path.basename(filename)])
+        sql_fn = d[0][1]
+        sqlfile_map.append([k, 0, os.path.basename(sql_fn), os.path.basename(filename)])
         mapping[k] = [None]
 
     nomatch_found = set([])
@@ -239,22 +239,34 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
 
             # 2. Go through all sql input files and try to find
             # one that matches the one from align_origfilename
-            for sqlfile, runid, rfile in sqlfile_map:
+            for sqlfile, runid, rfile, diskfile in sqlfile_map:
+
+                if verbose and False:
+                    print("- Try to match :", sqlfile, runid, rfile, aligned_fname, diskfile)
 
                 # 2.1 remove common file endings from the raw data
                 rfile_base = rfile
-                for ending in [".gz", ".mzML", ".chrom", ".sqMass"]:
+                for ending in [".gz", ".mzML", ".chrom", ".sqMass", "_with_dscore_filtered", "_with_dscore"]:
                     rfile_base = rfile_base.split(ending)[0]
 
+                diskfile_base = diskfile
+                for ending in [".gz", ".mzML", ".chrom", ".sqMass", "_with_dscore_filtered", "_with_dscore"]:
+                    diskfile_base = diskfile_base.split(ending)[0]
+
                 # 2.2 remove common file endings from the tsv data
-                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
+                for ending in [".tsv", ".csv", ".xls", "_with_dscore_filtered", "_with_dscore", "_all_peakgroups"]:
                     aligned_fname = aligned_fname.split(ending)[0]
 
                 # 2.3 Check if we have a match
-                # print aligned_fname, rfile_base
+                # print (aligned_fname, rfile_base, diskfile_base)
                 if aligned_fname == rfile_base:
-                    if False:
+                    if verbose:
                         print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
+                    mapping[sqlfile][runid] = aligned_id
+
+                elif aligned_fname == diskfile_base:
+                    if verbose:
+                        print("- Found match:", os.path.basename(diskfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
                     mapping[sqlfile][runid] = aligned_id
 
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
@@ -273,11 +285,11 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
     import csv, os
 
     if fileType == "simple":
-        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
+        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=verbose)
     elif fileType == "traml":
-        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
+        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=verbose)
     elif fileType == "sqmass":
-        return sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
+        return sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=verbose)
 
     nomatch_found = set([])
     for file_nr, f in enumerate(aligned_pg_files):
