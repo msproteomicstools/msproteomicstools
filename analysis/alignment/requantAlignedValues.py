@@ -44,6 +44,7 @@ import argparse
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.data_structures.Precursor import GeneralPrecursor, Precursor
 from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
+from msproteomicstoolslib.data_structures import FormatHelper, SqlDataAccess, SqlSwathRun
 import msproteomicstoolslib.format.TransformationCollection as transformations
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
@@ -270,7 +271,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     if mzML_file.lower().endswith("sqmass"):
         inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
         mapping_inv = dict((v[0], k) for k, v in mapping.items())
-        swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ])
+        swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ], precursor_mapping = precursors_mapping, sequences_mapping = sequences_mapping)
     else:
         inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
         mapping_inv = dict((v[0], k) for k, v in mapping.items())
@@ -321,7 +322,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     print("Alignment took %ss" % (time.time() - start) )
     start = time.time()
     multipeptides = analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
-        tr_data, options.border_option, rid, tree=tree_mapped, mat=dist_matrix,
+        tr_data, options.border_option, onlyExtractFromRun=rid, tree=tree_mapped, mat=dist_matrix,
         disable_isotopic_transfer=options.disable_isotopic_transfer, is_test=is_test)
     print("Analyzing the runs took %ss" % (time.time() - start) )
 
