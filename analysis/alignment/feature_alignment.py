@@ -319,8 +319,8 @@ class Experiment(MRExperiment):
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
             id_writer = csv.writer(fh, delimiter="\t")
-            for pg in sorted(selected_pgs):
-                id_writer.writerow([pg.get_feature_id()])
+            for pg in sorted(list(selected_ids_dict.keys())):
+                id_writer.writerow([pg])
             fh.close()
             del id_writer
 
