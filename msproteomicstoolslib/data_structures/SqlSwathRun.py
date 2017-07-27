@@ -220,6 +220,16 @@ class SqlSwathRun():
             print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
             print "Please check your input data"
 
+    def getChromatogram(self, transition_id):
+        chromatogram = self.get_data_for_transition(transition_id)
+        if chromatogram is None:
+            return None
+
+        class Chromatogram: pass
+        c = Chromatogram()
+        c.peaks = [ (rt, inten) for (rt, inten) in zip( chromatogram[0][0], chromatogram[0][1] ) ]
+        return c
+
     def get_id(self):
         return self._basename
 
