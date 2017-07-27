@@ -1,6 +1,5 @@
 # distutils: language = c++
-# cython: c_string_encoding=ascii  # for cython>=0.19
-# encoding: latin-1
+# cython: c_string_type=str, c_string_encoding=ascii
 cimport cython
 cimport libc.stdlib
 cimport numpy as np

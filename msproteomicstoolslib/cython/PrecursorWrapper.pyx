@@ -1,6 +1,5 @@
 # distutils: language = c++
-# cython: c_string_encoding=ascii  # for cython>=0.19
-# encoding: latin-1
+# cython: c_string_type=str, c_string_encoding=ascii
 cimport cython
 cimport libc.stdlib
 cimport numpy as np
@@ -42,9 +41,10 @@ cdef class CyPrecursorWrapperOnly(object):
         if self.own_ptr:
             del self.inst
 
-    def __init__(self, bytes this_id, run, take_ownership=True):
+    def __init__(self, str this_id, run, take_ownership=True):
+        cdef str runid = <str>run.get_id()
         if run is not None:
-            self.inst = new c_precursor(this_id, <bytes>run.get_id())
+            self.inst = new c_precursor(this_id, runid)
 
         if take_ownership: self.own_ptr = True
         else: self.own_ptr = False
@@ -55,19 +55,19 @@ cdef class CyPrecursorWrapperOnly(object):
         return deref(self.inst).curr_id_ 
 
     def get_id(self):
-        return <bytes>( deref(self.inst).curr_id_ )
+        return <str>( deref(self.inst).curr_id_ )
 
     def get_decoy(self):
         return ( deref(self.inst).decoy )
 
     def getSequence(self):
-        return <bytes>( deref(self.inst).sequence_ )
+        return <str>( deref(self.inst).sequence_ )
 
     def getProteinName(self):
-        return <bytes>( deref(self.inst).protein_name_ )
+        return <str>( deref(self.inst).protein_name_ )
 
     def getRunId(self):
-        return <bytes>( deref(self.inst).run_id_ )
+        return <str>( deref(self.inst).run_id_ )
 
     cdef libcpp_vector[c_peakgroup].iterator get_all_peakgroups_cy_begin(self):
         return deref(self.inst).peakgroups.begin()
@@ -80,13 +80,13 @@ cdef class CyPrecursorWrapperOnly(object):
 
     #
     ### Setters
-    def setProteinName(self, bytes p):
-        deref(self.inst).protein_name_ = libcpp_string(<char*> p)
+    def setProteinName(self, str p):
+        deref(self.inst).protein_name_ = p
 
-    def setSequence(self, bytes p):
-        deref(self.inst).sequence_ = libcpp_string(<char*> p)
+    def setSequence(self, str p):
+        deref(self.inst).sequence_ = p
 
-    def set_decoy(self, bytes decoy):
+    def set_decoy(self, str decoy):
         if decoy in ["FALSE", "False", "0"]:
             deref(self.inst).decoy = False
         elif decoy in ["TRUE", "True", "1"]:
@@ -95,9 +95,9 @@ cdef class CyPrecursorWrapperOnly(object):
             raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
 
     def set_precursor_group(self, precursor_group):
-        deref(self.inst).precursor_group_id = <bytes>precursor_group.getPeptideGroupLabel()
+        deref(self.inst).precursor_group_id = <str>precursor_group.getPeptideGroupLabel()
 
-    def add_peakgroup_tpl(self, pg_tuple, bytes tpl_id, int cluster_id=-1):
+    def add_peakgroup_tpl(self, pg_tuple, str tpl_id, int cluster_id=-1):
         """Adds a peakgroup to this precursor.
 
         The peakgroup should be a tuple of length 4 with the following components:
@@ -125,7 +125,6 @@ cdef class CyPrecursorWrapperOnly(object):
         pg.precursor = self.inst
 
         deref(self.inst).add_peakgroup_tpl(pg, tpl_id, cluster_id)
-
 
     # 
     # Peakgroup selection

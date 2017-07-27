@@ -1,6 +1,5 @@
 # distutils: language = c++
-# cython: c_string_encoding=ascii  # for cython>=0.19
-# encoding: latin-1
+# cython: c_string_type=str, c_string_encoding=ascii
 cimport cython
 cimport libc.stdlib
 cimport numpy as np
@@ -22,8 +21,8 @@ cdef class CyPrecursorGroup(object):
     cdef object run_
     cdef list precursors_ # list of peptide precursors (CyPrecursor)
 
-    def __init__(self, peptide_group_label, run):
-        self.peptide_group_label_ = peptide_group_label  
+    def __init__(self, str peptide_group_label, run):
+        self.peptide_group_label_ = peptide_group_label
         self.run_ = run
         self.precursors_ = []
 
