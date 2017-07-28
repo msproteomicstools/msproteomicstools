@@ -449,6 +449,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
     class CounterClass(object): pass
     cnt = CounterClass()
     cnt.integration_bnd_warnings = 0
+    cnt.integration_transitions = 0
     cnt.imputations = 0
     cnt.imputation_succ = 0
     cnt.peakgroups = 0
@@ -548,7 +549,7 @@ def analyze_multipeptides(new_exp, multipeptides, swath_chromatograms,
                     pg.select_this_peakgroup()
 
     print("Imputations:", cnt.imputations, "Successful:", cnt.imputation_succ, "Still missing", cnt.imputations - cnt.imputation_succ)
-    print("WARNING: %s times: Chromatogram does not cover full range"  % (cnt.integration_bnd_warnings))
+    print("WARNING: %s times out of %s: Chromatogram does not cover full range"  % (cnt.integration_bnd_warnings, cnt.integration_transitions))
     print("Peakgroups:", cnt.peakgroups)
     return multipeptides 
 
@@ -737,6 +738,7 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
             print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
             return("NA")
 
+        cnt.integration_transitions += 1
         # Check whether we even have data between left_start and right_end ... 
         if peaks[0][0] > left_start or peaks[-1][0] < right_end:
             cnt.integration_bnd_warnings += 1
