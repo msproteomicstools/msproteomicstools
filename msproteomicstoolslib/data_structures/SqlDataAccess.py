@@ -104,10 +104,16 @@ class SqlDataAccess(object):
             result = []
             if compr == 5:
                 tmp = [ord(q) for q in zlib.decompress(d)]
-                PyMSNumpress.decodeLinear(tmp, result)
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeLinear(tmp, result)
+                else:
+                    result = [0]
             if compr == 6:
                 tmp = [ord(q) for q in zlib.decompress(d)]
-                PyMSNumpress.decodeSlof(tmp, result)
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeSlof(tmp, result)
+                else:
+                    result = [0]
 
             if data_type == 1:
                 res[chr_id][1] = result
