@@ -85,8 +85,27 @@ class SwathChromatogramRun(object):
     def getChromatogram(self, chromid):
         for cfile in self.chromfiles:
             if chromid in cfile.info["offsets"]:
-                return cfile[chromid]
+                return cfile[chromid].peaks
         return None
+
+class SqlSwathChromatogramRun(SqlSwathRun):
+    """ A single SWATH LC-MS/MS run stored in sqMass.
+    """
+
+    def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        super(SqlSwathChromatogramRun, self).__init__(runid, filename, load_in_memory, precursor_mapping, sequences_mapping, protein_mapping)
+
+    def getChromatogram(self, transition_id):
+        """Get chromatogram peaks:
+
+        A list of (rt, intensity) pairs.
+        """
+        chromatogram = self.get_data_for_transition(transition_id)
+        if chromatogram is None:
+            return None
+
+        peaks = [ (rt, inten) for (rt, inten) in zip( chromatogram[0][0], chromatogram[0][1] ) ]
+        return peaks
 
 class SwathChromatogramCollection(object):
     """ A collection of multiple SWATH LC-MS/MS runs.
@@ -120,14 +139,21 @@ class SwathChromatogramCollection(object):
 
     def _getChromatogramCached(self, runid, chromid):
         assert runid == self.cached_run
-        return self.cache.get( chromid, None)
+        if chromid in self.cache:
+            return self.cache[chromid].peaks
+        return None
 
     def getChromatogram(self, runid, chromid):
+        """Get chromatogram:
+
+        A list of (rt, intensity) pairs.
+        """
         if runid == self.cached_run:
             return self._getChromatogramCached(runid, chromid)
 
         if not runid in self.allruns:
             return None
+
         return self.allruns[runid].getChromatogram(chromid)
 
     def parseFromTrafoFiles(self, trafo_fnames):
@@ -184,12 +210,11 @@ class SwathChromatogramCollection(object):
         """
 
         self.swath_chromatograms = {}
-        print(runid_mapping)
         for k, f in enumerate(filenames):
             # self.swath_chromatograms[ runid ] = SqlSwathRun(runid_mapping[runid], f, False, precursor_mapping, sequences_mapping, protein_mapping)
-            runid = runid_mapping[k] # TODO!
-            print(runid)
-            self.allruns[ runid[0] ] = SqlSwathRun(runid, f, False, precursor_mapping, sequences_mapping, protein_mapping)
+            runid = runid_mapping[k]
+            assert len(runid) == 1  # TODO!
+            self.allruns[ runid[0] ] = SqlSwathChromatogramRun(runid, f, False, precursor_mapping, sequences_mapping, protein_mapping)
 
     def getRunIDs(self):
         return list(self.allruns.keys())
@@ -213,9 +238,9 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
             rid(string): run id of the analyzed run
 
     This function will read the csv file with all peakgroups as well as the
-    provided chromatogram file (.chrom.mzML). It will then try to impute
-    missing values for those peakgroups where no values is currently present,
-    reading the raw chromatograms.
+    provided chromatogram file (.chrom.mzML or sqMass file). It will then try
+    to impute missing values for those peakgroups where no values is currently
+    present, reading the raw chromatograms.
     """
 
     # We do not want to exclude any peakgroups for noiseIntegration (we assume
@@ -702,13 +727,11 @@ def integrate_chromatogram(template_pg, current_run, swath_chromatograms,
         pass
 
     for chrom_id in chrom_ids:
-        chromatogram = swath_chromatograms.getChromatogram(current_rid, chrom_id)
+        peaks = swath_chromatograms.getChromatogram(current_rid, chrom_id)
         # Check if we got a chromatogram with at least 1 peak: 
-        if chromatogram is None:
+        if peaks is None:
             print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
             return("NA")
-
-        peaks = chromatogram.peaks
 
         if len(peaks) == 0:
             print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
