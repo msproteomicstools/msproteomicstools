@@ -187,6 +187,27 @@ class TestNoiseIntegration(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
+    @attr("sqMass")
+    def test_62_singleShortestPath_requantAlignedValues_sqMass(self):
+        script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
+        filename = os.path.join(self.datadir, "imputeValues/imputeValues_5_input.csv")
+        mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.sqMass")
+        expected_outcome = os.path.join(self.datadir, "imputeValues_6_output.csv")
+        expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_6_output_matrix.csv")
+        tmpfilename = "imputeValues_6.out.tmp"
+        tmpfilename_matrix = "imputeValues_6.out.tmp_matrix.tsv"
+
+        args = "--do_single_run %s --peakgroups_infile %s  --out %s --out_matrix %s\
+                --realign_runs linear --method singleShortestPath --matrix_output_method RT --test" % (
+            mzml_file, filename, tmpfilename, tmpfilename_matrix)
+        cmd = "python %s %s" % (script, args)
+        sub.check_output(cmd,shell=True)
+        
+        self.exact_diff(tmpfilename, expected_outcome)
+        self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
+
+        os.remove(tmpfilename_matrix)
+
     @attr('slow')
     def test_7_requantAlignedValues(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
