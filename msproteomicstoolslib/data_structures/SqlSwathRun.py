@@ -40,7 +40,7 @@ import os
 from SqlDataAccess import SqlDataAccess
 from FormatHelper import FormatHelper
 
-class SqlSwathRun():
+class SqlSwathRun(object):
     """Data Model for a single sqMass file.
 
     TODO: each file may contain multiple runs!
@@ -58,7 +58,6 @@ class SqlSwathRun():
     """
 
     def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
-        print "runid ", runid
         if runid is not None:
             assert len(runid) == 1
 
@@ -112,6 +111,7 @@ class SqlSwathRun():
 
         if r is not None and len(r) > 0:
             return r[0]
+
         return None
 
     def get_score_data(self, precursor):
@@ -204,9 +204,12 @@ class SqlSwathRun():
         transitions = []
         sql_ids = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            sql_id = self._id_mapping[ chrom_id ]
-            sql_ids.append(sql_id)
+            if chrom_id in self._id_mapping:
+                sql_id = self._id_mapping[ chrom_id ]
+                sql_ids.append(sql_id)
+
         transitions = self._run.getDataForChromatograms(sql_ids)
+
         return transitions
 
     def get_data_for_transition(self, transition_id):
@@ -219,16 +222,6 @@ class SqlSwathRun():
         else:
             print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
             print "Please check your input data"
-
-    def getChromatogram(self, transition_id):
-        chromatogram = self.get_data_for_transition(transition_id)
-        if chromatogram is None:
-            return None
-
-        class Chromatogram: pass
-        c = Chromatogram()
-        c.peaks = [ (rt, inten) for (rt, inten) in zip( chromatogram[0][0], chromatogram[0][1] ) ]
-        return c
 
     def get_id(self):
         return self._basename
@@ -297,4 +290,5 @@ class SqlSwathRun():
         tmp = self._assay_mapping.get(precursor_id, [])
         tmp.append(assay_rt)
         self._assay_mapping[precursor_id] = tmp
+
 
