@@ -392,10 +392,11 @@ class DataModel(object):
                                                         peptideSequence = pm.getFullSequence(),
                                                         datatype="Precursor") )
 
-            elements.append(ChromatogramTransition(seq,
-                                                   "NA",
-                                                   pelements, 
-                                                   datatype="Peptide",
-                                                   peptideSequence=pm.getFullSequence()) )
+            if len(precursors) > 0:
+                elements.append(ChromatogramTransition(seq,
+                                                       "NA",
+                                                       pelements, 
+                                                       datatype="Peptide",
+                                                       peptideSequence=pm.getFullSequence()) )
         return elements
 
