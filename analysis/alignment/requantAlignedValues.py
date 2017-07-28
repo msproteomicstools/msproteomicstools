@@ -41,7 +41,9 @@ from __future__ import division
 import os, sys, csv, time
 import numpy
 import argparse
-from msproteomicstoolslib.format.SWATHScoringReader import *
+from msproteomicstoolslib.data_structures.PeakGroup import GeneralPeakGroup
+from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
+from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping
 from msproteomicstoolslib.data_structures.Precursor import GeneralPrecursor, Precursor
 from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
 from msproteomicstoolslib.data_structures import FormatHelper, SqlDataAccess, SqlSwathRun
@@ -56,36 +58,7 @@ from msproteomicstoolslib.algorithms.alignment.BorderIntegration import \
 import msproteomicstoolslib.math.Smoothing as smoothing
 from feature_alignment import Experiment
 
-# The Window overlap which needs to be taken into account when calculating from which swath window to extract!
-SWATH_EDGE_SHIFT = 1
 VERBOSE = False
-
-class ImputeValuesHelper(object):
-    """
-    Static object with some helper methods.
-    """
-
-    @staticmethod
-    def select_correct_swath(swath_chromatograms, mz):
-        """Select the correct chromatogram
-
-        Args:
-            swath_chromatograms(dict): containing the objects pointing to the original chrom mzML (see runImputeValues)
-            mz(float): the mz value of the precursor
-        """
-        mz = mz + SWATH_EDGE_SHIFT
-        swath_window_low = int(mz // 25) * 25
-        swath_window_high = int(mz // 25) * 25 + 25
-        res = {}
-        for k, v in swath_chromatograms.items():
-            # TODO smarter selection here
-            selected = [vv for prec_mz, vv in v.items() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
-            if len(v) == 1: 
-                # We have merged chrom.mzML file (only one file)
-                selected = list(v.values())
-            if len(selected) == 1: 
-                res[k] = selected[0]
-        return res
 
 class SwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run.
