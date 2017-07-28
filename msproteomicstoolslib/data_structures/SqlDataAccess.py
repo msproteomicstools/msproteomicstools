@@ -52,6 +52,9 @@ class SqlDataAccess(object):
         - data contains the raw (blob) data for a single data array
         """
 
+        if len(ids) == 0:
+            return [ [ [0], [0] ] ]
+
         stmt ="SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA WHERE CHROMATOGRAM_ID IN ("
         for myid in ids:
             stmt += str(myid) + ","
