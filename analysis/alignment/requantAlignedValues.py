@@ -715,7 +715,7 @@ def _integrate_chromatogram(template_pg, current_run, swath_chromatograms,
         newpg.set_value(element, template_pg.get_value(element))
     for element in ["decoy", "Sequence", "FullPeptideName", "Charge", "ProteinName", 
                     "nr_peaks", "m.z", "m/z", "align_clusterid", "peptide_group_label", 
-                    "aggr_prec_Fragment_Annotation"]:
+                    "assay_rt", "aggr_prec_Fragment_Annotation"]:
         try:
             newpg.set_value(element, template_pg.get_value(element))
         except KeyError:
