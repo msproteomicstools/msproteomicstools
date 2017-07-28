@@ -154,19 +154,26 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
 
 def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping):
     # Get the mapping ... 
-    if "FullPeptideName" in header_dict and \
-      "Charge" in header_dict and \
-      "aggr_Fragment_Annotation" in header_dict:
-        transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
+
+    if "FullPeptideName" in header_dict:
+        peptide_name = this_row[header_dict["FullPeptideName"]]
+
+        transitions = []
         pr_transitions = []
+        if "aggr_Fragment_Annotation" in header_dict:
+            transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
         if "aggr_prec_Fragment_Annotation" in header_dict:
             pr_transitions = this_row[ header_dict["aggr_prec_Fragment_Annotation"] ].split(";")
+
         if len(transitions[-1]) == 0:
             transitions = transitions[:-1]
         if len(pr_transitions) > 0 and len(pr_transitions[-1]) == 0:
             pr_transitions = pr_transitions[:-1]
-        peptide_name = this_row[header_dict["FullPeptideName"]]
-        charge_state = this_row[header_dict["Charge"]]
+
+        charge_state = "0"
+        if "Charge" in header_dict:
+            charge_state = this_row[header_dict["Charge"]]
+
         key = peptide_name + "/" + charge_state
         prkey = peptide_name + "/" + charge_state + "_pr"
         precursors_mapping [ key ] = transitions
