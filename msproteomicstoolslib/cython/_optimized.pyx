@@ -41,11 +41,16 @@ from libcpp cimport bool
 
 # note that Precursor.pyx is a free-standing module
 
+from PeakgroupWrapper cimport CyPeakgroupWrapperOnly
+from PeakgroupWrapper cimport c_peakgroup
 
-include "LightTransformationData.pyx"
-include "PeakgroupWrapper.pyx"
-include "PrecursorWrapper.pyx"
-include "PrecursorGroup.pyx"
+from PrecursorWrapper cimport CyPrecursorWrapperOnly
+from PrecursorWrapper cimport c_precursor
+from PrecursorGroup cimport CyPrecursorGroup
+
+# include "PeakgroupWrapper.pyx"
+# include "PrecursorWrapper.pyx"
+# include "PrecursorGroup.pyx"
 
 include "MSTAlignment.pyx"
 include "MSTAlignment_fast.pyx"

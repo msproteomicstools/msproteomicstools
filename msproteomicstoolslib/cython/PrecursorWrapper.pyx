@@ -4,24 +4,14 @@ cimport cython
 cimport libc.stdlib
 cimport numpy as np
 
-cdef extern from "precursor.h":
-    cdef cppclass c_precursor:
-        c_precursor()
-        c_precursor(libcpp_string my_id, libcpp_string run_id)
-
-        bool decoy
-        libcpp_vector[c_peakgroup] peakgroups
-        libcpp_string curr_id_
-        libcpp_string protein_name_
-        libcpp_string sequence_
-        libcpp_string run_id_
-        libcpp_string precursor_group_id
-
-        libcpp_string getRunId()
-        libcpp_string get_id()
-
-        void add_peakgroup_tpl(c_peakgroup & pg, libcpp_string tpl_id, int cluster_id)
-
+from libcpp.string cimport string as libcpp_string
+from libcpp.vector cimport vector as libcpp_vector
+from libcpp.map cimport map as libcpp_map
+from libcpp.pair cimport pair as libcpp_pair
+from cython.operator cimport dereference as deref, preincrement as inc, address as address
+from libcpp cimport bool
+from PrecursorWrapper cimport c_precursor
+from PeakgroupWrapper cimport CyPeakgroupWrapperOnly, c_peakgroup
 
 cdef class CyPrecursorWrapperOnly(object):
     """ A set of peakgroups that belong to the same precursor in a single run.
@@ -33,9 +23,6 @@ cdef class CyPrecursorWrapperOnly(object):
     Each precursor has a list of :class:`.CyPeakgroupWrapperOnly` that are
     found in the chromatogram of this precursor in this particular run.
     """
-
-    cdef c_precursor * inst 
-    cdef bool own_ptr
 
     def __dealloc__(self):
         if self.own_ptr:

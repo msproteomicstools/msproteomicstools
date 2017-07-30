@@ -12,6 +12,8 @@ from libcpp.pair cimport pair as libcpp_pair
 from cython.operator cimport dereference as deref, preincrement as inc, address as address
 from libcpp cimport bool
 
+from LightTransformationData cimport CyLinearInterpolateWrapper, CyLightTransformationData
+
 import numpy as np
 import operator
 

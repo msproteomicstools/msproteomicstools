@@ -3,8 +3,7 @@
 # encoding: latin-1
 
 import numpy as np
-
-include "_linear_interpol.pyx"
+from LightTransformationData cimport CyLinearInterpolateWrapper
 
 cdef class CyLightTransformationData(object):
     """
@@ -12,11 +11,6 @@ cdef class CyLightTransformationData(object):
 
     A lightweight data structure to store a transformation between retention times of multiple runs.
     """
-
-    cdef dict data 
-    cdef dict trafo 
-    cdef dict stdevs
-    cdef object reference
 
     def __init__(self, ref=None):
         self.data = {} 

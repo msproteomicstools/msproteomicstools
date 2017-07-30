@@ -15,12 +15,6 @@ cdef class CyPrecursorGroup(object):
         - self.precursors_: List of :class:`.CyPrecursorWrapperOnly`
     """
 
-    __slots__ = ["peptide_group_label_", "run_", "precursors_"]
-
-    cdef libcpp_string peptide_group_label_ 
-    cdef object run_
-    cdef list precursors_ # list of peptide precursors (CyPrecursor)
-
     def __init__(self, str peptide_group_label, run):
         self.peptide_group_label_ = peptide_group_label
         self.run_ = run
