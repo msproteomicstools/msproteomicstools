@@ -216,9 +216,9 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.read_cluster_id = read_cluster_id
         if readmethod == "cminimal":
             try:
-                from msproteomicstoolslib.cython.Precursor import CyPrecursor
-                from msproteomicstoolslib.cython._optimized import CyPrecursorWrapperOnly
-                self.Precursor = CyPrecursor
+                # from msproteomicstoolslib.cython.Precursor import CyPrecursor
+                # self.Precursor = CyPrecursor
+                from msproteomicstoolslib.cython.data_structures import CyPrecursorWrapperOnly
                 self.Precursor = CyPrecursorWrapperOnly
             except ImportError as e:
                 print ("Requested method 'cminimal' but Cython extensions seem to be missing. Please compile and add them or use readmethod 'minimal'")

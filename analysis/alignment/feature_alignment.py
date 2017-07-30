@@ -503,7 +503,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     # Get alignments
     start = time.time()
     try:
-        from msproteomicstoolslib.cython._optimized import CyLightTransformationData
+        from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
         if optimized_cython:
             tr_data = CyLightTransformationData()
         else:

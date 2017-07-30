@@ -80,7 +80,7 @@ class Run():
   
         try:
             if useCython:
-                from msproteomicstoolslib.cython._optimized import CyPrecursorGroup
+                from msproteomicstoolslib.cython.data_structures import CyPrecursorGroup
                 self.PrecursorGroup = CyPrecursorGroup
             else:
                 self.PrecursorGroup = PrecursorGroup
