@@ -79,7 +79,7 @@ class SqlDataAccess(object):
         """
 
         data = [row for row in self.c.execute("SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA WHERE CHROMATOGRAM_ID = %s" % myid )]
-        return self._returnDataForChromatogram(data).values()[0]
+        return list(self._returnDataForChromatogram(data).values())[0]
 
     def getDataForChromatogramFromNativeId(self, native_id):
         """
@@ -106,13 +106,15 @@ class SqlDataAccess(object):
         for chr_id, compr, data_type, d in data:
             result = []
             if compr == 5:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+                # tmp = [ord(q) for q in zlib.decompress(d)]
+                tmp = bytearray( zlib.decompress(d) )
                 if len(tmp) > 0:
                     PyMSNumpress.decodeLinear(tmp, result)
                 else:
                     result = [0]
             if compr == 6:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+                # tmp = [ord(q) for q in zlib.decompress(d)]
+                tmp = bytearray( zlib.decompress(d) )
                 if len(tmp) > 0:
                     PyMSNumpress.decodeSlof(tmp, result)
                 else:
