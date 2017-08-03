@@ -47,8 +47,8 @@ import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
 
 try:
-    from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_alignBestCluster
-    # Using static_findAllPGForSeed tends to have a measurable impact on the
+    from msproteomicstoolslib.cython._optimized import static_cy_alignBestCluster
+    # Using Cython tends to have a measurable impact on the
     # alignment speed:
     #  - 2.0 fold improvement for 12 runs
     #  - 6.0 fold improvement for 48 runs
