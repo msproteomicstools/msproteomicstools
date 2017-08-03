@@ -34,7 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
-
+from __future__ import print_function
 
 class SqlDataAccess(object):
 

@@ -34,10 +34,11 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os, time, sys
 import pymzml
-from SingleChromatogramFile import SingleChromatogramFile
+from .SingleChromatogramFile import SingleChromatogramFile
 
 class SwathRun(object):
     """Data model for an individual SWATH injection (may contain multiple mzML files).
@@ -90,7 +91,7 @@ class SwathRun(object):
         accessible through the m/z of the first precursor.
         """
         for f in files:
-            print "Loading file", f
+            print ("Loading file", f)
             start = time.time()
             try:
                 # use at least obo 3.51 for numpress data
@@ -100,7 +101,7 @@ class SwathRun(object):
                 print("Certain options may not be available from pymzml, please update your pymzml version or get it directly from github: https://github.com/hroest/pymzML")
                 print(e)
                 sys.exit()
-            print "Loading file", f, "took", time.time() - start
+            print ("Loading file", f, "took", time.time() - start)
             run_.original_file = f
             first = run_.next()
             mz = first['precursors'][0]['mz']

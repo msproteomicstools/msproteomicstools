@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import re
 
@@ -139,15 +140,15 @@ class FormatHelper(object):
             return None
 
         if not self._is_number(prec_charge):
-            print "Format determination: Precursor charge is not a number", prec_charge
+            print ("Format determination: Precursor charge is not a number", prec_charge)
             return None
 
         if not self._is_number(trgr_nr):
-            print "Format determination: Could not convert", trgr_nr, "to int."
+            print ("Format determination: Could not convert", trgr_nr, "to int.")
             return None
 
         if self._is_number(sequence):
-            print "Format determination: Does not look like sequence", sequence
+            print ("Format determination: Does not look like sequence", sequence)
             return None
 
         return (decoy, trgr_nr, sequence, prec_charge, fr_id, fr_charge)

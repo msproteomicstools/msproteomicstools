@@ -34,11 +34,11 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os
-
-from SqlDataAccess import SqlDataAccess
-from FormatHelper import FormatHelper
+from .SqlDataAccess import SqlDataAccess
+from .FormatHelper import FormatHelper
 
 class SqlSwathRun(object):
     """Data Model for a single sqMass file.
@@ -220,8 +220,8 @@ class SqlSwathRun(object):
         if transition_id in self._id_mapping:
             return [self._run.getDataForChromatogram(self._id_mapping[transition_id])]
         else:
-            print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
-            print "Please check your input data"
+            print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id)
+            print ("Please check your input data")
 
     def get_id(self):
         return self._basename

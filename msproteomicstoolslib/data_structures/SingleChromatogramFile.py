@@ -34,10 +34,11 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os
 
-from FormatHelper import FormatHelper
+from .FormatHelper import FormatHelper
 
 class SingleChromatogramFile():
     """Data Model for a single file from one run.
@@ -98,7 +99,7 @@ class SingleChromatogramFile():
         
         openswath_format = self._has_openswath_format(self._run)
         if openswath_format:
-            print "Determined chromatogram identifers to be in openswath formta (11111_PEPTIDE_2), will parse them accordingly."
+            print ("Determined chromatogram identifers to be in openswath formta (11111_PEPTIDE_2), will parse them accordingly.")
             
         if openswath_format:
             if len( self._run.info['offsets'] ) > 0:
@@ -114,7 +115,7 @@ class SingleChromatogramFile():
                     self._precursor_mapping[trgr_nr] = tmp
 
         else:
-            print "Fall-back: Could not group chromatograms by their id alone, try using precursor information."
+            print ("Fall-back: Could not group chromatograms by their id alone, try using precursor information.")
             self._group_by_precursor_by_mass()
 
     def _group_by_precursor_by_mass(self):
@@ -141,7 +142,7 @@ class SingleChromatogramFile():
                 self._precursor_mapping[trgr_nr] = tmp
 
             else:
-                print "Something is wrong"
+                print ("Something is wrong")
                 raise Exception("Could not parse chromatogram ids ... neither ids nor precursors lead to sensible grouping")
 
     def _group_by_precursor_in_memory(self):
@@ -217,8 +218,8 @@ class SingleChromatogramFile():
             chromatogram = self._run[str(chrom_id)] 
 
             if chromatogram is None:
-                print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id
-                print "Please check your input data"
+                print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id)
+                print ("Please check your input data")
                 transitions.append(  [ [0], [0] ]  )
                 continue
 
@@ -236,8 +237,8 @@ class SingleChromatogramFile():
 
         chromatogram = self._run[str(transition_id)] 
         if chromatogram is None:
-            print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
-            print "Please check your input data"
+            print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id)
+            print ("Please check your input data")
 
         transitions = [ [chromatogram.time, chromatogram.i] ] 
 
