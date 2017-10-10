@@ -264,13 +264,17 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score = -1
         protein_name = "NA"
         thisid = -1
+
+        # stop errors occuring if the value passed is empty
+        to_float = lambda x: float('nan' if x == '' else x)
+
         try:
-            fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name]])
             #fdr_score = 0.0001
             protein_name = this_row[run.header_dict[protein_id_col]]
             thisid = this_row[run.header_dict[unique_feature_id_name]]
-            diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
-            d_score = float(this_row[run.header_dict[dscore_name]])
+            diff_from_assay_seconds = to_float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+            d_score = to_float(this_row[run.header_dict[dscore_name]])
             #d_score = 2
         except KeyError:
             if self.errorHandling == "strict": 
@@ -279,7 +283,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # Optional attributes
         intensity = -1
         if intensity_name in run.header_dict:
-            intensity = float(this_row[run.header_dict[intensity_name]])
+            intensity = to_float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
 
