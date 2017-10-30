@@ -37,18 +37,19 @@ $Authors: Hannes Roest$
 
 import os
 
+from SqlDataAccess import SqlDataAccess
 from FormatHelper import FormatHelper
 
-class SingleChromatogramFile():
-    """Data Model for a single file from one run.
+class SqlSwathRun():
+    """Data Model for a single sqMass file.
 
-    One run may contain multiple mzML files
+    TODO: each file may contain multiple runs!
 
     Attributes:
         runid: Current run id
 
     Private Attributes:
-       - _run:        A pymzml.run.Reader object
+       - _run:        A :class:`.SqlDataAccess` object
        - _filename:   Original filename
        - _basename:   Original filename basename
        - _precursor_mapping:   Dictionary { FullPrecursorName : [transition_id, transition_id] }
@@ -56,19 +57,31 @@ class SingleChromatogramFile():
 
     """
 
-    def __init__(self, run, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
-        import os
-        self._run = run
+    def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        print "runid ", runid
+        if runid is not None:
+            assert len(runid) == 1
+
+        self.runid = runid[0] # TODO 
         self._filename = filename
         self._basename = os.path.basename(filename)
 
+        self._range_mapping = {}
+        self._score_mapping = {}
+        self._intensity_mapping = {}
+        self._assay_mapping = {}
+
+        self._run = SqlDataAccess(filename)
+
         # Map which holds the relationship between a precursor and its
-        # corresponding transitions.
+        # corresponding chromatogram id (transition id).
         self._precursor_mapping = {}
         # Map which holds the relationship between a sequence and its precursors
         self._sequences_mapping = {}
         # Map which holds the relationship between a protein and its sequences 
         self._protein_mapping = protein_mapping
+        # Map which holds the relationship between a chromatogram and its id
+        self._id_mapping = {}
 
         self._in_memory = False
 
@@ -76,17 +89,62 @@ class SingleChromatogramFile():
           and not sequences_mapping is None and not len(sequences_mapping) == 0:
             self._precursor_mapping = precursor_mapping
             self._sequences_mapping = sequences_mapping
-        elif load_in_memory:
-            self._group_by_precursor_in_memory()
-            self._in_memory = True
-            self._group_precursors_by_sequence()
+            self._id_mapping = dict(self._get_id_mapping())
         else:
             self._group_by_precursor()
             self._group_precursors_by_sequence()
 
+    def get_transitions_for_precursor_display(self, precursor):
+
+        if not self._precursor_mapping.has_key(str(precursor)):
+            return [ "NA" ]
+
+        transitions = []
+        for chrom_id in self._precursor_mapping[str(precursor)]:
+            transitions.append(chrom_id)
+        return transitions
+
+    def get_range_data(self, precursor):
+        return self._range_mapping.get(precursor, [ [0,0] ])
+
+    def get_assay_data(self, precursor):
+        r = self._assay_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
+    def get_score_data(self, precursor):
+        r = self._score_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
+    def get_intensity_data(self, precursor):
+        r = self._intensity_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
     #
     ## Initialization
     #
+
+    def _get_id_mapping(self):
+        """
+        Map SQL ids to transition group identifiers
+        """
+
+        import sqlite3
+        conn = sqlite3.connect(self._filename)
+        c = conn.cursor()
+
+        id_mapping = [row for row in c.execute("SELECT NATIVE_ID, ID FROM CHROMATOGRAM" )]
+
+        return id_mapping
+
     def _group_by_precursor(self):
         """
         Populate the mapping between precursors and the chromatogram ids.
@@ -95,90 +153,27 @@ class SingleChromatogramFile():
         in front. Different modifications will generate different precursors,
         but not different charge states.
         """
-        
-        openswath_format = self._has_openswath_format(self._run)
-        if openswath_format:
-            print "Determined chromatogram identifers to be in openswath formta (11111_PEPTIDE_2), will parse them accordingly."
-            
-        if openswath_format:
-            if len( self._run.info['offsets'] ) > 0:
-                for key in self._run.info['offsets'].keys():
-                    # specific to pymzl, we need to get rid of those two entries or
-                    # when the key is zero
-                    if key in ("indexList", "TIC"): continue
-                    if len(key) == 0: continue
-                    #
-                    trgr_nr = self._compute_transitiongroup_from_key(key)
-                    tmp = self._precursor_mapping.get(trgr_nr, [])
-                    tmp.append(key)
-                    self._precursor_mapping[trgr_nr] = tmp
 
-        else:
-            print "Fall-back: Could not group chromatograms by their id alone, try using precursor information."
-            self._group_by_precursor_by_mass()
+        id_mapping = self._get_id_mapping()
+        # TODO: could also be done in SQL
+        self._id_mapping = dict(id_mapping)
 
-    def _group_by_precursor_by_mass(self):
-        """
-        Populate the mapping between precursors and the chromatogram ids using the chromatogram information.
+        openswath_format = self._has_openswath_format([m[0] for m in id_mapping])
 
-        Try to use the mass or the precursor tag to infer which chromatograms
-        belong to the same peptide. See FormatHelper
-        """
-
-        for key in self._run.info['offsets'].keys():
-            # specific to pymzl, we need to get rid of those two entries or
-            # when the key is zero
-            if key in ("indexList", "TIC"): continue
-            if len(key) == 0: continue
-            #
-            chromatogram = self._run[key]
-            f = FormatHelper()
-            if len(chromatogram["precursors"]) == 1:
-                precursor = chromatogram["precursors"][0]
-                trgr_nr = f._compute_transitiongroup_from_precursor(precursor)
-                tmp = self._precursor_mapping.get(trgr_nr, [])
-                tmp.append(key)
-                self._precursor_mapping[trgr_nr] = tmp
-
-            else:
-                print "Something is wrong"
-                raise Exception("Could not parse chromatogram ids ... neither ids nor precursors lead to sensible grouping")
-
-    def _group_by_precursor_in_memory(self):
-        """
-        Same as _group_by_precursor but loads all data in memory.
-        """
-        openswath_format = self._has_openswath_format(self._run)
         result = {}
-        if openswath_format:
-            for chromatogram in self._run:
-                    key = chromatogram["id"]
-                    trgr_nr = self._compute_transitiongroup_from_key(key)
-                    tmp = self._precursor_mapping.get(trgr_nr, [])
-                    tmp.append(key)
-                    self._precursor_mapping[trgr_nr] = tmp
-
-                    import copy
-                    cc = copy.copy(chromatogram)
-                    result[ key ] = cc
-        else:
+        if not openswath_format:
             raise Exception("Could not parse chromatogram ids ... ")
-        
-        # we work in memory
-        self._run = result
 
-    def _compute_transitiongroup_from_key(self, key):
-        return FormatHelper(). _compute_transitiongroup_from_key(key)
-
-    def _has_openswath_format(self, run):
         f = FormatHelper()
+        for key, myid in id_mapping:
+            trgr_nr = f._compute_transitiongroup_from_key(key)
+            tmp = self._precursor_mapping.get(trgr_nr, [])
+            tmp.append(key)
+            self._precursor_mapping[trgr_nr] = tmp
 
-        if len( run.info['offsets'] ) > 0:
-            keys = run.info['offsets'].keys()
-            return all([ f._has_openswath_format(k) for k in keys if len(key) > 0 and not key in ("indexList", "TIC")] )
-
-        # default is false
-        return False
+    def _has_openswath_format(self, keys):
+        f = FormatHelper()
+        return all([ f._has_openswath_format(k) for k in keys] )
 
     def _group_precursors_by_sequence(self):
         """Group together precursors with the same charge state"""
@@ -197,13 +192,7 @@ class SingleChromatogramFile():
         """
         Get total number of transitions 
         """
-
         return sum([ len(v) for v in self._precursor_mapping.values()])
-
-        # if self._in_memory:
-        #     return len(self._run)
-        # else:
-        #     return len(self._run.info['offsets']) -2
 
     def get_data_for_precursor(self, precursor):
         """Retrieve raw data for a specific precursor - data will be as list of
@@ -213,20 +202,11 @@ class SingleChromatogramFile():
             return [ [ [0], [0] ] ]
 
         transitions = []
+        sql_ids = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[str(chrom_id)] 
-
-            if chromatogram is None:
-                print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id
-                print "Please check your input data"
-                transitions.append(  [ [0], [0] ]  )
-                continue
-
-            transitions.append([chromatogram.time, chromatogram.i])
-
-        if len(transitions) == 0: 
-            return [ [ [0], [0] ] ]
-
+            sql_id = self._id_mapping[ chrom_id ]
+            sql_ids.append(sql_id)
+        transitions = self._run.getDataForChromatograms(sql_ids)
         return transitions
 
     def get_data_for_transition(self, transition_id):
@@ -234,17 +214,11 @@ class SingleChromatogramFile():
         Retrieve raw data for a specific transition
         """
 
-        chromatogram = self._run[str(transition_id)] 
-        if chromatogram is None:
+        if transition_id in self._id_mapping:
+            return [self._run.getDataForChromatogram(self._id_mapping[transition_id])]
+        else:
             print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
             print "Please check your input data"
-
-        transitions = [ [chromatogram.time, chromatogram.i] ] 
-
-        if len(transitions) == 0: 
-            return [ [ [0], [0] ] ]
-
-        return transitions
 
     def get_id(self):
         return self._basename
@@ -257,26 +231,6 @@ class SingleChromatogramFile():
         Return the transition names for a specific precursor
         """
         return self._precursor_mapping.get(str(precursor), [])
-
-    def get_transitions_with_mass_for_precursor(self, precursor):
-        """
-        Return the transition names prepended with the mass for a specific precursor
-        """
-        transitions = []
-        for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[str(chrom_id)] 
-            try:
-                mz = chromatogram['product']['target_mz']
-                if mz > 0.0:
-                    transitions.append("%.2f" % mz + " m/z (" + chrom_id + ")")
-                else:
-                    transitions.append(chrom_id)
-            except KeyError:
-                transitions.append(chrom_id)
-            except TypeError:
-                # None for chromatogram
-                transitions.append(chrom_id)
-        return transitions
 
     def get_sequence_for_protein(self, protein):
         return self._protein_mapping.get(protein, [])
@@ -298,4 +252,39 @@ class SingleChromatogramFile():
         Get all (stripped) sequences
         """
         return self._sequences_mapping.keys()
+
+    def get_all_proteins(self):
+        return self._protein_mapping
+
+    # 
+    ## Data manipulation
+    #
+    def remove_precursors(self, toremove):
+        """ Remove a set of precursors from the run (this can be done to filter
+        down the list of precursors to display).
+        """
+        for key in toremove:
+            self._precursor_mapping.pop(key, None)
+        self._group_precursors_by_sequence()
+
+        # Re-initialize self to produce correct mapping
+        ## self._initialize()
+
+    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity, assay_rt):
+
+        tmp = self._range_mapping.get(precursor_id, [])
+        tmp.append( [leftWidth, rightWidth ] )
+        self._range_mapping[precursor_id] = tmp
+
+        tmp = self._score_mapping.get(precursor_id, [])
+        tmp.append(fdrscore)
+        self._score_mapping[precursor_id] = tmp
+
+        tmp = self._intensity_mapping.get(precursor_id, [])
+        tmp.append(intensity)
+        self._intensity_mapping[precursor_id] = tmp
+
+        tmp = self._assay_mapping.get(precursor_id, [])
+        tmp.append(assay_rt)
+        self._assay_mapping[precursor_id] = tmp
 

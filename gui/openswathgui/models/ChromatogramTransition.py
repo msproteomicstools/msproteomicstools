@@ -112,7 +112,7 @@ class ChromatogramTransition(object):
 
         Parameters
         ----------
-        run : :class:`.SwathRun`
+        run : :class:`.SwathRun` or :class:`.SqlSwathRun`
             SwathRun object which will be used to retrieve data
 
         Returns
@@ -236,6 +236,37 @@ class ChromatogramTransition(object):
             prec = run.get_precursors_for_sequence(self.getName())
             if len(prec) == 1:
                 return run.get_intensity_data(prec[0]) 
+            else: 
+                # For multiple precursors, the intensity is currently not computed 
+                return None
+
+        elif CHROMTYPES[self.mytype] == "Transition" :
+            return None
+
+        return None
+
+    def getAssayRT(self, run):
+        """
+        Get the intensity for a specific run and current precursor
+
+        Parameters
+        ----------
+        run : :class:`.SwathRun`
+            SwathRun object which will be used to retrieve data
+
+        Returns
+        -------
+        float:
+            The intensity for a specific run and current precursor
+        """
+
+        if CHROMTYPES[self.mytype] == "Precursor" :
+            return run.get_assay_data(self.getName()) 
+
+        elif CHROMTYPES[self.mytype] == "Peptide" :
+            prec = run.get_precursors_for_sequence(self.getName())
+            if len(prec) == 1:
+                return run.get_assay_data(prec[0]) 
             else: 
                 # For multiple precursors, the intensity is currently not computed 
                 return None

@@ -36,8 +36,13 @@ $Authors: Hannes Roest$
 """
 
 import os
+import re
+import sqlite3
 
 from SwathRun import SwathRun
+from FormatHelper import FormatHelper
+from SqlDataAccess import SqlDataAccess
+from SqlSwathRun import SqlSwathRun
 
 class SwathRunCollection(object):
     """A collection of SWATH files
@@ -72,6 +77,41 @@ class SwathRunCollection(object):
             import glob
             files = glob.glob(os.path.join(dname + "/*.mzML") )
             self.swath_chromatograms[ runid ] = SwathRun(files, runid)
+
+    def initialize_from_sql(self, filenames, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        """Initialize from a set of sqMass chromatogram files.
+
+        Parameters
+        ----------
+        filenames : list(str)
+            A List of files
+        precursor_mapping : dict
+            An optional mapping of the form { FullPrecursorName : [transition_id, transition_id, ...] }
+        sequences_mapping : dict
+            An optional mapping of the form { StrippedSequence : [FullPrecursorName, FullPrecursorName, ...]}
+        """
+
+        self.swath_chromatograms = {}
+        for i,f in enumerate(filenames):
+            runid = i
+            self.swath_chromatograms[ runid ] = SqlSwathRun(None, f, False, precursor_mapping, sequences_mapping, protein_mapping)
+
+    def initialize_from_sql_map(self, runid_mapping, filenames, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        """Initialize from a set of sqMass chromatogram files.
+
+        Parameters
+        ----------
+        filenames : list(str)
+            A List of files
+        precursor_mapping : dict
+            An optional mapping of the form { FullPrecursorName : [transition_id, transition_id, ...] }
+        sequences_mapping : dict
+            An optional mapping of the form { StrippedSequence : [FullPrecursorName, FullPrecursorName, ...]}
+        """
+
+        self.swath_chromatograms = {}
+        for runid, f in enumerate(filenames):
+            self.swath_chromatograms[ runid ] = SqlSwathRun(runid_mapping[runid], f, False, precursor_mapping, sequences_mapping, protein_mapping)
 
     def initialize_from_chromatograms(self, runid_mapping, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """Initialize from a set of mapped chromatogram files. There may be
