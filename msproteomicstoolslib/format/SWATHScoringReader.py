@@ -216,8 +216,6 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.read_cluster_id = read_cluster_id
         if readmethod == "cminimal":
             try:
-                # from msproteomicstoolslib.cython.Precursor import CyPrecursor
-                # self.Precursor = CyPrecursor
                 from msproteomicstoolslib.cython.data_structures import CyPrecursorWrapperOnly
                 self.Precursor = CyPrecursorWrapperOnly
             except ImportError as e:

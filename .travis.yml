@@ -29,7 +29,7 @@ script:
   # Disable the rpy2 tests for Python 3.x
   # Disable the Cython tests for Python 3.x as they only work under 2.x
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -a -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2' -w test/; fi
 cache: pip
