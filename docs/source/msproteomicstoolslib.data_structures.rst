@@ -1,11 +1,26 @@
 DataStructures - Alignment
-============
+==========================
+
+This document contains information about the data structures used in the TRIC algorithm.
+
+- :class:`.Run` contains all data pertaining to a LC-MS/MS run, particularly references to measured precursors
+- :class:`.PrecursorGroup` represents a set of precursors (e.g. precursors deriving from the same peptide sequence but identified by different charge states and isotopic labelling); see also :class:`.CyPrecursorGroup` for a Cython implementation
+- A Precursor represents a single precursor (e.g. a single measured analyte with a precursor m/z identified by its chemical formula, charge state and isotopic labelling)
+    - :class:`.PrecursorBase` is a base implementation of a Precursor
+    - :class:`.Precursor` is the implementation of a Precursor using minimal memory, see also :class:`.CyPrecursorWrapperOnly` for a Cython implementation
+    - :class:`.GeneralPrecursor` is the default implementation of a Precursor
+- A peak group represents a single RT region in the chromatogram of a single Precursor
+    - :class:`.PeakGroupBase` is a base implementation of a Peakgroup
+    - :class:`.MinimalPeakGroup` is the implementation of a Peakgroup using minimal memory, see also :class:`.CyPeakgroupWrapperOnly` for a Cython implementation
+    - :class:`.GeneralPeakGroup` is the default implementation of a Peakgroup
+    - :class:`.GuiPeakGroup` is the implementation used by the GUI
+
 
 :mod:`Run` Module
 -------------------
 
 Run
-^^^^^^^^^^^^^^
+^^^
 
 .. autoclass:: msproteomicstoolslib.data_structures.Run.Run
     :members:
@@ -62,7 +77,7 @@ PeakGroupBase
     :show-inheritance:
 
 MinimalPeakGroup
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: msproteomicstoolslib.data_structures.PeakGroup.MinimalPeakGroup
     :members:
@@ -86,10 +101,10 @@ GeneralPeakGroup
     :show-inheritance:
 
 DataStructures - Basic
-=====================
+=======================
 
 :mod:`Aminoacides` Module
--------------------
+----------------------------
 
 Aminoacid
 ^^^^^^^^^^^^^^
@@ -110,7 +125,7 @@ Aminoacides
 
 
 :mod:`Modifications` Module
--------------------
+----------------------------
 
 Modification
 ^^^^^^^^^^^^^^
@@ -142,7 +157,7 @@ Peak
 
 
 :mod:`Peptide` Module
--------------------
+----------------------
 
 Peptide
 ^^^^^^^^^^^^^^
@@ -153,7 +168,7 @@ Peptide
     :show-inheritance:
 
 :mod:`Residues` Module
--------------------
+----------------------
 
 Residues
 ^^^^^^^^^^^^^^

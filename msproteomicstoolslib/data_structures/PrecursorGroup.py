@@ -38,11 +38,18 @@ $Authors: Hannes Roest$
 from msproteomicstoolslib.util.assertions import pre_condition, post_condition, class_invariant
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup
 
-class PrecursorGroup():
-    """A set of precursors that are isotopically modified versions of each other.
+class PrecursorGroup(object):
+    """A set of precursors that are isotopically modified versions or different
+    charge states of each other.
 
-    A collection of precursors that are isotopically modified versions of the
-    same underlying peptide sequence. Generally these are heavy/light forms.
+    A collection of precursors that are isotopically modified versions or
+    different charge states of the same underlying peptide sequence. Generally
+    these are heavy/light forms. This class groups these Precursors together.
+
+    Attributes:
+        - self.peptide_group_label_: Identifier or precursor group 
+        - self.run_: Reference to the :class:`.Run` where this PrecursorGroup is from
+        - self.precursors_: List of actual precursors
     """
 
     __slots__ = ["peptide_group_label_", "run_", "precursors_"]
@@ -70,7 +77,7 @@ class PrecursorGroup():
         # for precursor in self.precursors_: print precursor.sequence
         if len(self.precursors_) > 0:
             # All precursor sequences should all be equal to the first sequence
-            assert(all( [precursor.sequence == self.precursors_[0].sequence for precursor in self.precursors_] )) 
+            assert(all( [precursor.getSequence() == self.precursors_[0].getSequence() for precursor in self.precursors_] )) 
         return True
 
     @class_invariant(__classInvariant__)
@@ -87,7 +94,7 @@ class PrecursorGroup():
         addPrecursor(self, precursor)
         Add precursor to peptide group
         """
-        precursor.precursor_group = self
+        precursor.set_precursor_group( self )
         self.precursors_.append(precursor)
 
     @class_invariant(__classInvariant__)
@@ -131,4 +138,16 @@ class PrecursorGroup():
 
         minscore = min([pg.get_fdr_score() for pg in allpg])
         return [pg for pg in allpg if pg.get_fdr_score() <= minscore][0]
+
+    def get_decoy(self):
+        """
+        Whether the current peptide is a decoy or not
+
+        Returns:
+            decoy(bool): Whether the peptide is decoy or not
+        """
+        if len(self.precursors_) == 0:
+            return False
+
+        return self.precursors_[0].get_decoy()
 

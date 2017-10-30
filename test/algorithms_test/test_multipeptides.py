@@ -49,6 +49,9 @@ class MockPeakGroup():
     def get_fdr_score(self):
         return self.fdr_score
 
+    def get_decoy(self):
+        return False
+
 class MockPeptide():
 
     def __init__(self, peakgroups, sequence):
@@ -89,6 +92,10 @@ class MockPrecursorGroup():
     def __iter__(self):
         for p in self.peptides:
             yield p
+
+    def get_decoy(self):
+        return False
+
 
 def help_insert(m):
     peakgroup = MockPeakGroup(0.2)

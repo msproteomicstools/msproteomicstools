@@ -16,9 +16,17 @@ or disable all slow tests for a faster response
 
     nosetests -a '!slow' test
 
-using the same approach, also tests that require rpy2 can be disabled:
+using the same approach, also tests that require rpy2 or cython can be disabled:
 
-    nosetests -a '!slow,!rpy2' test
+    nosetests -a '!slow,!rpy2,!cython' test
+
+# Cython
+
+There is an (optional) Cython extension that currently only works under Python 2.x, to activate it use
+
+	python setup.py build --with_cython
+
+the resulting C++ modules are intended to speed up TRIC substantially.
 
 # Dependencies
 

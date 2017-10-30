@@ -231,7 +231,8 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     reader = SWATHScoringReader.newReader([peakgroups_file],
                                           options.file_format,
                                           readmethod="complete",
-                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping,
+                                          read_cluster_id=True)
     new_exp = Experiment()
     new_exp.runs = reader.parse_files()
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
@@ -326,7 +327,8 @@ def runImputeValues(options, peakgroups_file, trafo_fnames, is_test):
     reader = SWATHScoringReader.newReader([peakgroups_file],
                                           options.file_format,
                                           readmethod="complete",
-                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping, 
+                                          read_cluster_id=True)
     new_exp = Experiment()
     new_exp.runs = reader.parse_files()
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)

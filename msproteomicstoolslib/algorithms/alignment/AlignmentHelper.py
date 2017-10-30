@@ -78,15 +78,15 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
 
             # Get all selected peakgroups that correspond to the current
             # transition group id and ensure we do not have any twice.
-            allruns = [pg.peptide.run.get_id() for pg in multipep.get_selected_peakgroups() 
-                       if pg.peptide.get_id() == trgr_id]
+            allruns = [pg.getPeptide().getRunId() for pg in multipep.get_selected_peakgroups() 
+                       if pg.getPeptide().get_id() == trgr_id]
             if len(allruns) != len(set(allruns)):
                 # TODO test this as well .... 
                 raise Exception("Error when writing out matrix, found more than one peakgroup for a run %s" % allruns)
 
             # Get all selected peakgroups that correspond to the current transition group id 
-            selected_peakgroups = dict([(pg.peptide.run.get_id(), pg) 
-                for pg in multipep.get_selected_peakgroups() if pg.peptide.get_id() == trgr_id])
+            selected_peakgroups = dict([(pg.getPeptide().getRunId(), pg) 
+                for pg in multipep.get_selected_peakgroups() if pg.getPeptide().get_id() == trgr_id])
 
             # Skip empty lines or lines that have too few entries
             if len(selected_peakgroups) == 0:
@@ -95,7 +95,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
                 continue
 
             # Write first two columns of the matrix
-            for i in [trgr_id, multipep.find_best_peptide_pg().peptide.protein_name]:
+            for i in [trgr_id, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
                 matrix_writer.write(i)
 
             # Write other columns (one or two per run, depending on format)
@@ -148,7 +148,7 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
     del matrix_writer
 
 def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
-                   realign_method, max_rt_diff, topN=5, sd_max_data_length=1000, force=False):
+                   realign_method, max_rt_diff, topN=5, sd_max_data_length=5000, force=False):
     id_0 = run_0.get_id()
     id_1 = run_1.get_id()
 
@@ -208,7 +208,18 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
         stdev_1_0 = numpy.std(numpy.array(data_0_s) - numpy.array(data1_aligned))
         print("stdev for", id_0, id_1, stdev_0_1, " / ", stdev_1_0, "on data length", len(data_0_s))
 
-    # Add data
-    tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
-    tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
+    # Add data and trafo description.
+    # The CyLightTransformationData actually requires to get a specific type of
+    # transformation, the CyLinearInterpolateWrapper which may not be directly
+    # passed to this function. We will try to recover the underlying linear
+    # wrapper and then stick it into the tr_data object. If this fails, we just
+    # revert to the regular behavior.
+    try:
+        sm_0_1_lwp = sm_0_1.internal_interpolation.getLWP()
+        sm_1_0_lwp = sm_1_0.internal_interpolation.getLWP()
+        tr_data.addTrafo(id_0, id_1, sm_0_1_lwp, stdev_0_1)
+        tr_data.addTrafo(id_1, id_0, sm_1_0_lwp, stdev_1_0)
+    except Exception:
+        tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
+        tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
 

@@ -98,7 +98,7 @@ class SWATHScoringReader:
 
     @staticmethod
     def newReader(infiles, filetype, readmethod="minimal",
-                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         """
         newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False)
 
@@ -108,7 +108,8 @@ class SWATHScoringReader:
         if filetype  == "openswath": 
             return OpenSWATH_SWATHScoringReader(infiles, readmethod,
                                                 readfilter, errorHandling,
-                                                enable_isotopic_grouping=enable_isotopic_grouping)
+                                                enable_isotopic_grouping=enable_isotopic_grouping,
+                                                read_cluster_id=read_cluster_id)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -118,7 +119,7 @@ class SWATHScoringReader:
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
-    def parse_files(self, read_exp_RT=True, verbosity=10):
+    def parse_files(self, read_exp_RT=True, verbosity=10, useCython=False):
       """Parse the input file(s) (CSV).
 
       Args:
@@ -177,7 +178,7 @@ class SWATHScoringReader:
                     aligned_fname = this_row[header_dict[ "align_origfilename"] ]
                 if "filename" in header_dict:
                     orig_fname = this_row[header_dict[ "filename"] ]
-                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname)
+                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
                 runs.append(current_run)
                 print(current_run, "maps to ", orig_fname)
             else: 
@@ -204,7 +205,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     Parser for OpenSWATH output
     """
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
@@ -212,13 +213,25 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.readfilter = readfilter
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
-        if readmethod == "minimal":
+        self.read_cluster_id = read_cluster_id
+        if readmethod == "cminimal":
+            try:
+                from msproteomicstoolslib.cython.Precursor import CyPrecursor
+                from msproteomicstoolslib.cython._optimized import CyPrecursorWrapperOnly
+                self.Precursor = CyPrecursor
+                self.Precursor = CyPrecursorWrapperOnly
+            except ImportError as e:
+                print ("Requested method 'cminimal' but Cython extensions seem to be missing. Please compile and add them or use readmethod 'minimal'")
+                raise ValueError("Need Cython extensions for 'cminimal' readmethod.")
+
+        elif readmethod == "minimal":
             self.Precursor = Precursor
         elif readmethod == "gui":
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GuiPeakGroup
             self.sequence_col = "FullPeptideName"
         else:
+            # complete
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
@@ -249,7 +262,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
             diff_from_assay_in_sec_name = "RT"
-        if "align_clusterid" in run.header_dict: 
+        if "align_clusterid" in run.header_dict and self.read_cluster_id:
             cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
@@ -287,12 +300,15 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
+          p.setProteinName(protein_name)
+          p.setSequence(sequence)
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
 
-        if self.readmethod == "minimal":
+        if self.readmethod == "cminimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+        elif self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
@@ -311,6 +327,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+        else:
+            raise Exception("Unknown readmethod", self.readmethod)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
     """

@@ -36,6 +36,18 @@ $Authors: Hannes Roest$
 """
 
 class PeakGroupBase(object):
+    """
+    A single peakgroup that is defined by a retention time in a chromatogram
+    of multiple transitions. Additionally it has an fdr_score and it has an
+    aligned RT (e.g. retention time in normalized space).
+    A peakgroup can be selected for quantification or not (this is stored as
+    having cluster_id == 1).
+    
+    For each precursor, there can be multiple clusters of peakgroups, with the
+    first (or best) one generally being in cluster 1, therefore we store a
+    cluster id. Generally, an alignment algorithm will assign a cluster id to
+    zero, one or more peakgroups of each precursor.
+    """
 
     __slots__ = ["fdr_score", "normalized_retentiontime", "id_", "intensity_", "cluster_id_"]
 
@@ -91,20 +103,11 @@ class PeakGroupBase(object):
 
 class MinimalPeakGroup(PeakGroupBase):
     """
-    A single peakgroup that is defined by a retention time in a chromatogram
-    of multiple transitions. Additionally it has an fdr_score and it has an
-    aligned RT (e.g. retention time in normalized space).
-    A peakgroup can be selected for quantification or not (this is stored as
-    having cluster_id == 1).
-    
-    Note that for performance reasons, the peakgroups are created on-the-fly
-    and not stored as objects but rather as tuples in "Peptide".
+    See :class:`.PeakGroupBase` for a detailed description.
 
-    Each peak group has a unique id, a score (fdr score usually), a retention
-    time as well as a back-reference to the precursor that generated the
-    peakgroup.
-    In this case, the peak group can also be assigned a cluster id (where the
-    cluster 1 is special as the one we will use for quantification).
+    This implementation is designed to be immutable as the actual data is
+    stored in the :class:`.Precursor` class which generates this object
+    on-the-fly to improve memory performance.
     """
 
     def __init__(self, unique_id, fdr_score, assay_rt, selected, cluster_id, peptide, intensity=None, dscore=None):
@@ -116,6 +119,9 @@ class MinimalPeakGroup(PeakGroupBase):
       self.peptide = peptide
       self.intensity_ = intensity
       self.dscore_ = dscore
+
+    def getPeptide(self):
+        return self.peptide
 
     def __lt__(self, other):
         """
@@ -130,15 +136,27 @@ class MinimalPeakGroup(PeakGroupBase):
 
     # Do not allow setting of any parameters (since data is not stored here)
     def set_fdr_score(self, fdr_score):
+        """
+        Raises exception as this object is immutable
+        """
         raise Exception("Cannot set in immutable object")
 
     def set_normalized_retentiontime(self, normalized_retentiontime):
+        """
+        Raises exception as this object is immutable
+        """
         raise Exception("Cannot set in immutable object")
 
     def set_feature_id(self, id_):
+        """
+        Raises exception as this object is immutable
+        """
         raise Exception("Cannot set in immutable object")
 
     def set_intensity(self, intensity):
+        """
+        Raises exception as this object is immutable
+        """
         raise Exception("Cannot set in immutable object")
 
     def get_dscore(self):
@@ -146,10 +164,16 @@ class MinimalPeakGroup(PeakGroupBase):
 
     ## Select / De-select peakgroup
     def select_this_peakgroup(self):
+        """
+        Select this peakgroup for quantification (assigns cluster id 1; works since it calls back to its Precursor obj)
+        """
         self.peptide.select_pg(self.get_feature_id())
 
     ## Select / De-select peakgroup
     def setClusterID(self, id_):
+        """
+        Set cluster id (works since it calls back to its Precursor obj)
+        """
         self.cluster_id_ = id_
         self.peptide.setClusterID(self.get_feature_id(), id_)
 
@@ -158,8 +182,9 @@ class MinimalPeakGroup(PeakGroupBase):
 
 class GuiPeakGroup(PeakGroupBase):
     """
-    A single peakgroup that is defined by a retention time in a chromatogram
-    of multiple transitions.
+    See :class:`.PeakGroupBase` for a detailed description.
+
+    This implementation stores additional information including left/right width.
     """
     def __init__(self, fdr_score, intensity, leftWidth, rightWidth, assay_rt, peptide):
       super(PeakGroupBase, self).__init__()
@@ -195,6 +220,13 @@ class GuiPeakGroup(PeakGroupBase):
             raise Exception("Do not have value " + value)
 
 class GeneralPeakGroup(PeakGroupBase):
+    """
+    See :class:`.PeakGroupBase` for a detailed description.
+
+    This implementation stores the full row read from the CSV file including
+    all meta-data. It is generally not recommended to use this implementation
+    unless for toy examples.
+    """
 
     __slots__ = ["row", "run", "peptide"]
 
@@ -221,6 +253,9 @@ class GeneralPeakGroup(PeakGroupBase):
 
     def get_dscore(self):
         return self.get_value("d_score")
+
+    def getPeptide(self):
+        return self.peptide
 
     def print_out(self):
         return self.peptide.run.get_id() + "/" + self.get_feature_id() + " score:" + str(self.get_fdr_score()) + " norm_RT:" + str(self.get_normalized_retentiontime()) + " RT:" + str(self.get_value("RT")) + " Int : " + str(self.get_value("Intensity"))

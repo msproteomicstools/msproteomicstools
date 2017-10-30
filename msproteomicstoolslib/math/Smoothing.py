@@ -373,7 +373,7 @@ class SmoothingPy:
         yhat_new = s.predict(xhat)
         return yhat_new
 
-class LowessSmoothingBase:
+class LowessSmoothingBase(object):
     """Smoothing using Lowess smoother and then interpolate on the result
     """
 
@@ -422,6 +422,14 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
     This faster lowess should be in version 0.5.0 of statsmodels (anaconda
     currently has version 0.6.0). However, Ubuntu only has version 0.5.0 from
     14.04 onwards, so be careful.
+
+	frac: float
+        Between 0 and 1. The fraction of the data used
+        when estimating each y-value.
+        it: int
+        The number of residual-based reweightings
+        to perform.
+
     """
 
     def __init__(self):
@@ -438,9 +446,25 @@ class LowessSmoothingStatsmodels(LowessSmoothingBase):
 
         # NOTE: delta parameter is only available from statsmodels > 0.5.0
         delta = (max(data1) - min(data1)) * 0.01
+        frac = 0.1
+        
+        if len(data1) < 100:
+            frac = 1.0
 
-        # Input data is y/x -> needs switch
-        result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=0.1, it=10)
+        k = 0
+        while k <= 10:
+            k += 1
+            # Input data is y/x -> needs switch
+            result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
+
+            if any( [math.isnan(r[1]) for r in result] ):
+                print ("WARNING: lowess returned NA data points! We are trying to fix it")
+                delta = delta * k
+                result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
+                frac = 1.0
+            else:
+                break
+
         return [ r[0] for r in result], [r[1] for r in result]
 
 class LowessSmoothingCyLowess(LowessSmoothingBase):
@@ -634,17 +658,36 @@ class SmoothingInterpolation:
     def initialize(self, data1, data2):
         # data1 is the predictor (e.g. the input) -> x
         # data2 is the response (e.g. what we want to predict) -> y
-        from scipy.interpolate import interp1d
+        self.use_cy = True
+
         data1s, data2s = zip(*sorted(zip(data1, data2)))
-        self.f = interp1d(data1s, data2s)
+
+        try:
+            from msproteomicstoolslib.cython._optimized import CyLinearInterpolateWrapper
+            self.f = CyLinearInterpolateWrapper(data1s, data2s, 0.0)
+        except ImportError:
+            print("WARNING: cannot import CyLinearInterpolateWrapper, will use Python version (slower).")
+            from scipy.interpolate import interp1d
+            self.f = interp1d(data1s, data2s)
+            self.use_cy = False
 
         # Also prepare linear transformation
         self.linear_sm = SmoothingLinear()
         self.linear_sm.initialize(data1, data2)
 
+    def getLWP(self):
+        if self.use_cy:
+            return self.f
+        else:
+            raise Exception("Cannot return CyLinearInterpolateWrapper wrapper!")
+
     def predict(self, xhat):
         try:
-            predicted_result = self.f(xhat) # interpolation fxn
+            if self.use_cy:
+                predicted_result = self.f.predict(list(xhat)) # interpolation fxn
+                return predicted_result
+            else:
+                predicted_result = self.f(xhat) # interpolation fxn
         except ValueError:
             # outside bound, use linear
             return self.linear_sm.predict(xhat)
@@ -732,11 +775,11 @@ class WeightedNearestNeighbour(LocalKernel):
     calculate the transformation.  This method may be affected by single
     outlier close to the transformation point.
 
-    Each neighboring point is given a weight equal to 
+    Each neighboring point is given a weight equal to  ::
 
-               1
-    --------------------------
-      abs( distance ) ** exp 
+		   1
+	--------------------------
+	  abs( distance ) ** exp 
 
 
     up to a minimal distance min_diff after which the weight cannot increase any more.

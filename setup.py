@@ -1,9 +1,18 @@
 #!/usr/bin/env python
 
 import os
+import numpy
 from setuptools import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
 # get py-earth from https://github.com/jcrudy/py-earth/
+
+import sys
+with_cython = False
+if "--with_cython" in sys.argv:
+    with_cython = True
+    sys.argv.remove("--with_cython")
 
 import fnmatch
 all_scripts = []
@@ -13,11 +22,15 @@ for root, dirnames, filenames in os.walk('analysis'):
 all_scripts.extend(["./gui/AlignmentGUI.py"])
 all_scripts.extend(["./gui/TAPIR.py"])
 
-import sys
-if (sys.version_info > (3, 0)):
-    extra_installs = []
-else:
-    extra_installs = []
+extra_installs = []
+
+ext_modules = []
+if with_cython:
+    ext_modules = [
+	    cythonize(Extension('msproteomicstoolslib/cython/_optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
+	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
+	    ]
 
 setup(name='msproteomicstools',
       version='0.6.0',
@@ -51,9 +64,11 @@ setup(name='msproteomicstools',
       'Topic :: Scientific/Engineering :: Chemistry',
       ],
 
+      # Package and install info
       scripts=all_scripts,
       packages = ['msproteomicstoolslib', 
                   "msproteomicstoolslib.algorithms",
+                  "msproteomicstoolslib.cython",
                   "msproteomicstoolslib.algorithms.alignment",
                   "msproteomicstoolslib.algorithms.shared",
                   "msproteomicstoolslib.algorithms.PADS",
@@ -70,7 +85,6 @@ setup(name='msproteomicstools',
       },
       package_data={'msproteomicstoolslib.data_structures':
           ['modifications_default.tsv']},
-
       install_requires=[
           "numpy",
           "scipy",
@@ -90,6 +104,8 @@ setup(name='msproteomicstools',
       extras_require = {
           'RSmoothing' : ["rpy2"]
       },
+      ext_modules=ext_modules,
+      include_dirs=[numpy.get_include()],
       test_suite="nose.collector",
       tests_require="nose",
 )

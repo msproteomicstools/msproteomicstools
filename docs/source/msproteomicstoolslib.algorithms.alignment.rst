@@ -11,6 +11,7 @@ MST Alignment
     :members:
     :undoc-members:
     :show-inheritance:
+    :special-members:
 
 .. autofunction:: msproteomicstoolslib.algorithms.alignment.AlignmentMST.getDistanceMatrix
 

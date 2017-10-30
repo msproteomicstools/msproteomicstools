@@ -2,7 +2,7 @@ Math
 ============
 
 :mod:`Smoothing` Module
--------------------
+-----------------------
 
 SmoothingNull
 ^^^^^^^^^^^^^^
@@ -12,16 +12,16 @@ SmoothingNull
     :show-inheritance:
 
 
-SmoothingRExtern
+SmoothingR
 ^^^^^^^^^^^^^^
-.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingRExtern
+.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingR
     :members:
     :undoc-members:
     :show-inheritance:
 
-SmoothingR
-^^^^^^^^^^^^^^
-.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingR
+SmoothingRExtern
+^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingRExtern
     :members:
     :undoc-members:
     :show-inheritance:
@@ -35,16 +35,30 @@ SmoothingPy
     :show-inheritance:
 
 
-LowessSmoothingPy
-^^^^^^^^^^^^^^
-.. autoclass:: msproteomicstoolslib.math.Smoothing.LowessSmoothingPy
+LowessSmoothingStatsmodels
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.LowessSmoothingStatsmodels
     :members:
     :undoc-members:
     :show-inheritance:
 
 
+LowessSmoothingBiostats
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.LowessSmoothingBiostats
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+LowessSmoothingCyLowess
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.LowessSmoothingCyLowess
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 UnivarSplineNoCV
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 .. autoclass:: msproteomicstoolslib.math.Smoothing.UnivarSplineNoCV
     :members:
     :undoc-members:
@@ -58,14 +72,19 @@ UnivarSplineCV
     :undoc-members:
     :show-inheritance:
 
-
-SmoothingLinear
-^^^^^^^^^^^^^^
-.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingLinear
+SmoothingEarth
+^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingEarth
     :members:
     :undoc-members:
     :show-inheritance:
 
+SmoothingLinear
+^^^^^^^^^^^^^^^^^
+.. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothingLinear
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 SmoothingInterpolation
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -73,7 +92,6 @@ SmoothingInterpolation
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 LocalKernel
 ^^^^^^^^^^^^^^
@@ -84,7 +102,7 @@ LocalKernel
 
 
 WeightedNearestNeighbour
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: msproteomicstoolslib.math.Smoothing.WeightedNearestNeighbour
     :members:
     :undoc-members:
@@ -92,27 +110,25 @@ WeightedNearestNeighbour
 
 
 SmoothLLDMedian
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 .. autoclass:: msproteomicstoolslib.math.Smoothing.SmoothLLDMedian
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-
-
 :mod:`LinearRegression` Module
--------------------
+---------------------------------
 
 SimpleLinearRegression
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: msproteomicstoolslib.math.LinearRegression.SimpleLinearRegression
     :members:
     :undoc-members:
     :show-inheritance:
 
 :mod:`Chauvenet` Module
--------------------
+------------------------
 
 Chauvenet
 ^^^^^^^^^^^^^^
