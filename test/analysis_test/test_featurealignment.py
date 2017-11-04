@@ -35,6 +35,8 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
+from __future__ import print_function
+
 import unittest
 import subprocess as sub
 import os
@@ -67,9 +69,14 @@ class TestFeatureAlignment(unittest.TestCase):
 
                 # Check all other fields for equality
                 try:
-                    self.assertAlmostEqual(float(field1),float(field2) )
-                except ValueError:
-                    self.assertEqual(field1,field2)
+                    try:
+                        self.assertAlmostEqual(float(field1),float(field2) )
+                    except ValueError:
+                        self.assertEqual(field1,field2)
+                except AssertionError as e:
+                    print("Assertion failed", field1, field2, "in line", l1, l2)
+                    print("See diff between files: diff", name1, name2)
+                    raise e
 
     def test_1_featureAlignment_openswath(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
@@ -227,7 +234,7 @@ class TestFeatureAlignment(unittest.TestCase):
         os.remove(tmpfilename_ids)
         os.remove(tmpfilename_matrix)
 
-    def test_9_featureAlignment_openswath_LocalMST_cython(self):
+    def test_9_featureAlignment_openswath_LocalMST_noncython(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "feature_alignment.py")
         filename = os.path.join(self.datadir, "feature_alignment_7_openswath_input.csv")
         expected_outcome_ids = os.path.join(self.datadir, "feature_alignment_9_output_1_ids.csv")

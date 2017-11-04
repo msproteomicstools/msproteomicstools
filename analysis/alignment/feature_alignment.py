@@ -318,9 +318,13 @@ class Experiment(MRExperiment):
         # 2. Write out the (selected) ids
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
+            coll_ids = []
+            for pg in selected_pgs:
+                coll_ids.append(pg.get_feature_id())
+
             id_writer = csv.writer(fh, delimiter="\t")
-            for pg in sorted(selected_pgs):
-                id_writer.writerow([pg.get_feature_id()])
+            for pg in sorted(coll_ids):
+                id_writer.writerow([pg])
             fh.close()
             del id_writer
 
