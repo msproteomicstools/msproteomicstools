@@ -227,7 +227,7 @@ class TestFeatureAlignment(unittest.TestCase):
         sub.check_output(cmd,shell=True)
         
         self.exact_diff(tmpfilename, expected_outcome, header_exclude = ["align_origfilename"])
-        # self.exact_diff(tmpfilename_ids, expected_outcome_ids)
+        self.exact_diff(tmpfilename_ids, expected_outcome_ids)
         self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
 
         os.remove(tmpfilename)
