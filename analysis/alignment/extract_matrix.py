@@ -6,12 +6,8 @@ from sys import stdout, maxsize
 import csv
 import sys
 
-csv.field_size_limit(sys.maxsize)
-
-
 maxInt = maxsize
 decrement = True
-
 while decrement:
     # decrease the maxInt value by factor 10 
     # as long as the OverflowError occurs.
