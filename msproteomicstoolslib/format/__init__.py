@@ -2,7 +2,7 @@ __all__ = ["pepXMLReader","methodDamReader","methodMethReader","mzXMLreader", "P
 import sys
 import csv
 
-maxInt = maxsize
+maxInt = sys.maxsize
 decrement = True
 while decrement:
     # decrease the maxInt value by factor 10 

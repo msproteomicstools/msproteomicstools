@@ -41,7 +41,7 @@ import os.path
 #from msproteomicstoolslib.format import pepXMLReader
 import csv
 
-maxInt = maxsize
+maxInt = sys.maxsize
 decrement = True
 while decrement:
     # decrease the maxInt value by factor 10 

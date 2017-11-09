@@ -2,7 +2,7 @@ __all__ = ["data_structures", "format", "math", "util"]
 import sys
 import csv
 
-maxInt = maxsize
+maxInt = sys.maxsize
 decrement = True
 while decrement:
     # decrease the maxInt value by factor 10 
