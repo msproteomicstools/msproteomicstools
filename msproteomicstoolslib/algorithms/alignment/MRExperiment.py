@@ -98,6 +98,9 @@ class MRExperiment(object):
         union_target_transition_groups = []
         union_proteins = []
 
+        all_prec = 0
+        target_prec = 0
+
         self.union_transition_groups_set = set([])
         self.union_proteins_set = set([])
         self.union_target_transition_groups_set = set()
@@ -112,9 +115,15 @@ class MRExperiment(object):
                         if not precursor_group.get_decoy():
                             gr_target.append(precursor_group.getPeptideGroupLabel())
                             gr_protein.append(peptide_precursor.getProteinName())
-            union_transition_groups.append(gr)
-            union_target_transition_groups.append(gr_target)
-            union_proteins.append(list(set(gr_protein)))
+
+            # save some memory
+            if verbose or verbosity >= 1:
+                union_transition_groups.append(gr)
+                union_target_transition_groups.append(gr_target)
+                union_proteins.append(list(set(gr_protein)))
+
+            all_prec += len(gr)
+            target_prec = len(gr_target)
 
             self.union_target_transition_groups_set = self.union_target_transition_groups_set.union(gr_target)
             self.union_transition_groups_set = self.union_transition_groups_set.union(gr)
@@ -122,9 +131,6 @@ class MRExperiment(object):
 
         if verbose or verbosity >= 10: 
             stdout.write("\r\r\n") # clean up
-
-        all_prec = sum([len(s) for s in union_transition_groups])
-        target_prec = sum([len(s) for s in union_target_transition_groups])
 
         if verbose or verbosity >= 1:
             print("===================================")
