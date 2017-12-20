@@ -167,7 +167,7 @@ class Experiment(MRExperiment):
         for m in multipeptides:
             selected_peakgroups = m.get_selected_peakgroups()
             if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-            for p in m.get_peptides():
+            for p in m.getAllPeptides():
                 selected_pg = p.get_selected_peakgroup()
                 if selected_pg is None: continue
                 selected_pgs.append(selected_pg)
@@ -197,7 +197,7 @@ class Experiment(MRExperiment):
             for m in multipeptides:
                 selected_peakgroups = m.get_selected_peakgroups()
                 if (len(selected_peakgroups)*1.0 / len(self.runs) < fraction_needed_selected) : continue
-                for p in m.get_peptides():
+                for p in m.getAllPeptides():
                     selected_pg = p.get_selected_peakgroup()
                     if selected_pg is None: continue
                     row_to_write = selected_pg.row
@@ -353,7 +353,7 @@ def main(options):
         if len(m.get_selected_peakgroups() ) > 0:
             continue 
 
-        for p in m.get_peptides():
+        for p in m.getAllPeptides():
             if len(list(p.get_all_peakgroups())) != 1:
                 print(p)
                 print(dir(p))

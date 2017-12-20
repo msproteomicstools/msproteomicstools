@@ -39,10 +39,23 @@ from __future__ import print_function
 import numpy
 import math
 import scipy.stats
+from msproteomicstoolslib.format.TransformationCollection import LightTransformationData
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 import msproteomicstoolslib.data_structures.PeakGroup
 import msproteomicstoolslib.math.Smoothing as smoothing
+
+try:
+    from msproteomicstoolslib.cython._optimized import static_findAllPGForSeed, static_cy_alignBestCluster
+    # Using static_findAllPGForSeed tends to have a measurable impact on the
+    # alignment speed:
+    #  - 2.0 fold improvement for 12 runs
+    #  - 6.0 fold improvement for 48 runs
+    #  - 8.5 fold improvement for 95 runs
+    #  - 15 fold improvement for 282 runs
+except ImportError:
+    print("WARNING: cannot import optimized MST alignment, will use Python version (slower).")
 
 def getDistanceMatrix(exp, multipeptides, spl_aligner, singleRowId=None):
     """Compute distance matrix of all runs.
@@ -138,24 +151,33 @@ class TreeConsensusAlignment():
     this peakgroups is ``pg1_1`` from Run 1. The algorithm will then use the
     alignment Run1-Run2 to infer that ``pg2_1`` is the same signal as ``pg1_1``
     and add it to the group. Specifically, it will select the highest-scoring
-    peakgroup within a narrow RT-window (max_rt_diff) in Run2 - note that if
+    peakgroup within a narrow RT-window (`max_rt_diff`) in Run2 - note that if
     the RT-window is too wide, there is a certain chance of mis-matching, e.g.
-    ``pg_2`` will be selected instead of ``pg2_1``.  The alignment Run2-Run3
-    will be used to add ``pg3_1``. Then a bifurcation in the tree occurs and
-    Run3-Run4 as well as Run3-Run5 will be used to infer the identity of
-    ``pg4_1`` and ``pg5_1`` and add them to the cluster.  In the end, the
-    algorithm will report (pg1_1, pg2_1, ``pg3_1``, ``pg4_1``, ``pg5_1``) as a
-    consistent cluster across multiple runs. This process can be repeated with
-    the next best peakgroup that is not yet part of a cluster (e.g. ``pg1_2``)
-    until no more peakgroups are left (no more peakgroups having a score below
-    fdr_cutoff).
+    ``pg2_2`` will be selected instead of ``pg2_1``.  The alignment Run2-Run3
+    will be used to add ``pg3_1``, assuming that the RT transformation and the
+    scoring both indicate that it should be selected. Note how a null RT
+    transformation will actually prefer ``pg3_0`` as there is a RT shift
+    between Run 2 and 3. So a too narrow RT-window (`max_rt_diff`) may lead to
+    the wrong peak group being selected. This can be rectified with a larger RT
+    tolerance or by using a suitable RT transformation (linear, lowess etc)
+    which will lead to the selection of the correct peak group ``pg3_1``.
+
+    Then a bifurcation in the tree occurs and Run3-Run4 as well as Run3-Run5
+    will be used to infer the identity of ``pg4_1`` and ``pg5_1`` and add them
+    to the cluster.  In the end, the algorithm will report (``pg1_1``,
+    ``pg2_1``, ``pg3_1``, ``pg4_1``, ``pg5_1``) as a consistent cluster across
+    multiple runs. This process can be repeated with the next best peakgroup
+    that is not yet part of a cluster (e.g. ``pg1_2``) until no more peakgroups
+    are left (no more peakgroups having a score below fdr_cutoff).
 
     Note how the algorithm only used binary alignments and purely local
     alignments of the runs that are most close to each other. This stands in
     contrast to approaches where a single reference is picked and then used for
     alignment which might align runs that are substantially different. On the
     other hand, a single error at one edge in the tree will propagate itself
-    and could lead to whole subtrees that are wrongly aligned.
+    and could lead to whole subtrees that are wrongly aligned (e.g. if at one
+    point ``pg3_0`` got selected instead of ``pg3_1`` it is likely that in the
+    following steps, ``pg4_0`` and not ``pg4_1`` will be selected).
     """
 
     def __init__(self, max_rt_diff, fdr_cutoff, aligned_fdr_cutoff, rt_diff_isotope=-1,
@@ -164,19 +186,28 @@ class TreeConsensusAlignment():
         """ Initialization with parameters
 
         Args:
-            max_rt_diff(float): maximal difference in retention time to be used
-                to look for a matching peakgroup in an adjacent run
-            fdr_cutoff(float): maximal FDR that at least one peakgroup needs to
-                reach (seed FDR)
-            aligned_fdr_cutoff(float): maximal FDR that a peakgroup needs to
-                reach to be considered for extension (extension FDR)
-            correctRT_using_pg(bool): use the apex of the aligned peak group
-                as the input for the next alignment during MST traversal
-                (opposed to using the transformed RT plain)
-            stdev_max_rt_per_run(float): use a different maximal RT tolerance
-                for each alignment, depending on the goodness of the alignment.
-                The RT tolerance used by the algorithm will be the standard
-                deviation times stdev_max_rt_per_run.
+            max_rt_diff(float):
+                maximal difference in retention time to be used to look for a
+                matching peakgroup in an adjacent run
+            fdr_cutoff(float): 
+                maximal FDR that at least one peakgroup needs to reach (seed
+                FDR)
+            aligned_fdr_cutoff(float):
+                maximal FDR that a peakgroup needs to reach to be considered
+                for extension (extension FDR)
+            rt_diff_isotope(float): 
+                maximal difference in retention time between two isotopic pairs or precursors with the same charge state
+            correctRT_using_pg(bool): 
+                use the apex of the aligned peak group as the input for the
+                next alignment during MST traversal (opposed to using the
+                transformed RT plain)
+            stdev_max_rt_per_run(float): 
+                use a different maximal RT tolerance for each alignment,
+                depending on the goodness of the alignment.  The RT tolerance
+                used by the algorithm will be the standard deviation times
+                stdev_max_rt_per_run.
+            use_local_stdev(float): 
+                use RT-local standard deviation (experimental)
         """
 
         self._max_rt_diff = max_rt_diff
@@ -208,7 +239,7 @@ class TreeConsensusAlignment():
             tree(list of tuple): a minimum spanning tree (MST) represented as
                 list of edges (for example [('0', '1'), ('1', '2')] ). Node names
                 need to correspond to run ids.
-            tr_data(format.TransformationCollection.LightTransformationData):
+            tr_data(:class:`.format.TransformationCollection.LightTransformationData`):
                 structure to hold binary transformations between two different
                 retention time spaces
 
@@ -216,6 +247,14 @@ class TreeConsensusAlignment():
             None
         """
 
+        nr_m, nr_ambig = static_cy_alignBestCluster(multipeptides, tree, tr_data,
+                                self._aligned_fdr_cutoff, self._fdr_cutoff, self._correctRT_using_pg,
+                                float(self._max_rt_diff), self._stdev_max_rt_per_run, self._use_local_stdev, self.max_rt_diff_isotope,
+                                self.verbose)
+        self.nr_multiple_align = nr_m
+        self.nr_ambiguous = nr_ambig
+
+    def alignBestCluster_legacy(self, multipeptides, tree, tr_data):
         for m in multipeptides:
 
             # Find the overall best peptide
@@ -337,14 +376,14 @@ class TreeConsensusAlignment():
         """
         if self.verbose: 
             print("111111111111111111111111 findAllPGForSeed started" )
-            print("  Seed", seed.print_out(), "from run", seed.peptide.run.get_id() )
+            print("  Seed", seed.print_out(), "from run", seed.getPeptide().getRun().get_id() )
 
         seed_rt = seed.get_normalized_retentiontime()
 
         # Keep track of which nodes we have already visited in the graph
         # (also storing the rt at which we found the signal in this run).
-        rt_map = { seed.peptide.run.get_id() : seed_rt } 
-        visited = { seed.peptide.run.get_id() : seed } 
+        rt_map = { seed.getPeptide().getRun().get_id() : seed_rt } 
+        visited = { seed.getPeptide().getRun().get_id() : seed } 
 
         while len(visited.keys()) < m.get_nr_runs():
             for e1, e2 in tree:
@@ -430,7 +469,7 @@ class TreeConsensusAlignment():
         if self.verbose:
             print("  Used rt diff:", max_rt_diff)
 
-        return self. _findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen)
+        return self._findBestPGFromTemplate(expected_rt, m.getPrecursorGroup(target), max_rt_diff, already_seen)
 
     def _findBestPGFromTemplate(self, expected_rt, target_peptide, max_rt_diff, already_seen):
         """Find (best) matching peakgroup in "target" which matches to the source_rt RT.

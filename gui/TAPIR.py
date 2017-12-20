@@ -76,10 +76,6 @@ from openswathgui.models.PeptideTree import PeptideTree
 #
 from openswathgui.views.PeptideTree import PeptidesTreeView
 from openswathgui.views.Plot import have_guiqwt 
-if USE_GUIQWT and have_guiqwt:
-    from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
-else:
-    from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
 
 # 
 ## The widget for the graphing area on the right
@@ -94,7 +90,7 @@ class GraphArea(QtGui.QWidget):
         self.plots: The underlying list of plots (either of type :class:`.GuiQwtMultiLinePlot` or :class:`.QwtMultiLinePlot`)
     """
 
-    def __init__(self):
+    def __init__(self, use_guiqwt = USE_GUIQWT):
         super(GraphArea, self).__init__()
 
         self._initUI()
@@ -102,8 +98,19 @@ class GraphArea(QtGui.QWidget):
         self.nr_rows = 3
         self.autoscale_y_axis = True
         self.plots = []
+
+        self.changePlotEngine(use_guiqwt)
+
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
         # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
+
+    def changePlotEngine(self, use_guiqwt):
+        if use_guiqwt and have_guiqwt:
+            from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
+            self.MultiLinePlot = MultiLinePlot
+        else:
+            from openswathgui.views.Plot import QwtMultiLinePlot as MultiLinePlot
+            self.MultiLinePlot = MultiLinePlot
          
     @QtCore.pyqtSlot(float, float, float, float)
     def plotZoomChanged(self, xmin, xmax, ymin, ymax):
@@ -147,13 +154,13 @@ class GraphArea(QtGui.QWidget):
         
         self.plots = []
 
-        self.plot = MultiLinePlot(edit=False, toolbar=False )
+        self.plot = self.MultiLinePlot(edit=False, toolbar=False )
         self.plot.create_curves([1,2,3], [ [0,0] ] )
         self._add_new(self.plot)
         self.plots.append(self.plot)
 
         #self.plot2 = CurvePlotView( self )
-        self.plot2 = MultiLinePlot(edit=False, toolbar=False )
+        self.plot2 = self.MultiLinePlot(edit=False, toolbar=False )
         self.plot2.create_curves([1,2], [ [0,0] ])
         self._add_new(self.plot2)
         self.plots.append(self.plot2)
@@ -171,7 +178,7 @@ class GraphArea(QtGui.QWidget):
 
         for i, run in enumerate(datamodel.get_runs()):
 
-            self.plot = MultiLinePlot(edit=False, toolbar=False,
+            self.plot = self.MultiLinePlot(edit=False, toolbar=False,
                                       options=dict(xlabel="Time (s)", ylabel="Intensity") )
             self.plot.setDataModel(run)
 
@@ -217,13 +224,25 @@ class GraphArea(QtGui.QWidget):
             ranges = chr_transition.getRange(pl.run) 
             mscore = chr_transition.getProbScore(pl.run) 
             intensity = chr_transition.getIntensity(pl.run) 
+            assay_rt = chr_transition.getAssayRT(pl.run) 
+
+            xminsr = [r[0] for r in ranges]
+            xmaxsr = [r[1] for r in ranges]
+            xwidth = [r[1] - r[0] for r in ranges]
 
             # print "Got data for", i, "plot labels", labels, "from", chr_transition, "and nr data ", len(data)
             # print "Got mscore and int", mscore, intensity
+            # print "Got ranges ", ranges, labels, mscore, intensity
 
             # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
-            pl.update_all_curves(data, labels, ranges, mscore, intensity, show_legend)
-            pl.set_x_limits(min(xmins),max(xmaxs))
+            pl.update_all_curves(data, labels, ranges, mscore, intensity, assay_rt, show_legend)
+
+            if mscore is None:
+                pl.set_x_limits(min(xmins),max(xmaxs))
+            else:
+                pl.set_x_limits(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
+                pl.set_y_limits_auto(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
+
             pl.replot()
 
 #
@@ -437,7 +456,7 @@ class ApplicationView(QtGui.QWidget):
         self.leftside.selectionChanged.connect(self.treeSelectionChanged)
 
         # Do the main application (graphing area on the right side)
-        self.graph_layout = GraphArea()
+        self.graph_layout = GraphArea(settings.use_guiqwt)
         horizontal_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
         horizontal_splitter.addWidget(self.leftside)
         horizontal_splitter.addWidget(self.graph_layout)
@@ -477,18 +496,18 @@ class ApplicationView(QtGui.QWidget):
         print "clicked iittt"
 
 
-
 #
 ## Settings object
 # 
 class Settings(object):
 
-    def __init__(self, runMode):
+    def __init__(self, runMode, use_guiqwt = False):
         self.show_legend = True
         self.draw_transitions = False
         self.autoscale_y_axis = True
         self.nr_rows = 3
         self.window_title = 'TAPIR'
+        self.use_guiqwt = use_guiqwt
 
         if runMode == "proteomics":
             self.first_column_name_ = 'Identifier'
@@ -516,11 +535,17 @@ class ConfigDialog(QtGui.QDialog):
         Responds to the close and save action
         """
 
+        if not have_guiqwt and self.use_guiqwt.isChecked():
+            box = QtGui.QMessageBox.about(self, "Error", "QtGui is not available, please remove it.")
+            box.setIcont(QtGui.QMessageBox.Critical)
+            return
+
         self.settings.window_title = str(self.window_title.text())
         self.settings.nr_rows = int(self.nr_rows.text())
         self.settings.show_legend = self.show_legend.isChecked()
         self.settings.draw_transitions = self.draw_transitions.isChecked()
         self.settings.autoscale_y_axis = self.autoscale_y_axis.isChecked()
+        self.settings.use_guiqwt = self.use_guiqwt.isChecked()
         self.parent.updateSettings(self.settings)
         self.close()
 
@@ -539,6 +564,7 @@ class ConfigDialog(QtGui.QDialog):
         self.show_legend = QtGui.QCheckBox("Show legend");
         self.draw_transitions = QtGui.QCheckBox("Draw individual transitions");
         self.autoscale_y_axis = QtGui.QCheckBox("Autoscale y axis");
+        self.use_guiqwt = QtGui.QCheckBox("Use guiqwt advanced graphics (slower)");
         label_rows = QtGui.QLabel("Number of window rows");
         self.nr_rows = QtGui.QLineEdit();
         label_rows = QtGui.QLabel("Window Title");
@@ -547,6 +573,7 @@ class ConfigDialog(QtGui.QDialog):
         self.show_legend.setChecked( self.settings.show_legend )
         self.draw_transitions.setChecked( self.settings.draw_transitions )
         self.autoscale_y_axis.setChecked( self.settings.autoscale_y_axis )
+        self.use_guiqwt.setChecked( self.settings.use_guiqwt )
         self.nr_rows.setText( str(self.settings.nr_rows) )
         self.window_title.setText( str(self.settings.window_title) )
 
@@ -554,6 +581,7 @@ class ConfigDialog(QtGui.QDialog):
         updateLayout.addWidget(self.show_legend);
         updateLayout.addWidget(self.draw_transitions);
         updateLayout.addWidget(self.autoscale_y_axis);
+        updateLayout.addWidget(self.use_guiqwt);
         updateLayout.addWidget(label_rows);
         updateLayout.addWidget(self.nr_rows);
         updateLayout.addWidget(self.window_title);
@@ -703,18 +731,28 @@ class MainWindow(QtGui.QMainWindow):
         if len(pyFileList) == 1 and (pyFileList[0].endswith(".yaml") or fileType == "yaml"):
             self.data_model.load_from_yaml(pyFileList[0])
         elif all( [f.lower().endswith("mzml") for f in pyFileList] ):
-            print "load files" 
             self.data_model.loadFiles(pyFileList)
+        elif all( [f.lower().endswith("sqmass") for f in pyFileList] ):
+            self.data_model.loadSqMassFiles(pyFileList)
         else:
+            if any( [f.lower().endswith("sqmass") for f in pyFileList] ):
 
-            # Separate the mzML and other files
-            mzmls = [f for f in pyFileList if f.lower().endswith("mzml")]
-            others = [f for f in pyFileList if not f.lower().endswith("mzml")]
+                # Separate the mzML and other files
+                sqmass = [f for f in pyFileList if f.lower().endswith("sqmass")]
+                others = [f for f in pyFileList if not f.lower().endswith("sqmass")]
 
-            if fileType == None and len(others) == 1 and others[0].lower().endswith("traml"):
-                fileType = "traml"
+                fileType = "sqmass"
+                self.data_model.loadMixedFiles(sqmass, others, fileType)
+            else:
 
-            self.data_model.loadMixedFiles(mzmls, others, fileType)
+                # Separate the mzML and other files
+                mzmls = [f for f in pyFileList if f.lower().endswith("mzml")]
+                others = [f for f in pyFileList if not f.lower().endswith("mzml")]
+
+                if fileType == None and len(others) == 1 and others[0].lower().endswith("traml"):
+                    fileType = "traml"
+
+                self.data_model.loadMixedFiles(mzmls, others, fileType)
 
         # After loading, refresh view and print load time
         self._refresh_view(time=time.time()-start)
@@ -726,6 +764,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.application.graph_layout.nr_rows = settings.nr_rows
         self.application.graph_layout.autoscale_y_axis = settings.autoscale_y_axis
+        self.application.graph_layout.changePlotEngine(settings.use_guiqwt)
         self.data_model.setDrawTransitions( settings.draw_transitions )
         self.setWindowTitle(self.settings.window_title)
         self._refresh_view()
@@ -766,6 +805,8 @@ def handle_args():
                         help = 'Type of files describing the relations (simple, openswath, yaml)')
     parser.add_argument('--runMode', dest="run_mode", required=False, default="proteomics",
                         help = 'Mode to run in (proteomics, metabolomics)')
+    parser.add_argument('--use_guiqwt', dest="use_guiqwt", required=False, default="False",
+                        help = 'Whether to use guiQwt (False,True)')
     args = parser.parse_args(sys.argv[1:])
     return args
 
@@ -773,7 +814,7 @@ if __name__ == '__main__':
 
     # Handle command line options
     options = handle_args()
-    settings = Settings(options.run_mode)
+    settings = Settings(options.run_mode, options.use_guiqwt == "True")
 
     # Set up Qt application
     app = QtGui.QApplication(sys.argv)

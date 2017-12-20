@@ -37,6 +37,8 @@ $Authors: Hannes Roest$
 
 import os
 
+from FormatHelper import FormatHelper
+
 class SingleChromatogramFile():
     """Data Model for a single file from one run.
 
@@ -120,7 +122,7 @@ class SingleChromatogramFile():
         Populate the mapping between precursors and the chromatogram ids using the chromatogram information.
 
         Try to use the mass or the precursor tag to infer which chromatograms
-        belong to the same peptide. See _compute_transitiongroup_from_precursor
+        belong to the same peptide. See FormatHelper
         """
 
         for key in self._run.info['offsets'].keys():
@@ -130,9 +132,10 @@ class SingleChromatogramFile():
             if len(key) == 0: continue
             #
             chromatogram = self._run[key]
+            f = FormatHelper()
             if len(chromatogram["precursors"]) == 1:
                 precursor = chromatogram["precursors"][0]
-                trgr_nr = self._compute_transitiongroup_from_precursor(precursor)
+                trgr_nr = f._compute_transitiongroup_from_precursor(precursor)
                 tmp = self._precursor_mapping.get(trgr_nr, [])
                 tmp.append(key)
                 self._precursor_mapping[trgr_nr] = tmp
@@ -165,122 +168,17 @@ class SingleChromatogramFile():
         self._run = result
 
     def _compute_transitiongroup_from_key(self, key):
-        """ Transforms an input chromatogram id to a string of [DECOY]_xx/yy
-
-        Possible Input Formats:
-
-        i) [DECOY_]id_xx/yy_zz
-        ii) [DECOY_]id_xx_yy
-
-        Where the DECOY_ prefix is optional, xx is the sequence and yy is the
-        charge. zz is an additional, optional annotation.
-
-        We want to return only [DECOY]_xx/yy (ensuring that decoys get a
-        different identifier than targets).
-        """
-        components = key.split("_")
-        trgr_nr = str(components[1])
-        if components[0].startswith("DECOY"):
-            trgr_nr = "DECOY_" + str(components[2])
-
-        # Format ii) (second component doesnt contain a slash)
-        if trgr_nr.find("/") == -1:
-            trgr_nr += "/" + str(components[-1])
-
-        return trgr_nr
-
-    def _compute_transitiongroup_from_precursor(self, precursor):
-        """ Transforms an input precursor to a string of [DECOY]_xx/yy
-        """
-        charge = "0"
-        if precursor.has_key("charge"):
-            charge = str(precursor["charge"])
-
-        # Check if there is a user-parameter describing the peptide sequence
-        # which would allow us to asseble the SEQ/ch pair.
-        if precursor.has_key("userParams"):
-            if precursor["userParams"].has_key("peptide_sequence"):
-                return precursor["userParams"]["peptide_sequence"] + "/" + charge
-            if precursor["userParams"].has_key("PeptideSequence"):
-                return precursor["userParams"]["PeptideSequence"] + "/" + charge
-
-        if precursor.has_key("mz"):
-            # TODO have some reproducible rounding here
-            return str(precursor["mz"]) + "GENERIC/" + charge
+        return FormatHelper(). _compute_transitiongroup_from_key(key)
 
     def _has_openswath_format(self, run):
-        """Checks whether the chromatogram id follows a specific format which
-        could allow to map chromatograms to precursors without reading the
-        whole file.
+        f = FormatHelper()
 
-        Namely, the format is expected to be [DECOY_]\d*_.*_.* from which one
-        can infer that it is openswath format.
-
-        possible inputs: 
-            DECOY_44736_NVEVIEDDKQGIIR/2_y12
-            1002781_TGLC(UniMod:4)QFEDAFTQLSGATPIGAGIDAR_3
-        """
-
-        
-        import re
-        openswath_format = False
         if len( run.info['offsets'] ) > 0:
             keys = run.info['offsets'].keys()
-            for key in run.info['offsets'].keys():
-                if key in ("indexList", "TIC"): continue
-                if len(key) == 0: continue
-                break
-
-            # It is probably not the openswath format with 3 or more entries
-            if len(key.split("_")) > 4:
-                return False
-
-            if len(key.split("_")) >= 3:
-                components = key.split("_")
-                # print "split into components", components
-                if components[0].startswith("DECOY"):
-                    components = components[1:]
-
-                # Exactly 3 components are needed: id, sequence, charge/ion qualifier
-                if len(components) != 3:
-                    return False
-
-                trgr_nr = components[0]
-                sequence = components[1]
-                sequence = sequence.split("/")[0]
-                qualifier = components[2]
-
-                if not self._is_number(trgr_nr):
-                    print "Format determination: Could not convert", trgr_nr, "to int."
-                    return False
-                if self._is_number(sequence):
-                    print "Format determination: Does not look like sequence ", sequence
-                    return False
-                elif sequence.find("UniMod") != -1:
-                    # Looks like sequence, has UniMod tag in it, should be ok
-                    pass
-                else:
-                    valid = re.match('^[A-Z]+$', sequence) is not None
-                    if not valid:
-                        print "Format determination: Does not look like sequence ", sequence
-                        return False
-
-                if self._is_number(qualifier):
-                    print "Format determination: Does look like number ", qualifier
-                    return False
-                
-                return True
+            return all([ f._has_openswath_format(k) for k in keys if len(key) > 0 and not key in ("indexList", "TIC")] )
 
         # default is false
         return False
-
-    def _is_number(self, n):
-        # Sequence should not be a number
-        try:
-            x = float(n)
-            return True
-        except ValueError:
-            return False
 
     def _group_precursors_by_sequence(self):
         """Group together precursors with the same charge state"""

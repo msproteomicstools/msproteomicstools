@@ -72,6 +72,7 @@ Doc :
 from msproteomicstoolslib.data_structures.PeakGroup import MinimalPeakGroup, GuiPeakGroup, GeneralPeakGroup
 from msproteomicstoolslib.data_structures.Precursor import GeneralPrecursor, Precursor
 from msproteomicstoolslib.data_structures.Run import Run
+from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping
 
 class ReadFilter(object):
     """
@@ -97,7 +98,7 @@ class SWATHScoringReader:
 
     @staticmethod
     def newReader(infiles, filetype, readmethod="minimal",
-                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+                  readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         """
         newReader(infiles, filetype, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False)
 
@@ -107,7 +108,8 @@ class SWATHScoringReader:
         if filetype  == "openswath": 
             return OpenSWATH_SWATHScoringReader(infiles, readmethod,
                                                 readfilter, errorHandling,
-                                                enable_isotopic_grouping=enable_isotopic_grouping)
+                                                enable_isotopic_grouping=enable_isotopic_grouping,
+                                                read_cluster_id=read_cluster_id)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -117,7 +119,7 @@ class SWATHScoringReader:
         else:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
-    def parse_files(self, read_exp_RT=True, verbosity=10):
+    def parse_files(self, read_exp_RT=True, verbosity=10, useCython=False):
       """Parse the input file(s) (CSV).
 
       Args:
@@ -176,7 +178,7 @@ class SWATHScoringReader:
                     aligned_fname = this_row[header_dict[ "align_origfilename"] ]
                 if "filename" in header_dict:
                     orig_fname = this_row[header_dict[ "filename"] ]
-                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname)
+                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
                 runs.append(current_run)
                 print(current_run, "maps to ", orig_fname)
             else: 
@@ -203,7 +205,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     Parser for OpenSWATH output
     """
 
-    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False):
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
         self.infiles = infiles
         self.run_id_name = "run_id"
         self.readmethod = readmethod
@@ -211,13 +213,25 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         self.readfilter = readfilter
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
-        if readmethod == "minimal":
+        self.read_cluster_id = read_cluster_id
+        if readmethod == "cminimal":
+            try:
+                from msproteomicstoolslib.cython.Precursor import CyPrecursor
+                from msproteomicstoolslib.cython._optimized import CyPrecursorWrapperOnly
+                self.Precursor = CyPrecursor
+                self.Precursor = CyPrecursorWrapperOnly
+            except ImportError as e:
+                print ("Requested method 'cminimal' but Cython extensions seem to be missing. Please compile and add them or use readmethod 'minimal'")
+                raise ValueError("Need Cython extensions for 'cminimal' readmethod.")
+
+        elif readmethod == "minimal":
             self.Precursor = Precursor
         elif readmethod == "gui":
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GuiPeakGroup
             self.sequence_col = "FullPeptideName"
         else:
+            # complete
             self.Precursor = GeneralPrecursor
             self.PeakGroup = GeneralPeakGroup
 
@@ -248,7 +262,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
             diff_from_assay_in_sec_name = "RT"
-        if "align_clusterid" in run.header_dict: 
+        if "align_clusterid" in run.header_dict and self.read_cluster_id:
             cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
         trgr_id = this_row[run.header_dict[unique_peakgroup_id_name]]
@@ -290,19 +304,23 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
           p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
+          p.setProteinName(protein_name)
+          p.setSequence(sequence)
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
 
-        if self.readmethod == "minimal":
+        if self.readmethod == "cminimal":
+          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+        elif self.readmethod == "minimal":
           peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
+          assay_rt = this_row[run.header_dict["assay_rt"]]
           rightWidth = this_row[run.header_dict[right_width_name]]
           charge = this_row[run.header_dict[charge_name]]
-          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
+          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
           peakgroup.charge = charge
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
@@ -313,6 +331,8 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+        else:
+            raise Exception("Unknown readmethod", self.readmethod)
 
 class mProphet_SWATHScoringReader(SWATHScoringReader):
     """
@@ -602,198 +622,4 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
           peakgroup.set_intensity(intensity)
           peakgroup.setClusterID(cluster_id)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
-
-def simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, protein_mapping, verbose=False):
-
-    assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
-    f = aligned_pg_files[0]
-
-    # Produce simple mapping between runs and files (assume each file is one run)
-    for i,raw in enumerate(rawdata_files):
-        mapping[str(i)] = [ raw ]
-
-    # Get the compression
-    if f.endswith('.gz'):
-        import gzip 
-        filehandler = gzip.open(f,'rb')
-    else:
-        filehandler = open(f)
-
-    # Get the dialect
-    dialect = csv.Sniffer().sniff(filehandler.readline(), [',',';','\t'])
-    filehandler.seek(0) 
-    reader = csv.reader(filehandler, dialect)
-    header = reader.next()
-
-    header_dict = {}
-    for i,n in enumerate(header):
-        header_dict[n] = i
-
-    for this_row in reader:
-        peptide_name = this_row [ header_dict["chromatogram_super_group_id"]]
-        precursor_name = this_row [ header_dict["chromatogram_group_id"]]
-        transition_name = this_row [ header_dict["chromatogram_id"]]
-
-        # Fill the sequence mapping
-        tmp = sequences_mapping.get(peptide_name, [])
-        if precursor_name not in tmp:
-            tmp.append(precursor_name)
-        sequences_mapping[peptide_name] = tmp
-
-        # Fill the precursor mapping
-        tmp = precursors_mapping.get(precursor_name, [])
-        if transition_name not in tmp:
-            tmp.append(transition_name)
-        precursors_mapping[precursor_name] = tmp
-
-def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, protein_mapping, verbose=False):
-    try:
-        import pyopenms
-    except ImportError as e:
-        print("\nError!")
-        print("Could not import pyOpenMS while trying to load a TraML file - please make sure pyOpenMS is installed.")
-        print("pyOpenMS is available from https://pypi.python.org/pypi/pyopenms")
-        print()
-        raise e
-
-    assert len(aligned_pg_files) == 1, "There should only be one file in simple mode"
-    f = aligned_pg_files[0]
-
-    # Produce simple mapping between runs and files (assume each file is one run)
-    for i,raw in enumerate(rawdata_files):
-        mapping[str(i)] = [ raw ]
-
-    targexp = pyopenms.TargetedExperiment()
-    pyopenms.TraMLFile().load(f, targexp)
-
-    for peptide_precursor in targexp.getPeptides():
-
-        # Fill the protein mapping
-        protein_id = peptide_precursor.protein_refs
-        if len(protein_id) > 0:
-            protein_id = protein_id[0] # take the first one ... 
-
-        tmp = protein_mapping.get(protein_id, [])
-        if peptide_precursor.sequence not in tmp:
-            tmp.append(peptide_precursor.sequence)
-        protein_mapping[protein_id] = tmp
-
-        # Fill the sequence mapping
-        tmp = sequences_mapping.get(peptide_precursor.sequence, [])
-        if peptide_precursor.id not in tmp:
-            tmp.append(peptide_precursor.id)
-        sequences_mapping[peptide_precursor.sequence] = tmp
-
-    for transition in targexp.getTransitions():
-
-        # Fill the precursor mapping
-        tmp = precursors_mapping.get(transition.getPeptideRef(), [])
-        if transition.getPeptideRef() not in tmp:
-            tmp.append(transition.getNativeID())
-        precursors_mapping[transition.getPeptideRef()] = tmp
-
-def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
-                 sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):
-        
-    """ Infers a mapping between raw chromatogram files (mzML) and processed feature TSV files
-
-    Usually on feature file can contain multiple aligned runs and maps to
-    multiple chromatogram files (mzML). This function will try to guess the
-    original name of the mzML based on the align_origfilename column in the
-    TSV. Note that both files have some typical endings that are _not_ shared,
-    these are generally removed before comparison.
-
-    Only an excact match is allowed.
-    """
-    import csv, os
-
-    if fileType == "simple":
-        return simpleInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
-    elif fileType == "traml":
-        return tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping)
-
-    for file_nr, f in enumerate(aligned_pg_files):
-        header_dict = {}
-        if f.endswith('.gz'):
-            import gzip 
-            filehandler = gzip.open(f,'rb')
-        else:
-            filehandler = open(f)
-        reader = csv.reader(filehandler, delimiter="\t")
-        header = next(reader)
-        for i,n in enumerate(header):
-            header_dict[n] = i
-        if not "align_origfilename" in header_dict or not "align_runid" in header_dict:
-            print (header_dict)
-            raise Exception("need column header align_origfilename and align_runid")
-
-        for this_row in reader:
-
-            # Get the mapping ... 
-            if "FullPeptideName" in header_dict and \
-              "Charge" in header_dict and \
-              "aggr_Fragment_Annotation" in header_dict:
-                transitions = this_row[ header_dict["aggr_Fragment_Annotation"] ].split(";")
-                if len(transitions[-1]) == 0:
-                    transitions = transitions[:-1]
-                peptide_name = this_row[header_dict["FullPeptideName"]]
-                charge_state = this_row[header_dict["Charge"]]
-                key = peptide_name + "/" + charge_state
-                precursors_mapping [ key ] = transitions
-                mapped_precursors = sequences_mapping.get( peptide_name, [] )
-                mapped_precursors.append(key)
-                sequences_mapping[peptide_name] = [ key ]
-
-                if "ProteinName" in header_dict:
-                    protein_name = this_row[header_dict["ProteinName"]]
-
-                    tmp = protein_mapping.get(protein_name, [])
-                    if peptide_name not in tmp:
-                        tmp.append(peptide_name)
-                    protein_mapping[protein_name] = tmp
-
-
-
-            # 1. Get the original filename (find a non-NA entry) and the corresponding run id
-            if len(this_row) == 0: 
-                continue
-            if this_row[ header_dict["align_origfilename"] ] == "NA":
-                continue
-            aligned_id = os.path.basename(this_row[ header_dict["align_runid"] ])
-            if aligned_id in mapping:
-                continue 
-
-
-            aligned_fname = os.path.basename(this_row[ header_dict["align_origfilename"] ])
-
-            # 2. Go through all chromatogram input files and try to find
-            # one that matches the one from align_origfilename
-            for rfile in rawdata_files:
-
-                # 2.1 remove common file endings from the raw data
-                rfile_base = os.path.basename(rfile)
-                for ending in [".mzML", ".chrom"]:
-                    rfile_base = rfile_base.split(ending)[0]
-
-                # 2.2 remove common file endings from the tsv data
-                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
-                    aligned_fname = aligned_fname.split(ending)[0]
-
-                # 2.3 Check if we have a match
-                if aligned_fname == rfile_base:
-                    if verbose: 
-                        print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
-                    mapping[aligned_id] = [rfile]
-
-            if not aligned_id in mapping:
-                if verbose or throwOnMismatch:
-                    print("- No match found for :", aligned_fname, "in any of", \
-                            [os.path.basename(rfile) for rfile in rawdata_files])
-                    print("- This is generally a very bad sign and you might have " +\
-                            "to either rename your files to have matching filenames " +\
-                            "or provide an input yaml file describing the matching in detail")
-                if throwOnMismatch:
-                    raise Exception("Mismatch, alignment filename could not be matched to input chromatogram")
 

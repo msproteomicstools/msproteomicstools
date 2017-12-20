@@ -122,10 +122,10 @@ class TestUnitGuiPeakGroup(unittest.TestCase):
         pass
         
     def test_create_pg(self):
-        pg = peakgroup.GuiPeakGroup(0.1, 100, 50, 60, None)
+        pg = peakgroup.GuiPeakGroup(0.1, 100, 50, 60, 7, None)
 
     def test_get_value(self):
-        pg = peakgroup.GuiPeakGroup(0.1, 100, 50, 60, None)
+        pg = peakgroup.GuiPeakGroup(0.1, 100, 50, 60, 8.0, None)
         self.assertAlmostEqual(pg.get_value("m_score"), 0.1)
         self.assertAlmostEqual(pg.get_value("Intensity"), 100)
         self.assertAlmostEqual(pg.get_value("leftWidth"), 50)

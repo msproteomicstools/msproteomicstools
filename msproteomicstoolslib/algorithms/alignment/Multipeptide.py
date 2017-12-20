@@ -35,7 +35,9 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-class Multipeptide():
+from msproteomicstoolslib.data_structures.PrecursorGroup import PrecursorGroup
+
+class Multipeptide(object):
     """ A collection of the same precursors (chromatograms) across multiple runs.
 
     It contains individual precursors that can be accessed by their run id.
@@ -78,11 +80,11 @@ class Multipeptide():
         """
         Get precursor group for the given run
 
-        Args:
-            runid (str): Run id of the group
+        Parameters
+        ----------
+        :param str runid: Run id of the group
 
-        Returns:
-            precursor_group (:class:`.PrecursorGroup`): Precursor group from the corresponding run
+        :rtype: :class:`.PrecursorGroup`: Precursor group from the corresponding run
         """
         return self._peptides[runid]
 
@@ -90,10 +92,7 @@ class Multipeptide():
         """
         Get all precursor groups
 
-        Returns
-        -------
-        precursor_group: list of :class:`.PrecursorGroup`
-            All Precursor group from the corresponding run
+        :rtype: list(:class:`.PrecursorGroup`): All Precursor group from the corresponding run
         """
         return sorted(self._peptides.values())
 
@@ -101,13 +100,8 @@ class Multipeptide():
         """
         Checks whether a given run has a precursor group
 
-        Args:
-            runid (str): Run id to check
-
-        Returns
-        -------
-        check : bool
-            Whether the given run has a precursor group
+        :param str runid: Run id to check
+        :rtype: bool: Whether the given run has a precursor group
         """
         return runid in self._peptides
 
@@ -131,13 +125,12 @@ class Multipeptide():
         """
         Whether the current peptide is a decoy or not
 
-        Returns:
-            decoy(bool): Whether the peptide is decoy or not
+        :rtype: bool: Whether the peptide is decoy or not
         """
-        if len(self.getAllPeptides()) == 0:
+        if len(self._peptides) == 0:
             return False
 
-        return self.getAllPeptides()[0].get_decoy() 
+        return next(iter(self._peptides.values())).get_decoy()
 
     def has_null_peptides(self):
         """

@@ -86,14 +86,14 @@ class AlignmentStatistics(object):
             # Count how many precursors / peptides / proteins fall below the threshold
             if m.find_best_peptide_pg().get_fdr_score() < fdr_cutoff:
                 astats.nr_good_precursors += 1
-                astats.good_peptides.update([m.getAllPeptides()[0].sequence])
-                astats.good_proteins.update([m.getAllPeptides()[0].protein_name])
+                astats.good_peptides.update([m.getAllPeptides()[0].getSequence()])
+                astats.good_proteins.update([m.getAllPeptides()[0].getProteinName()])
 
             # Count how many precursors / peptides / proteins were quantified
             if len(m.get_selected_peakgroups()) > 0:
                 astats.nr_quant_precursors += 1
-                astats.quant_peptides.update([m.getAllPeptides()[0].sequence])
-                astats.quant_proteins.update([m.getAllPeptides()[0].protein_name])
+                astats.quant_peptides.update([m.getAllPeptides()[0].getSequence()])
+                astats.quant_proteins.update([m.getAllPeptides()[0].getProteinName()])
 
             for p in m.getAllPeptides():
 
@@ -178,9 +178,9 @@ class Experiment(MRExperiment):
 
         # count the decoys
         d.nr_decoys = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
-                          if prec.find_best_peptide_pg().peptide.get_decoy()])
+                          if prec.find_best_peptide_pg().getPeptide().get_decoy()])
         d.nr_targets = sum([len(prec.get_selected_peakgroups()) for prec in precursors_to_be_used
-                          if not prec.find_best_peptide_pg().peptide.get_decoy()])
+                          if not prec.find_best_peptide_pg().getPeptide().get_decoy()])
         # estimate the real fdr by calculating the decoy ratio and dividing it
         # by the decoy ration obtained at @fdr_cutoff => which gives us the
         # decoy in/decrease realtive to fdr_cutoff. To calculate the absolute
@@ -198,22 +198,18 @@ class Experiment(MRExperiment):
         alignment.count(multipeptides, fdr_cutoff, self.runs)
 
         # Count presence in all runs (before alignment)
-        precursors_in_all_runs_wo_align = len([1 for m in multipeptides if m.all_above_cutoff(fdr_cutoff) and not m.get_decoy()])
-        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.protein_name for m in multipeptides 
-                                                        if m.all_above_cutoff(fdr_cutoff) and 
-                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
-        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().peptide.sequence for m in multipeptides 
-                                                        if m.all_above_cutoff(fdr_cutoff) and 
-                                                        not m.find_best_peptide_pg().peptide.get_decoy()]))
+        mpep_target = [m for m in multipeptides if not m.get_decoy()]
+        precursors_in_all_runs_wo_align_data = [m for m in mpep_target if m.all_above_cutoff(fdr_cutoff)]
+        precursors_in_all_runs_wo_align = len(precursors_in_all_runs_wo_align_data)
+        proteins_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().getPeptide().getProteinName() for m in precursors_in_all_runs_wo_align_data]))
+        peptides_in_all_runs_wo_align_target = len(set([m.find_best_peptide_pg().getPeptide().getSequence() for m in precursors_in_all_runs_wo_align_data]))
 
         # Count presence in all runs (before alignment)
-        precursors_in_all_runs = [m for m in multipeptides if m.all_selected()]
-        nr_peptides_target = len(set([prec.find_best_peptide_pg().peptide.sequence for prec in precursors_in_all_runs 
-                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
-        nr_proteins_target = len(set([prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_in_all_runs 
-                                      if not prec.find_best_peptide_pg().peptide.get_decoy()]))
+        target_precursors_in_all_runs = [m for m in mpep_target if m.all_selected()]
+        nr_peptides_target = len(set([prec.find_best_peptide_pg().getPeptide().getSequence() for prec in target_precursors_in_all_runs]))
+        nr_proteins_target = len(set([prec.find_best_peptide_pg().getPeptide().getProteinName() for prec in target_precursors_in_all_runs]))
 
-        nr_precursors_in_all = len([1 for m in multipeptides if m.all_selected() and not m.get_decoy()])
+        nr_precursors_in_all = len(target_precursors_in_all_runs)
         max_pg = alignment.nr_good_precursors * len(self.runs)
         dstats = self.estimate_real_fdr(multipeptides, fraction_present)
         dstats_all = self.estimate_real_fdr(multipeptides, 1.0)
@@ -221,8 +217,8 @@ class Experiment(MRExperiment):
         # Get single/multiple hits stats
         from itertools import groupby
         precursors_quantified = [m for m in multipeptides if len(m.get_selected_peakgroups()) > 0]
-        target_quant_protein_list = [ prec.find_best_peptide_pg().peptide.protein_name for prec in precursors_quantified 
-                                     if not prec.find_best_peptide_pg().peptide.get_decoy()]
+        target_quant_protein_list = [ prec.find_best_peptide_pg().getPeptide().getProteinName() for prec in precursors_quantified 
+                                     if not prec.find_best_peptide_pg().getPeptide().get_decoy()]
         target_quant_protein_list.sort()
         nr_sh_target_proteins = sum( [len(list(group)) == 1 for key, group in groupby(target_quant_protein_list)] )
         nr_mh_target_proteins = sum( [len(list(group)) > 1 for key, group in groupby(target_quant_protein_list)] )
@@ -260,8 +256,8 @@ class Experiment(MRExperiment):
         print("Of these %s proteins, %s were multiple hits and %s were single hits." % (len(alignment.quant_proteins), nr_mh_target_proteins, nr_sh_target_proteins))
 
         # Get decoy estimates
-        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().peptide.get_decoy()])
-        if len(precursors_in_all_runs) > 0:
+        decoy_precursors = len([1 for m in multipeptides if len(m.get_selected_peakgroups()) > 0 and m.find_best_peptide_pg().getPeptide().get_decoy()])
+        if len(target_precursors_in_all_runs) > 0:
             print("Decoy percentage of peakgroups that are fully aligned %0.4f %% (%s out of %s) which roughly corresponds to a peakgroup FDR of %s %%" % (
                 dstats_all.decoy_pcnt, dstats_all.nr_decoys, dstats_all.nr_decoys + dstats_all.nr_targets, dstats_all.est_real_fdr*100))
 
@@ -322,9 +318,13 @@ class Experiment(MRExperiment):
         # 2. Write out the (selected) ids
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
+            coll_ids = []
+            for pg in selected_pgs:
+                coll_ids.append(pg.get_feature_id())
+
             id_writer = csv.writer(fh, delimiter="\t")
-            for pg in sorted(selected_pgs):
-                id_writer.writerow([pg.get_feature_id()])
+            for pg in sorted(coll_ids):
+                id_writer.writerow([pg])
             fh.close()
             del id_writer
 
@@ -398,15 +398,15 @@ class Experiment(MRExperiment):
                   if f_id in selected_ids_dict:
                       # Check the "id" and "transition_group_id" field.
                       # Unfortunately the id can be non-unique, there we check both.
-                      trgroup_id = selected_ids_dict[f_id].peptide.get_id()
+                      trgroup_id = selected_ids_dict[f_id].getPeptide().get_id()
                       unique_peptide_id = row[ header_dict[name_of_trgr_col]]
                       if unique_peptide_id == trgroup_id:
                           row_to_write = row
-                          row_to_write += [selected_ids_dict[f_id].peptide.run.get_id(), f, selected_ids_dict[f_id].get_cluster_id()]
+                          row_to_write += [selected_ids_dict[f_id].getPeptide().getRunId(), f, selected_ids_dict[f_id].get_cluster_id()]
                           # Replace run_id with the aligned id (align_runid) ->
                           # otherwise the run_id is not guaranteed to be unique 
                           if file_format == "openswath" : 
-                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
+                              row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].getPeptide().getRunId()
                           writer.writerow(row_to_write)
 
         # 5. Write out the .tr transformation files
@@ -483,7 +483,7 @@ def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
 
 def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_alignment_cutoff,
                    fdr_cutoff, aligned_fdr_cutoff, smoothing_method, method,
-                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref, force):
+                   use_RT_correction, stdev_max_rt_per_run, use_local_stdev, mst_use_ref, force, optimized_cython):
     """
     Minimum Spanning Tree (MST) based local aligment 
     """
@@ -497,19 +497,32 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
         refrun_id, refrun = [ (i,run) for i, run in enumerate(exp.runs) if run.get_id() == ref][0]
         tree = [( i, refrun_id) for i in range(len(exp.runs)) if i != refrun_id]
     else:
+        start = time.time()
         tree = MinimumSpanningTree(getDistanceMatrix(exp, multipeptides, spl_aligner))
+        print("Computing tree took %0.2fs" % (time.time() - start) )
 
     print("Computed Tree:", tree)
 
     
     # Get alignments
-    tr_data = LightTransformationData()
+    start = time.time()
+    try:
+        from msproteomicstoolslib.cython._optimized import CyLightTransformationData
+        if optimized_cython:
+            tr_data = CyLightTransformationData()
+        else:
+            tr_data = LightTransformationData()
+    except ImportError:
+        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
+        tr_data = LightTransformationData()
+
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],
                        spl_aligner, multipeptides, smoothing_method,
                        max_rt_diff, force=force)
 
     tree_mapped = [ (exp.runs[a].get_id(), exp.runs[b].get_id()) for a,b in tree]
+    print("Computing transformations for all edges took %0.2fs" % (time.time() - start) )
 
     # Perform work
     al = TreeConsensusAlignment(max_rt_diff, fdr_cutoff, aligned_fdr_cutoff, 
@@ -519,7 +532,11 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
                                 use_local_stdev=use_local_stdev)
 
     if method == "LocalMST":
-        al.alignBestCluster(multipeptides, tree_mapped, tr_data)
+        if optimized_cython:
+            al.alignBestCluster(multipeptides, tree_mapped, tr_data)
+        else:
+            print("WARNING: cannot utilize optimized MST alignment (needs readmethod = cminimal), will use Python version (slower).")
+            al.alignBestCluster_legacy(multipeptides, tree_mapped, tr_data)
     elif method == "LocalMSTAllCluster":
         al.alignAllCluster(multipeptides, tree_mapped, tr_data)
 
@@ -636,13 +653,13 @@ def handle_args():
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="Fixed FDR cutoff used for seeding (only assays where at least one peakgroup in one run is below this cutoff will be included in the result), see also target_fdr for a non-fixed cutoff", metavar='0.01')
     parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1.0, help="Extension m-score score cutoff, peakgroups of this quality will still be considered for alignment during extension", metavar='-1')
-    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30')
-    parser.add_argument("--iso_max_rt_diff", dest="rt_diff_isotope", default=10, help="Maximal difference in RT for two isotopic channels in the same run", metavar='30')
+    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT (in seconds) for two aligned features", metavar='30')
+    parser.add_argument("--iso_max_rt_diff", dest="rt_diff_isotope", default=10, help="Maximal difference in RT (in seconds) for two isotopic channels in the same run", metavar='30')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall, LocalMST, LocalMSTAllCluster).")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)", metavar="")
-    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, nonCVSpline, CVSpline, Earth)", metavar="diRT")
+    parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, lowess_biostats, lowess_statsmodels, lowess_cython, nonCVSpline, CVSpline, Earth, WeightedNearestNeighbour, SmoothLLDMedian, None)", metavar="diRT")
     parser.add_argument('--force', action='store_true', default=False, help="Force alignment")
 
     mst_parser = parser.add_argument_group('options for the MST')
@@ -658,7 +675,7 @@ def handle_args():
     experimental_parser.add_argument('--use_dscore_filter', action='store_true', default=False)
     experimental_parser.add_argument("--dscore_cutoff", default=1.96, type=float, help="Discard all peakgroups below this d-score", metavar='1.96')
     experimental_parser.add_argument("--nr_high_conf_exp", default=1, type=int, help="Number of experiments in which the peptide needs to be identified with confidence above fdr_cutoff", metavar='1')
-    experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (minimal,full)", metavar="minimal")
+    experimental_parser.add_argument("--readmethod", dest="readmethod", default="minimal", help="Read full or minimal transition groups (cminimal,minimal,full)", metavar="minimal")
     experimental_parser.add_argument("--tmpdir", dest="tmpdir", default="/tmp/", help="Temporary directory")
     experimental_parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
 
@@ -711,10 +728,17 @@ def main(options):
 
     # Read the files
     start = time.time()
+
+    optimized_cython = options.realign_method in [ "splineR_external", "lowess", "lowess_biostats", "lowess_statsmodels", "lowess_cython"]
+    optimized_cython = optimized_cython and options.readmethod == "cminimal"
+    if optimized_cython:
+        print("Provided arguments that allow execution of optimized cython code")
+
     reader = SWATHScoringReader.newReader(options.infiles, options.file_format,
                                           options.readmethod, readfilter,
-                                          enable_isotopic_grouping = not options.disable_isotopic_grouping)
-    runs = reader.parse_files(options.realign_method != "diRT", options.verbosity)
+                                          enable_isotopic_grouping = not options.disable_isotopic_grouping, 
+                                          read_cluster_id = False)
+    runs = reader.parse_files(options.realign_method != "diRT", options.verbosity, optimized_cython)
 
     # Create experiment
     this_exp = Experiment()
@@ -737,21 +761,22 @@ def main(options):
             stdev_max_rt_per_run = options.mst_stdev_max_per_run
         else:
             stdev_max_rt_per_run = None
-            
-        tree_out = doMSTAlignment(this_exp, 
+
+        tree_out = doMSTAlignment(this_exp,
                        multipeptides, float(options.rt_diff_cutoff), 
                        float(options.rt_diff_isotope),
                        float(options.alignment_score), options.fdr_cutoff,
                        float(options.aligned_fdr_cutoff),
                        options.realign_method, options.method,
                        options.mst_correct_rt, stdev_max_rt_per_run,
-                       options.mst_local_stdev, options.mst_use_ref, options.force)
+                       options.mst_local_stdev, options.mst_use_ref, options.force, 
+                       optimized_cython)
         print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
     else:
         doReferenceAlignment(options, this_exp, multipeptides)
 
-
     # Filter by high confidence (e.g. keep only those where enough high confidence IDs are present)
+    start = time.time()
     for mpep in multipeptides:
         # check if we have found enough peakgroups which are below the cutoff
         count = 0
@@ -761,6 +786,7 @@ def main(options):
         if count < options.nr_high_conf_exp:
             for p in mpep.getAllPeptides():
                 p.unselect_all()
+    print("Filtering took %0.2fs" % (time.time() - start) )
 
     # print statistics, write output
     start = time.time()

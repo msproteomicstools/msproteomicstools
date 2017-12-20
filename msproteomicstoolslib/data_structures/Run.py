@@ -52,9 +52,24 @@ class Run():
           - hasPrecursor
           - getPrecursor
           - addPrecursor
+
+    Parameters
+    ----------
+    header : str
+        Run header
+    header_dict : dict
+        Run header dictionary
+    runid : str
+        Run header dictionary
+    orig_input_filename : str
+        Original filname of the csv file
+    filename : str
+        Original filname of the mzML (e.g. the column "filename")
+    aligned_filename : str
+        Aligned filename (e.g. the column "align_origfilename")
     """
 
-    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None):
+    def __init__(self, header, header_dict, runid, orig_input_filename=None, filename=None, aligned_filename=None, useCython=False):
         self.header = header
         self.header_dict = header_dict
         self.runid = runid
@@ -63,6 +78,15 @@ class Run():
         self.aligned_filename = aligned_filename # the aligned filename
         self.all_precursor_groups_ = {}
   
+        try:
+            if useCython:
+                from msproteomicstoolslib.cython._optimized import CyPrecursorGroup
+                self.PrecursorGroup = CyPrecursorGroup
+            else:
+                self.PrecursorGroup = PrecursorGroup
+        except ImportError:
+            self.PrecursorGroup = PrecursorGroup
+
     def __str__(self):
         return "Run %s" % (self.get_id())
 
@@ -79,6 +103,9 @@ class Run():
         return self.aligned_filename
   
     def get_best_peaks(self):
+        """
+        Return the best peakgroup for each peptide precursor
+        """
         result = []
         for k, precursor_group in self.all_precursor_groups_.items():
             for peptide in precursor_group:
@@ -86,6 +113,9 @@ class Run():
         return result
   
     def get_best_peaks_with_cutoff(self, cutoff):
+        """
+        Return the best peak per run (with cutoff)
+        """
         return [p for p in self.get_best_peaks() if p.get_fdr_score() < cutoff]
   
     def getPrecursorGroup(self, curr_id):
@@ -108,10 +138,26 @@ class Run():
         return None
 
     def addPrecursor(self, precursor, peptide_group_label):
+        """
+        Add a new precursor to the run using a specific peptide label.
+
+        If the corresponding precursor group does not yet exist, a new
+        precursor group is created. Otherwise the precursor is added to the
+        precursor group.
+
+        Parameters
+        ----------
+        precursor : :class:`.CyPrecursor`,  :class:`.Precursor` or :class:`.GeneralPrecursor`
+            Precursor to be added (e.g. PEPT[+98]IDE/2)
+        peptide_group_label : str
+            Label of the corresponding peptide group (e.g. PEPTIDE)
+
+        """
+
         if peptide_group_label in self.all_precursor_groups_:
             self.getPrecursorGroup(peptide_group_label).addPrecursor(precursor)
         else:
-            prec_gr = PrecursorGroup(peptide_group_label, self)
+            prec_gr = self.PrecursorGroup(peptide_group_label, self)
             prec_gr.addPrecursor(precursor)
             self.all_precursor_groups_[peptide_group_label] = prec_gr
 
@@ -119,6 +165,6 @@ class Run():
         """
         Iterate through all precursor groups identified in this run.
         """
-        for precursor in self.all_precursor_groups_.values():
-            yield precursor
+        for precursor_group in self.all_precursor_groups_.values():
+            yield precursor_group
 
