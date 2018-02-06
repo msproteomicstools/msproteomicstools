@@ -218,14 +218,13 @@ class SmoothingRExtern:
             r = csv.reader(open(fname_out), delimiter="\t")
             next(r)
             arr = numpy.array([ (float(line[0]),float(line[1])) for line in r ])
-        except IOError:
+        except IOError as e:
             print("Something went wrong, I cannot find the file at ", fname_out)
             print("Debug output:")
             print("Input data length (d1, d2):", len(data1), len(data2))
             print("Input data length:", len(predict_data))
             print("Temporary directory :", TMPDIR)
-            raise IOError
-
+            raise e
 
         # Cleanup
         os.system("rm %s" % fname)

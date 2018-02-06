@@ -279,18 +279,21 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score = -1
         protein_name = "NA"
         thisid = -1
-
+        
+        # stop errors occuring if the value passed is empty
+        to_float = lambda x: float('nan' if x == '' else x)
+        
         if fdr_score_name in run.header_dict:
-            fdr_score = float(this_row[run.header_dict[fdr_score_name]])
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name]])
         elif fdr_score_name_alt in run.header_dict:
-            fdr_score = float(this_row[run.header_dict[fdr_score_name_alt]])
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name_alt]])
         elif self.errorHandling == "strict": 
             raise Exception("Did not find essential column " + fdr_score_name + " or " + fdr_score_name_alt)
 
         try:
             thisid = this_row[run.header_dict[unique_feature_id_name]]
-            retention_time = float(this_row[run.header_dict[rt_name]])
-            d_score = float(this_row[run.header_dict[dscore_name]])
+            retention_time = to_float(this_row[run.header_dict[rt_name]])
+            d_score = to_float(this_row[run.header_dict[dscore_name]])
             protein_name = this_row[run.header_dict[protein_id_col]]
         except KeyError:
             if self.errorHandling == "strict": 
@@ -299,7 +302,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         # Optional attributes
         intensity = -1
         if intensity_name in run.header_dict:
-            intensity = float(this_row[run.header_dict[intensity_name]])
+            intensity = to_float(this_row[run.header_dict[intensity_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
 

@@ -33,7 +33,7 @@ if with_cython:
 	    ]
 
 setup(name='msproteomicstools',
-      version='0.6.0',
+      version='0.7.0',
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
       url='https://github.com/msproteomicstools/msproteomicstools',
@@ -67,11 +67,12 @@ setup(name='msproteomicstools',
       # Package and install info
       scripts=all_scripts,
       packages = ['msproteomicstoolslib', 
-                  "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.cython",
+                  "msproteomicstoolslib.algorithms",
                   "msproteomicstoolslib.algorithms.alignment",
                   "msproteomicstoolslib.algorithms.shared",
                   "msproteomicstoolslib.algorithms.PADS",
+                  "msproteomicstoolslib.algorithms.graphs",
                   "msproteomicstoolslib.data_structures",
                   "msproteomicstoolslib.format",
                   "msproteomicstoolslib.math",
