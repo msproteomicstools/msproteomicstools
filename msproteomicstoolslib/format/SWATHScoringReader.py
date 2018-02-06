@@ -243,6 +243,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
+        fdr_score_name_alt = "transition_group_id_m_score"
         dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
         diff_from_assay_in_sec_name = "delta_rt"
@@ -278,9 +279,15 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         fdr_score = -1
         protein_name = "NA"
         thisid = -1
-        try:
+
+        if fdr_score_name in run.header_dict:
             fdr_score = float(this_row[run.header_dict[fdr_score_name]])
-            #fdr_score = 0.0001
+        elif fdr_score_name_alt in run.header_dict:
+            fdr_score = float(this_row[run.header_dict[fdr_score_name_alt]])
+        elif self.errorHandling == "strict": 
+            raise Exception("Did not find essential column " + fdr_score_name + " or " + fdr_score_name_alt)
+
+        try:
             protein_name = this_row[run.header_dict[protein_id_col]]
             thisid = this_row[run.header_dict[unique_feature_id_name]]
             diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
