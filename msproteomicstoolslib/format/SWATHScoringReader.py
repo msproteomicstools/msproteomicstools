@@ -243,9 +243,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     def parse_row(self, run, this_row, read_exp_RT):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
+        fdr_score_name_alt = "transition_group_id_m_score"
         dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
-        diff_from_assay_in_sec_name = "delta_rt"
+        rt_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "ProteinName"
         unique_feature_id_name = "id"
@@ -258,10 +259,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
-            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+            rt_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
-            diff_from_assay_in_sec_name = "RT"
+            rt_name = "RT"
         if "align_clusterid" in run.header_dict and self.read_cluster_id:
             cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
@@ -274,22 +275,26 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             peptide_group_label = this_row[run.header_dict[self.peptide_group_label_name]]
 
         # Attributes that only need to be present in strict mode
-        diff_from_assay_seconds = -1
+        retention_time = -1
         fdr_score = -1
         protein_name = "NA"
         thisid = -1
-
+        
         # stop errors occuring if the value passed is empty
         to_float = lambda x: float('nan' if x == '' else x)
+        
+        if fdr_score_name in run.header_dict:
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name]])
+        elif fdr_score_name_alt in run.header_dict:
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name_alt]])
+        elif self.errorHandling == "strict": 
+            raise Exception("Did not find essential column " + fdr_score_name + " or " + fdr_score_name_alt)
 
         try:
-            fdr_score = to_float(this_row[run.header_dict[fdr_score_name]])
-            #fdr_score = 0.0001
-            protein_name = this_row[run.header_dict[protein_id_col]]
             thisid = this_row[run.header_dict[unique_feature_id_name]]
-            diff_from_assay_seconds = to_float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+            retention_time = to_float(this_row[run.header_dict[rt_name]])
             d_score = to_float(this_row[run.header_dict[dscore_name]])
-            #d_score = 2
+            protein_name = this_row[run.header_dict[protein_id_col]]
         except KeyError:
             if self.errorHandling == "strict": 
                 raise Exception("Did not find essential column.")
@@ -310,10 +315,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "cminimal":
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
@@ -325,7 +330,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
           peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_normalized_retentiontime(retention_time)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
@@ -358,7 +363,7 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
         unique_peakgroup_id_name = "transition_group_id"
-        # diff_from_assay_in_sec_name = "delta_rt"
+        # rt_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "protein"
         sequence_col = "transition_group_pepseq"
@@ -367,13 +372,13 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
-            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+            rt_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
-            diff_from_assay_in_sec_name = "Tr" 
-            diff_from_assay_seconds = float(this_row[run.header_dict["Tr"]]) 
+            rt_name = "Tr" 
+            retention_time = float(this_row[run.header_dict["Tr"]]) 
         else:
-            diff_from_assay_seconds = float(this_row[run.header_dict["iRT_empirical"]]) - float(this_row[run.header_dict["iRT_predicted"]])
+            retention_time = float(this_row[run.header_dict["iRT_empirical"]]) - float(this_row[run.header_dict["iRT_predicted"]])
 
         # create some id
         import uuid 
@@ -401,11 +406,11 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
           p.set_decoy(decoy)
           run.addPrecursor(p, peptide_group_label)
         if self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity)
+          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
           peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_normalized_retentiontime(retention_time)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
@@ -444,16 +449,16 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         decoy = "FALSE"
         intensity_name = "MaxPeak.Intensity"
 
-        diff_from_assay_in_sec_name = "empirical_iRT"
-        if not diff_from_assay_in_sec_name in run.header_dict:
-            diff_from_assay_in_sec_name = "Median RT"
+        rt_name = "empirical_iRT"
+        if not rt_name in run.header_dict:
+            rt_name = "Median RT"
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
-            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+            rt_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
-            diff_from_assay_in_sec_name = "Median RT"
+            rt_name = "Median RT"
 
         # create some id
         import uuid 
@@ -476,7 +481,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         fdr_score = float(this_row[run.header_dict[fdr_score_name]])
         fdr_score = 1/fdr_score
 
-        diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+        retention_time = float(this_row[run.header_dict[rt_name]])
         if "decoy" in run.header_dict:
             decoy = this_row[run.header_dict[decoy_name]]
         run_id = this_row[run.header_dict[run_id_name]]
@@ -494,7 +499,7 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         # Only minimal reading is implemented
         if self.readmethod == "minimal":
           if verb: print("append tuple", peakgroup_tuple)
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds,intensity)
+          peakgroup_tuple = (thisid, fdr_score, retention_time,intensity)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
             raise NotImplemented
@@ -528,7 +533,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
         fdr_score_name = "m_score"
         ## dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
-        ## diff_from_assay_in_sec_name = "delta_rt"
+        ## rt_name = "delta_rt"
         run_id_name = "run_id"
         protein_id_col = "ProteinName"
         intensity_name = "Intensity"
@@ -541,7 +546,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
         decoy_name = "Decoy"
         fdr_score_name = "Score" # note this score is better when higher
         unique_peakgroup_id_name = "Pep Index"
-        diff_from_assay_in_sec_name = "Median RT"
+        rt_name = "Median RT"
         run_id_name = "Sample"
         protein_id_col = "Protein"
         self.sequence_col = "Peptide"
@@ -553,10 +558,10 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
 
         # use the aligned retention time if it is available!
         if "aligned_rt" in run.header_dict: 
-            diff_from_assay_in_sec_name = "aligned_rt" ## use this if it is present
+            rt_name = "aligned_rt" ## use this if it is present
         # if we want to re-do the re-alignment, we just use the "regular" retention time
         if read_exp_RT: 
-            diff_from_assay_in_sec_name = "Median RT"
+            rt_name = "Median RT"
         if "align_clusterid" in run.header_dict: 
             cluster_id = int(this_row[run.header_dict["align_clusterid"]])
 
@@ -569,7 +574,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
             peptide_group_label = this_row[run.header_dict[self.peptide_group_label_name]]
 
         # Attributes that only need to be present in strict mode
-        diff_from_assay_seconds = -1
+        retention_time = -1
         fdr_score = -1
         protein_name = "NA"
         thisid = -1
@@ -577,7 +582,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
             fdr_score = float(this_row[run.header_dict[fdr_score_name]])
             protein_name = this_row[run.header_dict[protein_id_col]]
             thisid = this_row[run.header_dict[unique_feature_id_name]]
-            diff_from_assay_seconds = float(this_row[run.header_dict[diff_from_assay_in_sec_name]])
+            retention_time = float(this_row[run.header_dict[rt_name]])
         except KeyError:
             if self.errorHandling == "strict": 
                 raise Exception("Did not find essential column.")
@@ -605,7 +610,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
           run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, diff_from_assay_seconds, intensity, d_score)
+          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
           leftWidth = this_row[run.header_dict[left_width_name]]
@@ -616,7 +621,7 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
           run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
           peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(diff_from_assay_seconds)
+          peakgroup.set_normalized_retentiontime(retention_time)
           peakgroup.set_fdr_score(fdr_score)
           peakgroup.set_feature_id(thisid)
           peakgroup.set_intensity(intensity)
