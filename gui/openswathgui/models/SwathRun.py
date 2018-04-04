@@ -78,6 +78,7 @@ class SwathRun(object):
         self._range_mapping = {}
         self._score_mapping = {}
         self._intensity_mapping = {}
+        self._assay_mapping = {}
 
         self._loadFiles(files, precursor_mapping, sequences_mapping, protein_mapping)
         self._initialize()
@@ -221,20 +222,6 @@ class SwathRun(object):
             return r[0]
         return None
 
-    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity):
-
-        tmp = self._range_mapping.get(precursor_id, [])
-        tmp.append( [leftWidth, rightWidth ] )
-        self._range_mapping[precursor_id] = tmp
-
-        tmp = self._score_mapping.get(precursor_id, [])
-        tmp.append(fdrscore)
-        self._score_mapping[precursor_id] = tmp
-
-        tmp = self._intensity_mapping.get(precursor_id, [])
-        tmp.append(intensity)
-        self._intensity_mapping[precursor_id] = tmp
-
     def get_id(self):
         fileid = ""
         if len(self._files) > 0:
@@ -257,4 +244,22 @@ class SwathRun(object):
 
         # Re-initialize self to produce correct mapping
         self._initialize()
+
+    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity, assay_rt):
+
+        tmp = self._range_mapping.get(precursor_id, [])
+        tmp.append( [leftWidth, rightWidth ] )
+        self._range_mapping[precursor_id] = tmp
+
+        tmp = self._score_mapping.get(precursor_id, [])
+        tmp.append(fdrscore)
+        self._score_mapping[precursor_id] = tmp
+
+        tmp = self._intensity_mapping.get(precursor_id, [])
+        tmp.append(intensity)
+        self._intensity_mapping[precursor_id] = tmp
+
+        tmp = self._assay_mapping.get(precursor_id, [])
+        tmp.append(assay_rt)
+        self._assay_mapping[precursor_id] = tmp
 
