@@ -204,6 +204,9 @@ class SwathRun(object):
     def get_range_data(self, precursor):
         return self._range_mapping.get(precursor, [ [0,0] ])
 
+    def get_assay_data(self, precursor):
+        return None
+
     def get_score_data(self, precursor):
         r = self._score_mapping.get(precursor, None)
 
