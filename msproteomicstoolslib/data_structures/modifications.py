@@ -125,9 +125,9 @@ class Modifications:
         if code == 'unimod' :
             aminoacides_with_mods     = re.findall('([A-Z]\([^\)]*\)|[A-Z])', sequence )
         else :
-            aminoacides_with_mods     = re.findall('([A-Z]\[\d*\]|[A-Z])', sequence )
+            aminoacides_with_mods     = re.findall('([A-Z]\[[^\]]*\]|[A-Z])', sequence )
             #Warning : this will only work for TPP unfortunately. It is though the most common operation we'll do
-            if code == 'TPP' : terminal_mods = re.findall('([a-z]\[\d*\]|[a-z])', sequence) 
+            if code == 'TPP' : terminal_mods = re.findall('([a-z]\[[^\]]*\]|[a-z])', sequence) 
                     
         #mods_peptide is a dictionary wich uses the position of the modification as key, and a Modification object as value:
         #example : GGGGMoxDDCDK  -> mods_peptide = { 5 : Modification1 , 8 : Modification2 }
@@ -159,7 +159,7 @@ class Modifications:
                     if modif.is_Cterminal : mods_peptide[len(sequence_no_mods)+1] = modif
             if not modification_found :
                 #Throw an Exception
-                print("This modification has not been recognized : " , aa)
+                print("This modification has not been recognized : " , mod)
                 print("Found in the following sequence : " , sequence)
                 print("The code used to interpret it was : " , code)
                 sys.exit(4) 

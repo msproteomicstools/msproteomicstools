@@ -12,3 +12,7 @@ Build documentation:
 
 $ make html
 
+Upload documentation:
+
+$ rsync -aAXv  -e "ssh -p $server_port" ./build/html/ $server_username@hroest.ch:/var/www/html/msproteomicstools/
+

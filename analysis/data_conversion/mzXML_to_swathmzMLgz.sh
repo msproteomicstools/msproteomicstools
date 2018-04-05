@@ -72,6 +72,7 @@ if [ -z "$TMPDIR" ]; then
 fi
 
 #split
+echo split_mzXML_intoSwath.py $input $windows $TMPDIR $noms1map
 split_mzXML_intoSwath.py $input $windows $TMPDIR $noms1map
 
 #convert in parallel using xargs -P

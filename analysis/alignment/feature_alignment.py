@@ -318,8 +318,12 @@ class Experiment(MRExperiment):
         # 2. Write out the (selected) ids
         if len(ids_outfile) > 0:
             fh = open(ids_outfile, "w")
+            coll_ids = []
+            for pg in selected_pgs:
+                coll_ids.append(pg.get_feature_id())
+
             id_writer = csv.writer(fh, delimiter="\t")
-            for pg in sorted(list(selected_ids_dict.keys())):
+            for pg in sorted(coll_ids):
                 id_writer.writerow([pg])
             fh.close()
             del id_writer
@@ -649,8 +653,8 @@ def handle_args():
     parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="Fixed FDR cutoff used for seeding (only assays where at least one peakgroup in one run is below this cutoff will be included in the result), see also target_fdr for a non-fixed cutoff", metavar='0.01')
     parser.add_argument("--target_fdr", dest="target_fdr", default=-1, type=float, help="If parameter estimation is used, which target FDR should be optimized for. If set to lower than 0, parameter estimation is turned off.", metavar='0.01')
     parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=-1.0, help="Extension m-score score cutoff, peakgroups of this quality will still be considered for alignment during extension", metavar='-1')
-    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT for two aligned features", metavar='30')
-    parser.add_argument("--iso_max_rt_diff", dest="rt_diff_isotope", default=10, help="Maximal difference in RT for two isotopic channels in the same run", metavar='30')
+    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT (in seconds) for two aligned features", metavar='30')
+    parser.add_argument("--iso_max_rt_diff", dest="rt_diff_isotope", default=10, help="Maximal difference in RT (in seconds) for two isotopic channels in the same run", metavar='30')
     parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
     parser.add_argument('--method', default='best_overall', help="Method to use for the clustering (best_overall, best_cluster_score or global_best_cluster_score, global_best_overall, LocalMST, LocalMSTAllCluster).")
     parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')

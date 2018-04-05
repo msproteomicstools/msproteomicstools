@@ -4,10 +4,10 @@ import sys
 import argparse
 from sys import stdout, maxsize
 import csv
+import sys
 
-maxInt = maxsize
+maxInt = sys.maxsize
 decrement = True
-
 while decrement:
     # decrease the maxInt value by factor 10 
     # as long as the OverflowError occurs.
