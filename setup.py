@@ -105,6 +105,7 @@ setup(name='msproteomicstools',
           'scikits.datasmooth',
           # versions 7.6 and 7.7 are broken for us (use spectra sanity check)
           'pymzml == 0.7.5',
+          'pymsnumpress',
           'lxml',
           'configobj',
           'biopython',
