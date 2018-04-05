@@ -28,7 +28,7 @@ ext_modules = []
 if with_cython:
     ext_modules = [
             # we need C++11 for std::unordered_map
-	    cythonize(Extension('msproteomicstoolslib/cython/_optimized',
+	    cythonize(Extension('msproteomicstoolslib.cython._optimized',
                       sources=["msproteomicstoolslib/cython/_optimized.pyx"],
                       language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
 	    cythonize("msproteomicstoolslib/cython/LightTransformationData.pyx", language="c++")[0],
