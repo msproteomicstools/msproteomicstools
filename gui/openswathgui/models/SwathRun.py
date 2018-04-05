@@ -83,6 +83,10 @@ class SwathRun(object):
         self._loadFiles(files, precursor_mapping, sequences_mapping, protein_mapping)
         self._initialize()
 
+    #
+    ## Initialization
+    #
+
     def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """
         Load the files associated with this run using pymzml
