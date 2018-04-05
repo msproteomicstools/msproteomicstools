@@ -213,9 +213,8 @@ class SingleChromatogramFile():
             return [ [ [0], [0] ] ]
 
         transitions = []
-        # print "run has ", self._run.info['offsets']
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[chrom_id] 
+            chromatogram = self._run[chrom_id]
 
             if chromatogram is None:
                 print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id
@@ -265,7 +264,7 @@ class SingleChromatogramFile():
         """
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[chrom_id] 
+            chromatogram = self._run[chrom_id]
             try:
                 mz = chromatogram['product']['target_mz']
                 if mz > 0.0:
