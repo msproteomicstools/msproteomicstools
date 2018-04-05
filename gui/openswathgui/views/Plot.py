@@ -251,6 +251,10 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         self.initialize()
         self.has_mscore = False
         self.labels = []
+        self.border_strength = 2.0
+        self.border_strength = 5.0
+        self.l_width = None
+        self.r_width = None
 
     def initialize(self):
         self.colors = [
@@ -339,8 +343,6 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
 
     def drawCanvas(self, painter):
         super(QwtMultiLinePlot, self).drawCanvas(painter)
-        if not self.has_mscore: 
-            return
 
         # add the labels
         current_height = 0
@@ -349,10 +351,15 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
             current_height +=  label_txt.size().height()
 
         # add the range
-        self.draw_range(painter, self.l_width, self.r_width)
+        if len(self.ranges) > 0:
+            for k, ran in enumerate(self.ranges):
+                l, r = ran
+                self.draw_range(painter, l, r, k == 0)
+        elif self.l_width is not None:
+            self.draw_range(painter, self.l_width, self.r_width, True)
 
-    def draw_range(self, painter, l_width, r_width): 
-        #, xMap, yMap, canvasRect):
+    def draw_range(self, painter, l_width, r_width, is_first): 
+
         xMap = self.canvasMap(Qwt.QwtPlot.xBottom)
         yMap = self.canvasMap(Qwt.QwtPlot.yLeft)
         rct = self.canvas().contentsRect()
@@ -361,15 +368,23 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         rct2.setLeft(xMap.transform(l_width))
         rct2.setRight(xMap.transform(r_width))
 
-        # TODO abstract this
-        transparency = 40 # alpha channel  / transparency
-        col =  QtGui.QColor( 255, 0, 0, transparency)   
-        self.brush = QtGui.QBrush(col)
+        # Different color for first (main) peak and all others
+        if is_first:
+            transparency = 60 # alpha channel  / transparency
+            col =  QtGui.QColor( 255, 0, 0, transparency)   
+        else:
+            transparency = 20 # alpha channel  / transparency
+            col =  QtGui.QColor( 255, 0, 0, transparency)   
+
+        brush = QtGui.QBrush(col)
         pen = QtGui.QPen(col)
 
+        col_border =  QtGui.QColor(0, 0, 0, min(255, transparency*self.border_strength) )
+        pen_border = QtGui.QPen(col_border)
+
         # paint the filling rectable and the two lines left/right
-        painter.fillRect(rct2, self.brush)
-        painter.setPen(pen)
+        painter.fillRect(rct2, brush)
+        painter.setPen(pen_border)
         painter.drawLine(rct2.topRight(), rct2.bottomRight())
         painter.drawLine(rct2.topLeft(), rct2.bottomLeft())
 
@@ -392,13 +407,13 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
                 pass
 
             rect3 = QtCore.QRectF(rct)
-            rect3.setLeft(xMap.transform(self.l_width) -  diam/2.0)
+            rect3.setLeft(xMap.transform(l_width) -  diam/2.0)
             rect3.setTop(yMap.transform(ymax/2) )
             rect3.setHeight(diam)
             rect3.setWidth(diam)
             painter.drawEllipse(rect3.toRect())
 
-            rect3.setLeft(xMap.transform(self.r_width) -  diam/2.0)
+            rect3.setLeft(xMap.transform(r_width) -  diam/2.0)
             rect3.setWidth(diam)
             painter.drawEllipse(rect3.toRect())
 
@@ -408,21 +423,39 @@ class QwtMultiLinePlot(Qwt.QwtPlot):
         # This takes about 70% of the time
         self.create_curves(labels, ranges, show_legend)
 
+
         self.labels = []
+        self.ranges = []
         self.has_mscore = False
-        if mscore is not None and len(ranges) < 2:
+
+        # We have multiple peakgroups to show
+        if len(ranges) > 1:
+            self.ranges = ranges
+
+
+        # At least one peakgroup to show
+        if len(ranges) > 0:
             self.labels = []
-            self.has_mscore = True
+            if mscore is not None:
+                self.has_mscore = True
 
             self.l_width = ranges[0][0]
             self.r_width = ranges[0][1]
 
             # create and add labels -> see drawCanvas
             try:
-                mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
-                intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
-                width_txt = QtGui.QStaticText ("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
-                assay_txt = QtGui.QStaticText ("Assay RT %0.3fs" % assay_rt)
+                width_txt = QtGui.QStaticText("PeakWidth %0.3fs" % (self.r_width - self.l_width) )
+                assay_txt = QtGui.QStaticText("")
+                mscore_txt = QtGui.QStaticText("") 
+                intensity_txt = QtGui.QStaticText("")
+
+                if mscore:
+                    mscore_txt = QtGui.QStaticText ("m_score %0.4g" % mscore);
+                if intensity:
+                    intensity_txt = QtGui.QStaticText ("Intensity %0.4g" % intensity);
+                if assay_rt:
+                    assay_txt = QtGui.QStaticText ("Assay RT %0.3fs" % assay_rt)
+
                 self.labels.extend([mscore_txt, intensity_txt, width_txt, assay_txt])
             except AttributeError:
                 # old qt version?
