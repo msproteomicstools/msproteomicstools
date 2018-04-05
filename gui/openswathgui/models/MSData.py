@@ -270,7 +270,7 @@ class DataModel(object):
             pepname = pg.get_value("FullPeptideName")
             pepname = pepname.split("_run0")[0]
             charge = pg.get_value("Charge")
-            if charge_state == "NA" or charge_state == "":
+            if charge == "NA" or charge == "":
                 charge = "None"
             identifier = pepname + "/" + charge
             # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
