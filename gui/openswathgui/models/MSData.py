@@ -37,15 +37,11 @@ $Authors: Hannes Roest$
 
 import os
 
-try:
-    from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
-    from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
-except ImportError:
-    print "Could not find msproteomicstoolslib, certain functions are not available."
-
+from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
+from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
+from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
+from msproteomicstoolslib.data_structures.SwathRun import SwathRun
 from ChromatogramTransition import ChromatogramTransition
-from SwathRun import SwathRun
 from SwathRunCollection import SwathRunCollection
 
 REALIGN_RUNS = True
