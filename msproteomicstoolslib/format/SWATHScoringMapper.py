@@ -152,6 +152,28 @@ def tramlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mappi
             tmp.append(transition.getNativeID())
         precursors_mapping[transition.getPeptideRef()] = tmp
 
+def buildPeakgroupMap(multipeptides, peakgroup_map):
+    """ Builds a peakgroup map based on OpenSWATH output data
+
+    Compare with mapRow for construction of the key
+
+    Creates a map of the PeptideName/Charge to the individual multipeptide
+    """
+
+    for m in multipeptides:
+        pg = m.find_best_peptide_pg()
+        pepname = pg.get_value("FullPeptideName")
+        pepname = pepname.split("_run0")[0]
+        charge = pg.get_value("Charge")
+        if charge == "NA" or charge == "":
+            charge = "0"
+        identifier = pepname + "/" + charge
+
+        # identifier for precursor, see mapRow
+        peakgroup_map[ identifier ] = m
+        peakgroup_map[ identifier + "_pr" ] = m
+
+
 def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping):
     # Get the mapping ... 
     if "FullPeptideName" in header_dict and \
@@ -258,6 +280,7 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
                     if False:
                         print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
                     mapping[sqlfile][runid] = aligned_id
+
 
 def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                  sequences_mapping, protein_mapping, verbose=False, throwOnMismatch=False, fileType=None):

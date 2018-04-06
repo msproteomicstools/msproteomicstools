@@ -39,7 +39,8 @@ import os
 
 try:
     from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
+    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
+    from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping, buildPeakgroupMap
     from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
 except ImportError:
     print "Could not find msproteomicstoolslib, certain functions are not available."
@@ -265,17 +266,7 @@ class DataModel(object):
 
         # Build map of the PeptideName/Charge to the individual multipeptide
         peakgroup_map = {}
-        for m in multipeptides:
-            pg = m.find_best_peptide_pg()
-            pepname = pg.get_value("FullPeptideName")
-            pepname = pepname.split("_run0")[0]
-            charge = pg.get_value("Charge")
-            if charge == "NA" or charge == "":
-                charge = "None"
-            identifier = pepname + "/" + charge
-            # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
-            peakgroup_map[ identifier ] = m
-            peakgroup_map[ identifier + "_pr" ] = m
+        buildPeakgroupMap(multipeptides, peakgroup_map)
 
         for swathrun in swathfiles.getSwathFiles():
             if self.only_show_quantified:
