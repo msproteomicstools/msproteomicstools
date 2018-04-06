@@ -267,7 +267,12 @@ class DataModel(object):
         peakgroup_map = {}
         for m in multipeptides:
             pg = m.find_best_peptide_pg()
-            identifier = pg.get_value("FullPeptideName") + "/" + pg.get_value("Charge")
+            pepname = pg.get_value("FullPeptideName")
+            pepname = pepname.split("_run0")[0]
+            charge = pg.get_value("Charge")
+            if charge == "NA" or charge == "":
+                charge = "None"
+            identifier = pepname + "/" + charge
             # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
             peakgroup_map[ identifier ] = m
             peakgroup_map[ identifier + "_pr" ] = m

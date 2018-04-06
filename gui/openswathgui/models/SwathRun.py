@@ -78,9 +78,14 @@ class SwathRun(object):
         self._range_mapping = {}
         self._score_mapping = {}
         self._intensity_mapping = {}
+        self._assay_mapping = {}
 
         self._loadFiles(files, precursor_mapping, sequences_mapping, protein_mapping)
         self._initialize()
+
+    #
+    ## Initialization
+    #
 
     def _loadFiles(self, files, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """
@@ -204,6 +209,9 @@ class SwathRun(object):
     def get_range_data(self, precursor):
         return self._range_mapping.get(precursor, [ [0,0] ])
 
+    def get_assay_data(self, precursor):
+        return None
+
     def get_score_data(self, precursor):
         r = self._score_mapping.get(precursor, None)
 
@@ -217,20 +225,6 @@ class SwathRun(object):
         if r is not None and len(r) > 0:
             return r[0]
         return None
-
-    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity):
-
-        tmp = self._range_mapping.get(precursor_id, [])
-        tmp.append( [leftWidth, rightWidth ] )
-        self._range_mapping[precursor_id] = tmp
-
-        tmp = self._score_mapping.get(precursor_id, [])
-        tmp.append(fdrscore)
-        self._score_mapping[precursor_id] = tmp
-
-        tmp = self._intensity_mapping.get(precursor_id, [])
-        tmp.append(intensity)
-        self._intensity_mapping[precursor_id] = tmp
 
     def get_id(self):
         fileid = ""
@@ -254,4 +248,22 @@ class SwathRun(object):
 
         # Re-initialize self to produce correct mapping
         self._initialize()
+
+    def add_peakgroup_data(self, precursor_id, leftWidth, rightWidth, fdrscore, intensity, assay_rt):
+
+        tmp = self._range_mapping.get(precursor_id, [])
+        tmp.append( [leftWidth, rightWidth ] )
+        self._range_mapping[precursor_id] = tmp
+
+        tmp = self._score_mapping.get(precursor_id, [])
+        tmp.append(fdrscore)
+        self._score_mapping[precursor_id] = tmp
+
+        tmp = self._intensity_mapping.get(precursor_id, [])
+        tmp.append(intensity)
+        self._intensity_mapping[precursor_id] = tmp
+
+        tmp = self._assay_mapping.get(precursor_id, [])
+        tmp.append(assay_rt)
+        self._assay_mapping[precursor_id] = tmp
 

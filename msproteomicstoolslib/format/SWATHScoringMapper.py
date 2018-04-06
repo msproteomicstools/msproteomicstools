@@ -167,6 +167,8 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
             pr_transitions = pr_transitions[:-1]
         peptide_name = this_row[header_dict["FullPeptideName"]]
         charge_state = this_row[header_dict["Charge"]]
+        if charge_state == "NA" or charge_state == "":
+            charge_state = "None"
         key = peptide_name + "/" + charge_state
         prkey = peptide_name + "/" + charge_state + "_pr"
         precursors_mapping [ key ] = transitions
@@ -291,7 +293,15 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
         header = next(reader)
         for i,n in enumerate(header):
             header_dict[n] = i
+
         if not "align_origfilename" in header_dict or not "align_runid" in header_dict:
+
+            # Check whether we have a single mzML file and a single result
+            # file. If so, simply map these to each other.
+            if len(rawdata_files) == 1 and len(aligned_pg_files) == 1:
+                mapping["1"] = rawdata_files
+                return
+
             print (header_dict)
             raise Exception("need column header align_origfilename and align_runid")
 
@@ -328,7 +338,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                     mapping[aligned_id] = [rfile]
 
             if not aligned_id in mapping:
-                if verbose or throwOnMismatch:
+                if True:
                     nomatch_found.update( [aligned_fname] )
                 if throwOnMismatch:
                     raise Exception("Mismatch, alignment filename could not be matched to input chromatogram")

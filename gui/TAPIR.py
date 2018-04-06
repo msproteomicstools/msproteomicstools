@@ -99,6 +99,9 @@ class GraphArea(QtGui.QWidget):
         self.autoscale_y_axis = True
         self.plots = []
 
+        self.show_full_range = True
+        self.show_top_peaks = 3
+
         self.changePlotEngine(use_guiqwt)
 
         # self.c.catch_mouse_press.connect(self.react_to_mouse)
@@ -226,22 +229,23 @@ class GraphArea(QtGui.QWidget):
             intensity = chr_transition.getIntensity(pl.run) 
             assay_rt = chr_transition.getAssayRT(pl.run) 
 
+            ranges = ranges[:self.show_top_peaks]
+
             xminsr = [r[0] for r in ranges]
             xmaxsr = [r[1] for r in ranges]
             xwidth = [r[1] - r[0] for r in ranges]
 
             # print "Got data for", i, "plot labels", labels, "from", chr_transition, "and nr data ", len(data)
             # print "Got mscore and int", mscore, intensity
-            # print "Got ranges ", ranges, labels, mscore, intensity
 
             # this next command takes about 10 ms per plot with Qwt, ca 30-40 ms with GuiQwt
             pl.update_all_curves(data, labels, ranges, mscore, intensity, assay_rt, show_legend)
 
-            if mscore is None:
+            if mscore is None or self.show_full_range:
                 pl.set_x_limits(min(xmins),max(xmaxs))
             else:
-                pl.set_x_limits(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
-                pl.set_y_limits_auto(min(xminsr) - max(xwidth),max(xmaxsr) + max(xwidth))
+                pl.set_x_limits(min(xminsr) - max(xwidth), max(xmaxsr) + max(xwidth))
+                pl.set_y_limits_auto(min(xminsr) - max(xwidth), max(xmaxsr) + max(xwidth))
 
             pl.replot()
 
