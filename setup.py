@@ -27,7 +27,7 @@ extra_installs = []
 ext_modules = []
 if with_cython:
     ext_modules = [
-	    cythonize(Extension('msproteomicstoolslib/cython/_optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
+	    cythonize(Extension('msproteomicstoolslib.cython._optimized', sources=["msproteomicstoolslib/cython/_optimized.pyx"], language="c++", extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]))[0],
 	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
 	    cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
 	    ]
