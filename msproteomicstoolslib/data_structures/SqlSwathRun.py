@@ -93,41 +93,6 @@ class SqlSwathRun(object):
             self._group_by_precursor()
             self._group_precursors_by_sequence()
 
-    def get_transitions_for_precursor_display(self, precursor):
-
-        if not self._precursor_mapping.has_key(str(precursor)):
-            return [ "NA" ]
-
-        transitions = []
-        for chrom_id in self._precursor_mapping[str(precursor)]:
-            transitions.append(chrom_id)
-        return transitions
-
-    def get_range_data(self, precursor):
-        return self._range_mapping.get(precursor, [ [0,0] ])
-
-    def get_assay_data(self, precursor):
-        r = self._assay_mapping.get(precursor, None)
-
-        if r is not None and len(r) > 0:
-            return r[0]
-
-        return None
-
-    def get_score_data(self, precursor):
-        r = self._score_mapping.get(precursor, None)
-
-        if r is not None and len(r) > 0:
-            return r[0]
-        return None
-
-    def get_intensity_data(self, precursor):
-        r = self._intensity_mapping.get(precursor, None)
-
-        if r is not None and len(r) > 0:
-            return r[0]
-        return None
-
     #
     ## Initialization
     #
@@ -185,6 +150,50 @@ class SqlSwathRun(object):
             self._sequences_mapping[seq] = tmp
 
     #
+    ## Getters (info)
+    #
+    def get_sequence_for_protein(self, protein):
+        return self._protein_mapping.get(protein, [])
+
+    def get_precursors_for_sequence(self, sequence):
+        """
+        Get all precursors mapping to one stripped sequence
+        """
+        return self._sequences_mapping.get(sequence, [])
+
+    def get_transitions_for_precursor(self, precursor):
+        """
+        Return the transition names for a specific precursor
+        """
+        return self._precursor_mapping.get(str(precursor), [])
+
+    def get_transitions_for_precursor_display(self, precursor):
+
+        if not self._precursor_mapping.has_key(str(precursor)):
+            return [ "NA" ]
+
+        transitions = []
+        for chrom_id in self._precursor_mapping[str(precursor)]:
+            transitions.append(chrom_id)
+        return transitions
+
+    def get_all_precursor_ids(self):
+        """
+        Get all precursor ids (full sequence + charge)
+        """
+        return self._precursor_mapping.keys()
+
+    def get_all_peptide_sequences(self):
+        """
+        Get all (stripped) sequences
+        """
+        return self._sequences_mapping.keys()
+
+    def get_all_proteins(self):
+        return self._protein_mapping
+
+
+    #
     ## Getters (data) -> see ChromatogramTransition.getData
     #
 
@@ -223,41 +232,33 @@ class SqlSwathRun(object):
             print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id)
             print ("Please check your input data")
 
+    def get_range_data(self, precursor):
+        return self._range_mapping.get(precursor, [ [0,0] ])
+
+    def get_assay_data(self, precursor):
+        r = self._assay_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
+    def get_score_data(self, precursor):
+        r = self._score_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
+    def get_intensity_data(self, precursor):
+        r = self._intensity_mapping.get(precursor, None)
+
+        if r is not None and len(r) > 0:
+            return r[0]
+        return None
+
+
     def get_id(self):
         return self._basename
-
-    #
-    ## Getters (info)
-    #
-    def get_transitions_for_precursor(self, precursor):
-        """
-        Return the transition names for a specific precursor
-        """
-        return self._precursor_mapping.get(str(precursor), [])
-
-    def get_sequence_for_protein(self, protein):
-        return self._protein_mapping.get(protein, [])
-
-    def get_precursors_for_sequence(self, sequence):
-        """
-        Get all precursors mapping to one stripped sequence
-        """
-        return self._sequences_mapping.get(sequence, [])
-
-    def get_all_precursor_ids(self):
-        """
-        Get all precursor ids (full sequence + charge)
-        """
-        return self._precursor_mapping.keys()
-
-    def get_all_peptide_sequences(self):
-        """
-        Get all (stripped) sequences
-        """
-        return self._sequences_mapping.keys()
-
-    def get_all_proteins(self):
-        return self._protein_mapping
 
     # 
     ## Data manipulation

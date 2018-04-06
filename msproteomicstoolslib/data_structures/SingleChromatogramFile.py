@@ -130,7 +130,7 @@ class SingleChromatogramFile():
             # specific to pymzl, we need to get rid of those two entries or
             # when the key is zero
             if key in ("indexList", "TIC"): continue
-            if len(key) == 0: continue
+            if len(str(key)) == 0: continue
             #
             chromatogram = self._run[key]
             f = FormatHelper()
@@ -176,7 +176,7 @@ class SingleChromatogramFile():
 
         if len( run.info['offsets'] ) > 0:
             keys = run.info['offsets'].keys()
-            return all([ f._has_openswath_format(k) for k in keys if len(key) > 0 and not key in ("indexList", "TIC")] )
+            return all([ f._has_openswath_format(str(key)) for key in keys if len(str(key)) > 0 and not key in ("indexList", "TIC")] )
 
         # default is false
         return False
@@ -215,7 +215,7 @@ class SingleChromatogramFile():
 
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[str(chrom_id)] 
+            chromatogram = self._run[chrom_id]
 
             if chromatogram is None:
                 print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % chrom_id)
@@ -265,7 +265,7 @@ class SingleChromatogramFile():
         """
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            chromatogram = self._run[str(chrom_id)] 
+            chromatogram = self._run[chrom_id]
             try:
                 mz = chromatogram['product']['target_mz']
                 if mz > 0.0:
