@@ -58,11 +58,10 @@ class SqlSwathRun():
     """
 
     def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
-        print "runid ", runid
         if runid is not None:
             assert len(runid) == 1
+            self.runid = runid[0]
 
-        self.runid = runid[0] # TODO 
         self._filename = filename
         self._basename = os.path.basename(filename)
 
@@ -107,9 +106,26 @@ class SqlSwathRun():
         conn = sqlite3.connect(self._filename)
         c = conn.cursor()
 
-        id_mapping = [row for row in c.execute("SELECT NATIVE_ID, ID FROM CHROMATOGRAM" )]
+        id_mapping = [row for row in c.execute("""
+        SELECT NATIVE_ID, CHROMATOGRAM_ID, PEPTIDE_SEQUENCE, CHARGE FROM CHROMATOGRAM 
+        LEFT JOIN PRECURSOR ON CHROMATOGRAM.ID = PRECURSOR.CHROMATOGRAM_ID 
+        """)]
 
-        return id_mapping
+        # Create the same ID mapping that is expected from the rest of the GUI
+        # Namely, the format is expected to be [DECOY_]\d*_.*_.* from which one
+        # can infer that it is openswath format.
+        res = []
+        for r in id_mapping:
+            native_id = r[0]
+            chr_id = int(r[1])
+            sequence = r[2]
+            charge = r[3]
+            mystr = "%s_%s_%s" % (chr_id, sequence, charge)
+            if native_id.startswith("DECOY"):
+                mystr = "DECOY_" + mystr
+            res.append([mystr, chr_id])
+
+        return res
 
     def _group_by_precursor(self):
         """
