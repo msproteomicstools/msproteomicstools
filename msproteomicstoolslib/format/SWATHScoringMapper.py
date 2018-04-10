@@ -191,7 +191,8 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
         peptide_name = this_row[header_dict["FullPeptideName"]]
         charge_state = this_row[header_dict["Charge"]]
         if charge_state == "NA" or charge_state == "":
-            charge_state = "None"
+            charge_state = "0"
+
         key = peptide_name + "/" + charge_state
         prkey = peptide_name + "/" + charge_state + "_pr"
         precursors_mapping [ key ] = transitions
