@@ -162,17 +162,18 @@ def buildPeakgroupMap(multipeptides, peakgroup_map):
 
     for m in multipeptides:
         pg = m.find_best_peptide_pg()
-        pepname = pg.get_value("FullPeptideName")
-        pepname = pepname.split("_run0")[0]
-        charge = pg.get_value("Charge")
-        if charge == "NA" or charge == "":
-            charge = "0"
-        identifier = pepname + "/" + charge
+        peptide_name = pg.get_value("FullPeptideName")
+        peptide_name = peptide_name.split("_run0")[0]
+        charge_state = pg.get_value("Charge")
+        if charge_state == "NA" or charge_state == "":
+            charge_state = "0"
+
+        key = peptide_name + "/" + charge_state
+        prkey = peptide_name + "/" + charge_state + "_pr"
 
         # identifier for precursor, see mapRow
-        peakgroup_map[ identifier ] = m
-        peakgroup_map[ identifier + "_pr" ] = m
-
+        peakgroup_map[ key ] = m
+        peakgroup_map[ prkey ] = m
 
 def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping):
     # Get the mapping ... 
