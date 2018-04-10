@@ -324,7 +324,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
             # Check whether we have a single mzML file and a single result
             # file. If so, simply map these to each other.
             if len(rawdata_files) == 1 and len(aligned_pg_files) == 1:
-                mapping["1"] = rawdata_files
+                mapping["0_0"] = rawdata_files
                 return
 
             print (header_dict)
