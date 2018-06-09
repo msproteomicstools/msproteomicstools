@@ -107,8 +107,9 @@ class SqlSwathRun():
         c = conn.cursor()
 
         id_mapping = [row for row in c.execute("""
-        SELECT NATIVE_ID, CHROMATOGRAM_ID, PEPTIDE_SEQUENCE, CHARGE FROM CHROMATOGRAM 
+        SELECT NATIVE_ID, CHROMATOGRAM.ID, PEPTIDE_SEQUENCE, PRECURSOR.CHARGE, PRODUCT.ISOLATION_TARGET FROM CHROMATOGRAM 
         LEFT JOIN PRECURSOR ON CHROMATOGRAM.ID = PRECURSOR.CHROMATOGRAM_ID 
+        LEFT JOIN PRODUCT ON CHROMATOGRAM.ID = PRODUCT.CHROMATOGRAM_ID 
         """)]
 
         # Create the same ID mapping that is expected from the rest of the GUI
@@ -121,6 +122,8 @@ class SqlSwathRun():
             sequence = r[2]
             charge = r[3]
             mystr = "%s_%s_%s" % (chr_id, sequence, charge)
+            if (float(r[4]) <= 0.0):
+                mystr = "PRECURSOR_" + mystr
             if native_id.startswith("DECOY"):
                 mystr = "DECOY_" + mystr
             res.append([mystr, chr_id])
