@@ -67,6 +67,10 @@ class FormatHelper(object):
         if trgr_nr.find("/") == -1:
             trgr_nr += "/" + str(components[-1])
 
+        if components[0].startswith("PRECURSOR"):
+            pass
+            trgr_nr += "_PREC"
+
         return trgr_nr
 
     def _compute_transitiongroup_from_precursor(self, precursor):
