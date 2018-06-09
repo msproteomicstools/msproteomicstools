@@ -796,7 +796,7 @@ def main(options):
 
         # Some parameter checking
         if options.do_single_run == "":
-            raise Exception("Input mzML file (--do_single_run) cannot be empty when choosing a tree-based approacht")
+            raise Exception("Input mzML file (--do_single_run) cannot be empty when choosing a tree-based approach")
 
         new_exp, multipeptides, rid = runSingleFileImputation(options,
                                                               options.peakgroups_infile,
