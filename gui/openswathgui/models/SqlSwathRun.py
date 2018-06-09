@@ -192,6 +192,10 @@ class SqlSwathRun():
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             transitions.append(chrom_id)
+
+        if len(transitions) == 0:
+            return ["NA"]
+
         return transitions
 
     def get_all_precursor_ids(self):
