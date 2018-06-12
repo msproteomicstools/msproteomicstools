@@ -33,7 +33,7 @@ if with_cython:
 	    ]
 
 setup(name='msproteomicstools',
-      version='0.8.0',
+      version='0.9.0',
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
       url='https://github.com/msproteomicstools/msproteomicstools',
