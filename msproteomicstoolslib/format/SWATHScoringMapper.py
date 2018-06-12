@@ -40,7 +40,7 @@ from sys import stdout, maxsize
 import csv
 import os
 
-maxInt = maxsize
+maxInt = 2147483647
 decrement = True
 
 while decrement:
