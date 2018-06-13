@@ -51,7 +51,7 @@ except ImportError:
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
-TAPIR_VERSION = "1.0"
+TAPIR_VERSION = "1.1"
 
 # global parameters
 TITLE_FONT_SIZE = 10
