@@ -349,7 +349,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
                 # 2.1 remove common file endings from the raw data
                 rfile_base = os.path.basename(rfile)
-                for ending in [".mzML", ".chrom"]:
+                for ending in [".sqMass", ".filter", ".mzML", ".chrom"]:
                     rfile_base = rfile_base.split(ending)[0]
 
                 # 2.2 remove common file endings from the tsv data
