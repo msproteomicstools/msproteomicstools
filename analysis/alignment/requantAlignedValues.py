@@ -86,6 +86,88 @@ class ImputeValuesHelper(object):
                 res[k] = selected[0]
         return res
 
+class SqMassSwathChromatogramRun(object):
+    """ A single SWATH LC-MS/MS run in SqMass format.
+    """
+
+    def __init__(self):
+        self.chromfiles = []
+
+    def parse(self, runid, files):
+        """ Parse a set of files which all belong to the same experiment 
+        """
+
+        assert len(files) == 1
+        filename = files[0]
+
+        import sqlite3
+        self.conn = sqlite3.connect(filename)
+        self.c = self.conn.cursor()
+
+        nr_ch = self.c.execute("SELECT COUNT(*) FROM CHROMATOGRAM")
+        print ("Found", list(nr_ch)[0][0], "chromatograms")
+
+    def getChromatogram(self, chromid):
+        return self.getDataForChromatogramFromNativeId(chromid)
+
+    def getDataForChromatogramFromNativeId(self, native_id):
+        """
+        Get data from a single chromatogram
+
+        - compression is one of 0 = no, 1 = zlib, 2 = np-linear, 3 = np-slof, 4 = np-pic, 5 = np-linear + zlib, 6 = np-slof + zlib, 7 = np-pic + zlib
+        - data_type is one of 0 = mz, 1 = int, 2 = rt
+        - data contains the raw (blob) data for a single data array
+        """
+
+        class DummyChrom:
+            """
+            Chromatogram:
+              [ RT_list, INT_list]
+            """
+            pass
+
+        ret = DummyChrom()
+
+        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
+        # print ("SQL:", stmt)
+        data = [row for row in self.c.execute(stmt)]
+        ret.peaks = self._returnDataForChromatogram(data).values()[0]
+        return ret
+
+    def _returnDataForChromatogram(self, data):
+        import PyMSNumpress
+        import zlib
+
+        # prepare result
+        chr_ids = set([chr_id for chr_id, compr, data_type, d in data] )
+        res = { chr_id : [None, None] for chr_id in chr_ids }
+
+        rt_array = []
+        intensity_array = []
+        for chr_id, compr, data_type, d in data:
+            result = []
+            if len(d) == 0:
+                pass
+            elif compr == 5:
+                tmp = [ord(q) for q in zlib.decompress(d)]
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeLinear(tmp, result)
+            elif compr == 6:
+                tmp = [ord(q) for q in zlib.decompress(d)]
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeSlof(tmp, result)
+
+            if len(result) == 0:
+                result = [ 0 ]
+            if data_type == 1:
+                res[chr_id][1] = result
+            elif data_type == 2:
+                res[chr_id][0] = result
+            else:
+                raise Exception("Only expected RT or Intensity data for chromatogram")
+
+        return res
+
 class SwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run.
 
@@ -180,11 +262,27 @@ class SwathChromatogramCollection(object):
             self.allruns[runid] = swathrun
             print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
+    def parseFromSqMass(self, files, runIdMapping):
+        """ Parse a set of different experiments.
+
+        Args:
+            files(list(filename)): a list of sqMass filenames
+            runIdMapping(dict): a dictionary mapping each filename to a run id
+        """
+        swath_chromatograms = {}
+        for filename in files:
+            start = time.time()
+            runid = runIdMapping[filename]
+            swathrun = SqMassSwathChromatogramRun()
+            swathrun.parse(runid, [filename])
+            self.allruns[runid] = swathrun
+            print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
+
     def parseFromMzML(self, mzML_files, runIdMapping):
         """ Parse a set of different experiments.
 
         Args:
-            mzML_files(list(filename)): a list of filenames of the mzML files
+            mzML_files(list(filename)): a list of mzML filenames (chromatogram mzML)
             runIdMapping(dict): a dictionary mapping each filename to a run id
         """
         swath_chromatograms = {}
@@ -250,7 +348,11 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     # Do only a single run : read only one single file
     start = time.time()
     swath_chromatograms = SwathChromatogramCollection()
-    swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
+    if mzML_file.endswith("sqMass"):
+        swath_chromatograms.parseFromSqMass([ mzML_file ], mapping_inv)
+    else:
+        swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
+
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
     assert len(swath_chromatograms.getRunIDs() ) == 1
     rid = list(swath_chromatograms.getRunIDs())[0]
