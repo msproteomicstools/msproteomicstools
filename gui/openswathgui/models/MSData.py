@@ -210,6 +210,11 @@ class DataModel(object):
         inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType=fileType)
         print "Found the following mapping: mapping", mapping
 
+        # In some cases this will not work because no information is in the RUN field
+        if all([k[0] is None for k in mapping.values()]):
+            mapping = {}
+            inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType="")
+
         # Read the chromatograms
         swathfiles = SwathRunCollection()
         if fileType == "sqmass":
