@@ -250,11 +250,20 @@ class SwathChromatogramCollection(object):
         self.cache = {}
         self.cached_run = runid
 
+        # We need to distinguish between the SQL data format and the
+        # indexedMzML format here (SQL is very inefficient for single queries)
         import copy
-        for run in self.allruns[runid].chromfiles:
-            for chromid, value in run.info['offsets'].items():
-              if value is None: continue
-              self.cache[ chromid ] = copy.copy(run[chromid])
+        if self.allruns[runid].type == "mzML":
+            for run in self.allruns[runid].chromfiles:
+                for chromid, value in run.info['offsets'].items():
+                  if value is None: continue
+                  self.cache[ chromid ] = copy.copy(run[chromid])
+
+        elif self.allruns[runid].type == "SQL":
+            # Get all data at once, then cache
+            alldata = self.allruns[runid].getDataForAllChromatograms()
+            for d in alldata:
+                  self.cache[ d.native_id ] = d
 
     def _getChromatogramCached(self, runid, chromid):
         assert runid == self.cached_run
@@ -421,6 +430,10 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
 
     else:
         raise Exception("Unknown method: " + method)
+
+    if options.cache_in_memory:
+        # Create the cache for run "rid" and then only extract peakgroups from this run
+        swath_chromatograms.createRunCache(str(rid))
 
     print("Alignment took %ss" % (time.time() - start) )
     start = time.time()
