@@ -89,7 +89,7 @@ class ImputeValuesHelper(object):
 class DummyChrom:
     """
     Chromatogram:
-      [ RT_list, INT_list]
+      [  [RT_0, INT_0], [RT_1, INT_1], ... ]
     """
     pass
 
@@ -141,7 +141,7 @@ class SqMassSwathChromatogramRun(object):
         res = []
         for chromdata in datad.values():
             ret = DummyChrom()
-            ret.peaks = self._returnDataForChromatogram(chromdata).values()[0]
+            ret.peaks = self._returnDataForChromatogram(chromdata, True).values()[0]
             ret.native_id = chromdata[0][4]
             res.append(ret)
 
@@ -160,10 +160,10 @@ class SqMassSwathChromatogramRun(object):
                 FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
         # print ("SQL:", stmt)
         data = [row for row in self.c.execute(stmt)]
-        ret.peaks = self._returnDataForChromatogram(data).values()[0]
+        ret.peaks = self._returnDataForChromatogram(data, True).values()[0]
         return ret
 
-    def _returnDataForChromatogram(self, data):
+    def _returnDataForChromatogram(self, data, returnPairs):
         import PyMSNumpress
         import zlib
 
@@ -195,7 +195,17 @@ class SqMassSwathChromatogramRun(object):
             else:
                 raise Exception("Only expected RT or Intensity data for chromatogram")
 
+        if returnPairs:
+            rr = {}
+            for k,v in res.iteritems():
+                rt = v[0]
+                i = v[1]
+                newr = [(a,b) for a,b in zip(rt, i)]
+                rr[k] = newr
+            res = rr
+
         return res
+
 
 class SwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run.
