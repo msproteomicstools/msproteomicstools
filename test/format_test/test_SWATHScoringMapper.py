@@ -89,8 +89,7 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
         mapper.buildPeakgroupMap(multipeptides, peakgroup_map)
 
         self.assertEqual(len(peakgroup_map.keys()), 2)
-        self.assertEqual(peakgroup_map.keys(), ['testpeptide/0', 'testpeptide/0_pr'])
-
+        self.assertEqual(sorted(list(peakgroup_map.keys())), ['testpeptide/0', 'testpeptide/0_pr'])
 
 if __name__ == '__main__':
     unittest.main()
