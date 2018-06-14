@@ -42,6 +42,7 @@ try:
     from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
     from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping, buildPeakgroupMap
     from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
+    from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 except ImportError:
     print "Could not find msproteomicstoolslib, certain functions are not available."
 
@@ -367,6 +368,7 @@ class DataModel(object):
 
             # print "found precursros", precursors
             pelements = []
+            pm = None
             for p in precursors:
 
                 # get all transitions from all runs
@@ -393,10 +395,11 @@ class DataModel(object):
                                                         peptideSequence = pm.getFullSequence(),
                                                         datatype="Precursor") )
 
-            elements.append(ChromatogramTransition(seq,
-                                                   "NA",
-                                                   pelements, 
-                                                   datatype="Peptide",
-                                                   peptideSequence=pm.getFullSequence()) )
+            if pm is not None:
+                elements.append(ChromatogramTransition(seq,
+                                                       "NA",
+                                                       pelements, 
+                                                       datatype="Peptide",
+                                                       peptideSequence=pm.getFullSequence()) )
         return elements
 
