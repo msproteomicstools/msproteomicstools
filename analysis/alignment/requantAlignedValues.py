@@ -86,12 +86,21 @@ class ImputeValuesHelper(object):
                 res[k] = selected[0]
         return res
 
+class DummyChrom:
+    """
+    Chromatogram:
+      [ RT_list, INT_list]
+    """
+    pass
+
 class SqMassSwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run in SqMass format.
     """
 
+
     def __init__(self):
         self.chromfiles = []
+        self.type = "SQL"
 
     def parse(self, runid, files):
         """ Parse a set of files which all belong to the same experiment 
@@ -110,6 +119,34 @@ class SqMassSwathChromatogramRun(object):
     def getChromatogram(self, chromid):
         return self.getDataForChromatogramFromNativeId(chromid)
 
+    def getDataForAllChromatograms(self):
+        """
+        Get data for all chromatograms
+        """
+
+        ret = DummyChrom()
+
+        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA, NATIVE_ID\
+                FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID"
+        data = [ row for row in self.c.execute(stmt)]
+
+        # Group the data arrays from the same chromatogram together
+        datad = dict()
+        for row in data:
+            tmp = datad.get(row[0], [])
+            tmp.append(row)
+            datad[ row[0] ] = tmp
+
+        # Fill the result vector
+        res = []
+        for chromdata in datad.values():
+            ret = DummyChrom()
+            ret.peaks = self._returnDataForChromatogram(chromdata).values()[0]
+            ret.native_id = chromdata[0][4]
+            res.append(ret)
+
+        return res
+
     def getDataForChromatogramFromNativeId(self, native_id):
         """
         Get data from a single chromatogram
@@ -118,17 +155,9 @@ class SqMassSwathChromatogramRun(object):
         - data_type is one of 0 = mz, 1 = int, 2 = rt
         - data contains the raw (blob) data for a single data array
         """
-
-        class DummyChrom:
-            """
-            Chromatogram:
-              [ RT_list, INT_list]
-            """
-            pass
-
         ret = DummyChrom()
-
-        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
+        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA, NATIVE_ID \
+                FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
         # print ("SQL:", stmt)
         data = [row for row in self.c.execute(stmt)]
         ret.peaks = self._returnDataForChromatogram(data).values()[0]
@@ -139,12 +168,12 @@ class SqMassSwathChromatogramRun(object):
         import zlib
 
         # prepare result
-        chr_ids = set([chr_id for chr_id, compr, data_type, d in data] )
+        chr_ids = set([chr_id for chr_id, compr, data_type, d, nid in data] )
         res = { chr_id : [None, None] for chr_id in chr_ids }
 
         rt_array = []
         intensity_array = []
-        for chr_id, compr, data_type, d in data:
+        for chr_id, compr, data_type, d, nid in data:
             result = []
             if len(d) == 0:
                 pass
@@ -176,6 +205,7 @@ class SwathChromatogramRun(object):
 
     def __init__(self):
         self.chromfiles = []
+        self.type = "mzML"
 
     def parse(self, runid, files):
         """ Parse a set of files which all belong to the same experiment 
