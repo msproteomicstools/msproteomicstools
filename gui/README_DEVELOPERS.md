@@ -23,5 +23,6 @@ TAPIR uses model-view architecture with the following models and views
     - ./openswathgui/views/Plot.py (contains the plot view, derived from Qwt.QwtPlot for the Qwt implementation or from the GuiQwt library)
 
 
+Note: there is a bug where closing the application will cause a segfault in QFontEngineX11FT::freeServerGlyphSet which seems to be a Qt4 bug.
 
 
