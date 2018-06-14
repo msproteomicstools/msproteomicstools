@@ -22,7 +22,7 @@ install:
   - pip install -U Cython
   - pip install -U statsmodels
   - pip install biopython
-  - pip install configobj lxml xlwt xlsxwriter pyteomics
+  - pip install configobj lxml xlwt xlsxwriter pyteomics PyMSNumpress
   - pip install rpy2==2.3.9
   - travis_retry python setup.py develop --with_cython && python setup_travis.py develop --with_cython
 script: 
