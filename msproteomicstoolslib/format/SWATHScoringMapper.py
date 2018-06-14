@@ -235,7 +235,7 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
         c = conn.cursor()
         d = list(c.execute("SELECT ID, FILENAME, NATIVE_ID FROM RUN"))
         assert len(d) == 1
-        filename = d[0][1]
+        filename = d[0][1] # use filename
         sqlfile_map.append([k, 0, os.path.basename(filename)])
         mapping[k] = [None]
 
@@ -353,7 +353,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                     rfile_base = rfile_base.split(ending)[0]
 
                 # 2.2 remove common file endings from the tsv data
-                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups"]:
+                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups", "_scored"]:
                     aligned_fname = aligned_fname.split(ending)[0]
 
                 # 2.3 Check if we have a match
