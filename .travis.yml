@@ -20,7 +20,7 @@ install:
   #   However, for Python 3.4 / 3.5 the older version of rpy2 wont work
   #   (we thus disable the tests).
   - pip install -U Cython
-  - pip install -U statsmodels
+  - pip install statsmodels==0.8.0
   - pip install biopython
   - pip install configobj lxml xlwt xlsxwriter pyteomics PyMSNumpress
   - pip install rpy2==2.3.9
