@@ -141,7 +141,7 @@ class SqMassSwathChromatogramRun(object):
         res = []
         for chromdata in datad.values():
             ret = DummyChrom()
-            ret.peaks = self._returnDataForChromatogram(chromdata, True).values()[0]
+            ret.peaks = list(self._returnDataForChromatogram(chromdata, True).values())[0]
             ret.native_id = chromdata[0][4]
             res.append(ret)
 
@@ -160,7 +160,7 @@ class SqMassSwathChromatogramRun(object):
                 FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
         # print ("SQL:", stmt)
         data = [row for row in self.c.execute(stmt)]
-        ret.peaks = self._returnDataForChromatogram(data, True).values()[0]
+        ret.peaks = list(self._returnDataForChromatogram(data, True).values())[0]
         return ret
 
     def _returnDataForChromatogram(self, data, returnPairs):
@@ -178,11 +178,17 @@ class SqMassSwathChromatogramRun(object):
             if len(d) == 0:
                 pass
             elif compr == 5:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+                if sys.version_info >= (3, 0):
+                    tmp = [q for q in zlib.decompress(d)]
+                else:
+                    tmp = [ord(q) for q in zlib.decompress(d)]
                 if len(tmp) > 0:
                     PyMSNumpress.decodeLinear(tmp, result)
             elif compr == 6:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+                if sys.version_info >= (3, 0):
+                    tmp = [q for q in zlib.decompress(d)]
+                else:
+                    tmp = [ord(q) for q in zlib.decompress(d)]
                 if len(tmp) > 0:
                     PyMSNumpress.decodeSlof(tmp, result)
 
@@ -197,7 +203,7 @@ class SqMassSwathChromatogramRun(object):
 
         if returnPairs:
             rr = {}
-            for k,v in res.iteritems():
+            for k,v in res.items():
                 rt = v[0]
                 i = v[1]
                 newr = [(a,b) for a,b in zip(rt, i)]
