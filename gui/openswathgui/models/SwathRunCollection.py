@@ -54,7 +54,8 @@ class SwathRunCollection(object):
     a simple flat list of chromatogram files.
     
     Attributes:
-        swath_chromatograms: Dictionary mapping of the form { run_id : :class:`.SwathRun`}
+        self.swath_chromatograms: Dictionary mapping of the form { run_id : :class:`.SwathRun`}
+
     """
 
     def __init__(self):
@@ -160,7 +161,7 @@ class SwathRunCollection(object):
         """
         Returns
         -------
-        runs : list of :class:`.SwathRun`
+        runs : list of :class:`.SwathRun` or :class:`.SqlSwathRun`
             All runs found in this collection
         """
         return self.swath_chromatograms.values()

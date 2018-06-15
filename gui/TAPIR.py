@@ -84,7 +84,12 @@ class GraphArea(QtGui.QWidget):
     """
     The Graph Area is displayed on the right side of the main area (see :class:`.ApplicationView`)
 
-    The actual implementation of the plotting is in the Plot model, see :mod:`.openswathgui.views.Plot`
+    The actual implementation of the plotting is in the `Plot module <openswathgui.views.html#plot-module>`_.
+
+    .. see :mod:`openswathgui.views.Plot` -- for some reason this does not work 
+
+    Slots:
+        :meth:`~TAPIR.GraphArea.plotZoomChanged`: Handle plot emitting a zoomChanged signal
 
     Attributes:
         self.plots: The underlying list of plots (either of type :class:`.GuiQwtMultiLinePlot` or :class:`.QwtMultiLinePlot`)
@@ -104,9 +109,6 @@ class GraphArea(QtGui.QWidget):
 
         self.changePlotEngine(use_guiqwt)
 
-        # self.c.catch_mouse_press.connect(self.react_to_mouse)
-        # self.c.catch_mouse_release.connect(self.react_to_mouse_release)
-
     def changePlotEngine(self, use_guiqwt):
         if use_guiqwt and have_guiqwt:
             from openswathgui.views.Plot import GuiQwtMultiLinePlot as MultiLinePlot
@@ -118,23 +120,11 @@ class GraphArea(QtGui.QWidget):
     @QtCore.pyqtSlot(float, float, float, float)
     def plotZoomChanged(self, xmin, xmax, ymin, ymax):
         """
-        Slot to deal with the underlying plot emitting a zoomChanged signal
+        Slot to deal with the underlying plot emitting a zoomChanged signal, needs to reset all axis using min/max values
         """
         # after (moving the image), adjust and replot _all_ plots
         self._reset_axis_all_plots([xmin, xmax], [ymin, ymax], self.autoscale_y_axis)
 
-    # def react_to_mouse(self):
-    #     print "react to mouse press"
-    # 
-    # def react_to_mouse_release(self):
-    #     print "react to release mouse"
-    # 
-    # def mousePressEvent(self, event):
-    #     self.c.catch_mouse_press.emit()
-    # 
-    # def mouseReleaseEvent(self, event):
-    #     self.c.catch_mouse_release.emit()
-        
     def set_communicate(self, comm):
         self.c = comm
 
@@ -150,7 +140,7 @@ class GraphArea(QtGui.QWidget):
         self.layout.addWidget(l, self._wcount, 0)
         self._wcount += 1
 
-    def add_plots_dummy(self):
+    def addPlotsDummy(self):
         """
         Add dummy plots for testing
         """
@@ -168,7 +158,7 @@ class GraphArea(QtGui.QWidget):
         self._add_new(self.plot2)
         self.plots.append(self.plot2)
 
-    def add_plots(self, datamodel):
+    def addPlots(self, datamodel):
         """
         Add a plot for each run that needs to be displayed
 
@@ -258,14 +248,17 @@ class PeptideTreeWidget(QtGui.QWidget):
     :class:`.ApplicationView`). It consists of a :class:`.PeptidesTreeView`
     widget and a search box below.
 
+    Slots:
+        :meth:`~TAPIR.PeptideTreeWidget.treeViewSelectionChangedSlot` : Handle a change in the selection in the tree (and pass forward through `selectionChanged` signal)
+
+    Signals:
+        selectionChanged : when the peptide selection is changed
+
     Attributes:
         - self._precursor_model: The underlying peptide tree model (of type :class:`.PeptideTree`)
         - self.treeView: The underlying peptide tree view widget (of type :class:`.PeptidesTreeView`)
         - self.treeLineEdit: A place for input below the tree
         - self.treeComboBox: A combo box relating to the column for search
-
-    Emits the following signals:
-        - selectionChanged : when the peptide selection is changed
     """
 
     # Signals
@@ -402,6 +395,13 @@ class PeptideTreeWidget(QtGui.QWidget):
         """
         Access to the underlying precursor model
 
+        Returns:
+            :class:`.PeptideTree` : The underlying precursor model 
+        """
+
+
+        """
+            
         Returns
         -------
         precursor_model : :class:`.PeptideTree`
@@ -414,16 +414,18 @@ class PeptideTreeWidget(QtGui.QWidget):
 ## Main Widget
 # 
 class ApplicationView(QtGui.QWidget):
-
     """
-    The main/central widget for the application which is directly called from the MainWindow
+    The main/central widget for the application which is directly called from the :class:`.MainWindow`.
 
-    Attributes:
-        self.leftside: Reference to the left side widget (of type :class:`.PeptideTreeWidget`)
-        self.graph_layout: Reference to the right side widget (of type :class:`.GraphArea`)
+    It hosts the following graphical widgets:
+        - self.leftside : Reference to the left side widget (of type :class:`.PeptideTreeWidget`)
+        - self.graph_layout : Reference to the right side widget (of type :class:`.GraphArea`)
 
-    Emits the following signals:
-        - plotsUpdate : when the plots need to be updated
+    Slots:
+        :meth:`~TAPIR.ApplicationView.treeSelectionChanged`: Handle a change in the selection in the tree
+
+    Signals:
+        :meth:`~TAPIR.ApplicationView.plotsUpdate`: When the plots need to be updated
     """
     
     # Signals
@@ -471,34 +473,29 @@ class ApplicationView(QtGui.QWidget):
         self.setLayout(hbox)
 
         # add dummy plots to the graph layout
-        self.graph_layout.add_plots_dummy()
+        self.graph_layout.addPlotsDummy()
 
     def get_precursor_model(self):
         """
-        Access to the underlying precursor model
+        Access to the underlying hierarchical data model (proteins, precursors, peptides, transitions)
 
-        Returns
-        -------
-        precursor_model : The underlying precursor model of class :class:`.PeptideTree`
+        Returns:
+            :class:`.PeptideTree` : The underlying hierarchical data model (displayed on the right side)
         """
         return self.leftside.get_precursor_model()
 
     def set_communication(self, c):
         self.c = c
 
-    def add_plots(self, datamodel):
+    def addPlots(self, datamodel):
         """
         Add a plot for each run that needs to be displayed (calls the underlying :class:`.GraphArea`)
 
         Args:
             datamodel(:class:`.DataModel`): The data model containing data to plot
         """
-        self.graph_layout.add_plots(datamodel)
+        self.graph_layout.addPlots(datamodel)
         self.leftside.expandLevel("smart")
-
-    def widgetclicked(self, value):
-        print "clicked iittt"
-
 
 #
 ## Settings object
@@ -618,10 +615,13 @@ class MainWindow(QtGui.QMainWindow):
     """
     The main window running the application.
 
-    - It contains a reference to the actual MS data model (self.data_model [models/MSData.py])
-    - It contains a reference to the main widget (self.application_view [ApplicationView])
+    - It contains a reference to the actual MS data model (:class:`.DataModel` in :mod:`MSData`)
+    - It contains a reference to the main widget (:class:`.ApplicationView`)
 
-    - It loads files through self.loadFiles which delegates the call to the data model
+    - It loads files through :meth:`~TAPIR.MainWindow.loadFiles` which delegates the call to the data model
+
+    Slots:
+        :meth:`~TAPIR.MainWindow.plotsUpdated` : Handle an update in plots (and draw time taken to plot)
 
     Attributes:
         self.data_model: Reference to the underlying data model (of type :class:`.DataModel`)
@@ -700,7 +700,7 @@ class MainWindow(QtGui.QMainWindow):
     @QtCore.pyqtSlot(float)
     def plotsUpdated(self, time_taken):
         """
-        Qt slot: updates the status bar when :class:`.ApplicationView` emits :meth:`.ApplicationView.plotsUpdated`
+        Slot: updates the status bar when :class:`.ApplicationView` emits :meth:`TAPIR.ApplicationView.plotsUpdated`
         """
         self.statusBar().showMessage(self.data_model.getStatus() + ". Drawn plots in %0.4fs."  % (time_taken))
 
@@ -716,15 +716,15 @@ class MainWindow(QtGui.QMainWindow):
         """ Load a set of files to display
 
         1. Try to load single yaml file
-        2. Try to load a list of only mzML files
-        3. Try to load a mixed list of mzML and other files (.tsv)
+        2. Try to load a list of only mzML or sqMass files
+        3. Try to load a mixed list of mzML, sqMass and other files (.tsv)
 
-        For the third option, 
+        For the third option, the data files (mzML or sqMass) are separated
+        from the annotation files (tsv, traml) and loaded using :meth:`DataModel.loadMixedFiles <openswathgui.models.MSData.DataModel.loadMixedFiles>`.
 
-        pyFileList : list of str
-            List of paths to files
-        fileType : str
-            Description of the type of file the metadata file (valid: simple, yaml, traml, openswath)
+        Args:
+            pyFileList (list of str) : List of paths to files
+            fileType (str) : Description of the type of file the metadata file (valid: simple, yaml, traml, openswath)
         """
 
         start = time.time() 
@@ -763,7 +763,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def updateSettings(self, settings):
         """
-        Update global settings (after closing the settings dialog)
+        Update global settings (after closing the settings dialog) in the application and data model
         """
 
         self.application.graph_layout.nr_rows = settings.nr_rows
@@ -790,7 +790,7 @@ class MainWindow(QtGui.QMainWindow):
             tmessage = ". Loading took %0.4fs" % time
 
         self.statusBar().showMessage(self.data_model.getStatus() + tmessage)
-        self.application.add_plots(self.data_model)
+        self.application.addPlots(self.data_model)
 
     def _center(self):
         qr = self.frameGeometry()

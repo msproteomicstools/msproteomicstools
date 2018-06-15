@@ -45,7 +45,7 @@ from TreeModels import TreeModel
 # A TreeNode element
 class PeptideTreeNode(TreeNode):
     """
-    Implementation of a node in the right-hand peptide tree in the GUI
+    Data model of a node in the left-hand peptide tree in the GUI
     """
 
     def __init__(self, ref, parent, row):
@@ -58,7 +58,11 @@ class PeptideTreeNode(TreeNode):
 
 class PeptideTree(TreeModel):
     """
-    Implementation of a tree in the right-hand peptide tree in the GUI
+    Data model of the underlying hierarchical data model (proteins, precursors, peptides, transitions).
+
+    This class represents the data model, see
+    :class:`openswathgui.views.PeptideTree.PeptidesTreeView` for the view
+    implementation.
     """
 
     def __init__(self, rootElements, firstColumnName="Peptide Sequence"):
@@ -126,7 +130,9 @@ class PeptideTree(TreeModel):
         Note that the user can set the name of the first column name manually
         in order to accomodate for other data (e.g. metabolomics) where
         "Peptide Sequence" would not make sense.
+
         """
+
         if section == 0:
             return self.first_column_name_
         if section == 1:
@@ -138,13 +144,13 @@ class PeptideTree(TreeModel):
 
     def set_precursor_tree_structure(self, data, sortData = True):
         """
-        Initialize tree structure with data from :meth:`.MSData.get_precursor_tree`
+        Initialize tree structure with data from :meth:`DataModel.get_precursor_tree <openswathgui.models.MSData.DataModel.get_precursor_tree>`
 
         The tree is initialized by giving it a pointer to the root element(s)
 
         Parameters
         ----------
-        data : list of :class:`.ChromatogramTransition`:
+        data : list of :class:`.ChromatogramTransition`
             Root element(s) for the peptide tree
         sortData : bool
             Whether to sort data

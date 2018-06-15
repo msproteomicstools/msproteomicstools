@@ -91,8 +91,10 @@ class DataModel(object):
     responsible for setting the self.runs parameter.
 
     Attributes:
-        runs(list of :class:`.SwathRun`): The MS runs which are handled by this class
-        runs(bool): Whether to draw individual transitions
+        self.runs(list of :class:`.SwathRun` or :class:`.SqlSwathRun`) : The MS runs which are handled by this class
+        self.fdr_cutoff(bool) : Selected FDR cutoff
+        self.only_show_quantified(bool) : Whether to only show peptides that are quantified
+        self.draw_transitions_(bool) : Whether to draw individual transitions
     """
 
     def __init__(self, fdr_cutoff = FDR_CUTOFF, only_quantified = ONLY_SHOW_QUANTIFIED):
