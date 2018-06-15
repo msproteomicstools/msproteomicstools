@@ -38,16 +38,17 @@ $Authors: Hannes Roest$
 import sys,time, re
 import argparse
 
-## We need to import guiqt first
-## https://github.com/pierreraybaut/guidata/issues/35#issuecomment-171573060
+## - We need to import quiqwt first:
+##     https://github.com/pierreraybaut/guidata/issues/35#issuecomment-171573060
+## - When building the docu, we run into the same issue and prevent import altogether
 have_guiqwt = True
-try:
-    from guiqwt.curve import CurveItem
-except ImportError:
-    print "Could not import guiqwt, will try to use Qwt only."
-    have_guiqwt = False
+if __name__ == '__main__':
+    try:
+        from guiqwt.curve import CurveItem
+    except ImportError:
+        print "Could not import guiqwt, will try to use Qwt only."
+        have_guiqwt = False
 
-# from guidata import qt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
