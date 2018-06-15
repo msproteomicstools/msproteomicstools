@@ -81,7 +81,7 @@ If you would like to use the rpy2 bridge, you should install the `rpy2` package.
 ## Documentation
 
 Documentation for the library can be found at
-[http://proteomics.ethz.ch/msproteomicstools/](http://proteomics.ethz.ch/msproteomicstools/) 
+[http://msproteomicstools.roestlab.org/](http://msproteomicstools.roestlab.org/) 
 which contains source code documentation of the available functions and
 objects.
 
