@@ -55,7 +55,7 @@ information on the TRIC alignment tool.
 # Documentation
 
 Documentation for the library can be found at
-[http://msproteomicstools.roestlab.org/](http://msproteomicstools.roestlab.org) 
+[http://msproteomicstools.roestlab.org/](http://msproteomicstools.roestlab.org/) 
 which contains source code documentation of the available functions and
 objects.
 
