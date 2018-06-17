@@ -89,6 +89,7 @@ setup(name='msproteomicstools',
       install_requires=[
           "numpy",
           "scipy",
+          "PyMSNumpress",
           "cluster == 1.2.2", # note that 1.1.2 does not work with py3
           "pyteomics >= 2.4.0",
           "statsmodels >= 0.6.0",
@@ -96,7 +97,7 @@ setup(name='msproteomicstools',
           # 'xlwt', # for xls
           'scikits.datasmooth',
           # versions 7.6 and 7.7 are broken for us (use spectra sanity check)
-          'pymzml == 0.7.5',
+          'pymzml == 0.7.8',
           'lxml',
           'configobj',
           'biopython',

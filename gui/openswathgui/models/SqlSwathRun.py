@@ -107,8 +107,9 @@ class SqlSwathRun():
         c = conn.cursor()
 
         id_mapping = [row for row in c.execute("""
-        SELECT NATIVE_ID, CHROMATOGRAM_ID, PEPTIDE_SEQUENCE, CHARGE FROM CHROMATOGRAM 
+        SELECT NATIVE_ID, CHROMATOGRAM.ID, PEPTIDE_SEQUENCE, PRECURSOR.CHARGE, PRODUCT.ISOLATION_TARGET FROM CHROMATOGRAM 
         LEFT JOIN PRECURSOR ON CHROMATOGRAM.ID = PRECURSOR.CHROMATOGRAM_ID 
+        LEFT JOIN PRODUCT ON CHROMATOGRAM.ID = PRODUCT.CHROMATOGRAM_ID 
         """)]
 
         # Create the same ID mapping that is expected from the rest of the GUI
@@ -121,9 +122,13 @@ class SqlSwathRun():
             sequence = r[2]
             charge = r[3]
             mystr = "%s_%s_%s" % (chr_id, sequence, charge)
+            if (float(r[4]) <= 0.0):
+                mystr = "PRECURSOR_" + mystr
             if native_id.startswith("DECOY"):
                 mystr = "DECOY_" + mystr
-            res.append([mystr, chr_id])
+
+            # Use native id (necessary for mapping to TSV files)
+            res.append([native_id, chr_id])
 
         return res
 
@@ -136,21 +141,40 @@ class SqlSwathRun():
         but not different charge states.
         """
 
+        self._group_by_precursor_sqlite()
+
         id_mapping = self._get_id_mapping()
-        # TODO: could also be done in SQL
         self._id_mapping = dict(id_mapping)
 
-        openswath_format = self._has_openswath_format([m[0] for m in id_mapping])
+    def _group_by_precursor_sqlite(self):
+        """
+            Computes a format of type [DECOY]_xx/yy (ensuring that decoys get a
+            different identifier than targets).
+        """
 
-        result = {}
-        if not openswath_format:
-            raise Exception("Could not parse chromatogram ids ... ")
+        import sqlite3
+        conn = sqlite3.connect(self._filename)
+        c = conn.cursor()
 
-        f = FormatHelper()
-        for key, myid in id_mapping:
-            trgr_nr = f._compute_transitiongroup_from_key(key)
+        id_mapping = [row for row in c.execute("""
+        SELECT NATIVE_ID, CHROMATOGRAM.ID, PEPTIDE_SEQUENCE, PRECURSOR.CHARGE, PRODUCT.ISOLATION_TARGET FROM CHROMATOGRAM 
+        LEFT JOIN PRECURSOR ON CHROMATOGRAM.ID = PRECURSOR.CHROMATOGRAM_ID 
+        LEFT JOIN PRODUCT ON CHROMATOGRAM.ID = PRODUCT.CHROMATOGRAM_ID 
+        """)]
+
+        # Create the precursor mapping 
+        res = []
+        for r in id_mapping:
+            native_id = r[0]
+            chr_id = int(r[1])
+            sequence = r[2]
+            charge = r[3]
+            trgr_nr = "%s/%s" % (sequence, charge)
+            if (float(r[4]) <= 0.0):
+                trgr_nr += "_PREC"
+
             tmp = self._precursor_mapping.get(trgr_nr, [])
-            tmp.append(key)
+            tmp.append(native_id)
             self._precursor_mapping[trgr_nr] = tmp
 
     def _has_openswath_format(self, keys):
@@ -192,6 +216,10 @@ class SqlSwathRun():
         transitions = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             transitions.append(chrom_id)
+
+        if len(transitions) == 0:
+            return ["NA"]
+
         return transitions
 
     def get_all_precursor_ids(self):
@@ -230,8 +258,9 @@ class SqlSwathRun():
         transitions = []
         sql_ids = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
-            sql_id = self._id_mapping[ chrom_id ]
-            sql_ids.append(sql_id)
+            if chrom_id in self._id_mapping:
+                sql_id = self._id_mapping[ chrom_id ]
+                sql_ids.append(sql_id)
         transitions = self._run.getDataForChromatograms(sql_ids)
         return transitions
 
@@ -247,6 +276,7 @@ class SqlSwathRun():
             print "Please check your input data"
 
     def get_range_data(self, precursor):
+
         return self._range_mapping.get(precursor, [ [0,0] ])
 
     def get_assay_data(self, precursor):

@@ -155,7 +155,9 @@ class SwathRun(object):
     def get_transitions_for_precursor_display(self, precursor):
         run = self._precursor_run_map.get( str(precursor), None)
         if run is None:
-            return []
+            return ["NA"]
+
+        print (self._all_swathes[run].get_transitions_with_mass_for_precursor(precursor))
         return self._all_swathes[run].get_transitions_with_mass_for_precursor(precursor)
 
     def get_all_precursor_ids(self):

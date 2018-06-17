@@ -47,8 +47,8 @@ class FormatHelper(object):
 
         Possible Input Formats:
 
-        i) [DECOY_]id_xx/yy_zz
-        ii) [DECOY_]id_xx_yy
+        i) [DECOY_|PRECURSOR_]id_xx/yy_zz
+        ii) [DECOY_|PRECURSOR_]id_xx_yy
 
         Where the DECOY_ prefix is optional, xx is the sequence and yy is the
         charge. zz is an additional, optional annotation.
@@ -60,10 +60,16 @@ class FormatHelper(object):
         trgr_nr = str(components[1])
         if components[0].startswith("DECOY"):
             trgr_nr = "DECOY_" + str(components[2])
+        if components[0].startswith("PRECURSOR"):
+            trgr_nr = str(components[2])
 
         # Format ii) (second component doesnt contain a slash)
         if trgr_nr.find("/") == -1:
             trgr_nr += "/" + str(components[-1])
+
+        if components[0].startswith("PRECURSOR"):
+            pass
+            trgr_nr += "_PREC"
 
         return trgr_nr
 
@@ -97,6 +103,7 @@ class FormatHelper(object):
 
         possible inputs: 
             DECOY_44736_NVEVIEDDKQGIIR/2_y12
+            PRECURSOR_44736_NVEVIEDDKQGIIR/2_y12
             1002781_TGLC(UniMod:4)QFEDAFTQLSGATPIGAGIDAR_3
         """
 
@@ -108,6 +115,8 @@ class FormatHelper(object):
             components = key.split("_")
             # print "split into components", components
             if components[0].startswith("DECOY"):
+                components = components[1:]
+            if components[0].startswith("PRECURSOR"):
                 components = components[1:]
 
             # Exactly 3 components are needed: id, sequence, charge/ion qualifier

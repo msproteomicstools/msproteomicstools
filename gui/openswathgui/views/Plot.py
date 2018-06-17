@@ -55,6 +55,14 @@ except ImportError:
     class CurveDialog(object): 
         def __init__(self, *args, **kwargs):
             pass
+except ValueError:
+    # This happens when building the documentation
+    print "Could not import guiqwt, will try to use Qwt only."
+    have_guiqwt = False
+    class CurveItem(object): pass
+    class CurveDialog(object): 
+        def __init__(self, *args, **kwargs):
+            pass
 
 try:
     QtGui.QStaticText("Test")

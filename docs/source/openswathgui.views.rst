@@ -1,11 +1,14 @@
 OpenSWATH - GUI Views
-============
+=====================
+
+The views in TAPIR are the left-hand tree view (:class:`.PeptidesTreeView`) as
+well as the right-hand plotting view (`Plot <#plot-module>`_).
 
 :mod:`PeptideTreeView` Module
 -------------------
 
 PeptideTreeView
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 .. autoclass:: openswathgui.views.PeptideTree.PeptidesTreeView
     :members:
@@ -16,7 +19,7 @@ PeptideTreeView
 -------------------
 
 Plot
-^^^^^^^^^^^^^^
+^^^^
 
 There are two implementations of the plotting view, one uses guiqwt (may not be
 present on all systems) and the other one uses plain Qwt (should be safer).
