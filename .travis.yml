@@ -13,7 +13,7 @@ before_install:
  - "cd scikit-datasmooth && python setup.py install && cd .."
 install:
   # make sure we have the newest setuptools
-  - pip install -U setuptools
+  - pip install -U setuptools==38
   #   For Ubuntu 12.04, we have only R 2.x available and thus need an older rpy2
   #   version (2.2.5). For Ubuntu 14.04, we have R 3.0.x available which works
   #   with rpy2 2.3.9 (see trusty packages).
