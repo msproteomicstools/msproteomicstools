@@ -44,32 +44,21 @@ class FormatHelper(object):
         pass
 
     def _compute_transitiongroup_from_key(self, key):
-        """ Transforms an input chromatogram id to a string of [DECOY]_xx/yy
-
-        Possible Input Formats:
-
-        i) [DECOY_|PRECURSOR_]id_xx/yy_zz
-        ii) [DECOY_|PRECURSOR_]id_xx_yy
-
-        Where the DECOY_ prefix is optional, xx is the sequence and yy is the
-        charge. zz is an additional, optional annotation.
-
-        We want to return only [DECOY]_xx/yy (ensuring that decoys get a
-        different identifier than targets).
+        """ Transforms an input chromatogram identifier to a unique key
+        
+        The unique key is a string of [DECOY_]xx/yy[_PREC] where xx is the
+        sequence and yy is the precursor charge. This ensures that decoys get a
+        different identifier than targets (and precursors a differnt id than
+        fragment ions).
         """
-        components = key.split("_")
-        trgr_nr = str(components[1])
-        if components[0].startswith("DECOY"):
-            trgr_nr = "DECOY_" + str(components[2])
-        if components[0].startswith("PRECURSOR"):
-            trgr_nr = str(components[2])
+        comp = self.parse(key)
 
-        # Format ii) (second component doesnt contain a slash)
-        if trgr_nr.find("/") == -1:
-            trgr_nr += "/" + str(components[-1])
+        if comp[0]:
+            trgr_nr = "DECOY_" + comp[2] + "/" + comp[3]
+        else:
+            trgr_nr = comp[2] + "/" + comp[3]
 
-        if components[0].startswith("PRECURSOR"):
-            pass
+        if key.startswith("PRECURSOR"):
             trgr_nr += "_PREC"
 
         return trgr_nr
