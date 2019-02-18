@@ -32,4 +32,5 @@ script:
   - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.7* ]]; then nosetests -a '!rpy2,!cython' -w test/; fi
 cache: pip
