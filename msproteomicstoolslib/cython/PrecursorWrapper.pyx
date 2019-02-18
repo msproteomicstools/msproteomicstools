@@ -120,7 +120,8 @@ cdef class CyPrecursorWrapperOnly(object):
         """
         """
         if deref(self.inst).peakgroups.empty():
-             return None
+            print("empty peakgroup!!")
+            return None
 
         cdef libcpp_vector[c_peakgroup].iterator it = deref(self.inst).peakgroups.begin()
         cdef libcpp_vector[c_peakgroup].iterator best = deref(self.inst).peakgroups.begin()

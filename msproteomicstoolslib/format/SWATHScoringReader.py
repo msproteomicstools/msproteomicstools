@@ -242,6 +242,7 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
         decoy_name = "decoy"
         fdr_score_name = "m_score"
         fdr_score_name_alt = "transition_group_id_m_score"
+        fdr_score_name_alt2 = "q_value"
         dscore_name = "d_score"
         unique_peakgroup_id_name = "transition_group_id"
         rt_name = "delta_rt"
@@ -285,8 +286,10 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
             fdr_score = to_float(this_row[run.header_dict[fdr_score_name]])
         elif fdr_score_name_alt in run.header_dict:
             fdr_score = to_float(this_row[run.header_dict[fdr_score_name_alt]])
+        elif fdr_score_name_alt2 in run.header_dict:
+            fdr_score = to_float(this_row[run.header_dict[fdr_score_name_alt2]])
         elif self.errorHandling == "strict": 
-            raise Exception("Did not find essential column " + fdr_score_name + " or " + fdr_score_name_alt)
+            raise Exception("Did not find essential column " + fdr_score_name + " or " + fdr_score_name_alt + " or " + fdr_score_name_alt2)
 
         try:
             thisid = this_row[run.header_dict[unique_feature_id_name]]

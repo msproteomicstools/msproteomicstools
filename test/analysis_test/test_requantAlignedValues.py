@@ -192,6 +192,7 @@ class TestNoiseIntegration(unittest.TestCase):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
         filename = os.path.join(self.datadir, "imputeValues/imputeValues_5_input.csv")
         mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.sqMass")
+        # mzml_file = os.path.join(self.datadir, "imputeValues/split_olgas_otherfile.sqMass")
         expected_outcome = os.path.join(self.datadir, "imputeValues_6_output.csv")
         expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_6_output_matrix.csv")
         tmpfilename = "imputeValues_6.out.tmp"
@@ -202,7 +203,7 @@ class TestNoiseIntegration(unittest.TestCase):
             mzml_file, filename, tmpfilename, tmpfilename_matrix)
         cmd = "python %s %s" % (script, args)
         sub.check_output(cmd,shell=True)
-        
+
         self.exact_diff(tmpfilename, expected_outcome)
         self.exact_diff(tmpfilename_matrix, expected_matrix_outcome)
 

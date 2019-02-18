@@ -5,7 +5,7 @@ This documents the functions in the TAPIR.py executable and also the underlying
 views and models (see TOC at the end). The main window is :class:`.MainWindow`
 which contains a single main widget :class:`.ApplicationView`. The
 ApplicationView is the main widget, it contains the left side tree structure
-(peptide tree) and the right side graph area.
+(:class:`.PeptideTreeWidget`) and the right side graph area (:class:`.GraphArea`).
 
 TAPIR Main Window 
 ^^^^^^^^^^^^^^^^^
@@ -38,8 +38,12 @@ TAPIR Widgets
     :undoc-members:
     :show-inheritance:
 
-
 .. autoclass:: TAPIR.ConfigDialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: TAPIR.Settings
     :members:
     :undoc-members:
     :show-inheritance:

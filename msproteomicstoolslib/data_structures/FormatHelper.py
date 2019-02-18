@@ -46,14 +46,33 @@ class FormatHelper(object):
     def _compute_transitiongroup_from_key(self, key):
         """ Transforms an input chromatogram id to a string of [DECOY]_xx/yy
 
+        Possible Input Formats:
+
+        i) [DECOY_|PRECURSOR_]id_xx/yy_zz
+        ii) [DECOY_|PRECURSOR_]id_xx_yy
+
+        Where the DECOY_ prefix is optional, xx is the sequence and yy is the
+        charge. zz is an additional, optional annotation.
+
         We want to return only [DECOY]_xx/yy (ensuring that decoys get a
         different identifier than targets).
         """
-        comp = self.parse(key)
-        if (comp[0]):
-            return "DECOY_" + comp[2] + "/" + comp[3]
-        else:
-            return comp[2] + "/" + comp[3]
+        components = key.split("_")
+        trgr_nr = str(components[1])
+        if components[0].startswith("DECOY"):
+            trgr_nr = "DECOY_" + str(components[2])
+        if components[0].startswith("PRECURSOR"):
+            trgr_nr = str(components[2])
+
+        # Format ii) (second component doesnt contain a slash)
+        if trgr_nr.find("/") == -1:
+            trgr_nr += "/" + str(components[-1])
+
+        if components[0].startswith("PRECURSOR"):
+            pass
+            trgr_nr += "_PREC"
+
+        return trgr_nr
 
     def _compute_transitiongroup_from_precursor(self, precursor):
         """ Transforms an input precursor to a string of [DECOY]_xx/yy
@@ -95,6 +114,7 @@ class FormatHelper(object):
         charge. zz is an additional, optional annotation, ff is the fragment id, cc is the fragment charge.
 
         possible inputs: 
+            PRECURSOR_44736_NVEVIEDDKQGIIR/2_y12
             1002781_TGLC(UniMod:4)QFEDAFTQLSGATPIGAGIDAR_3
             DECOY_44736_NVEVIEDDKQGIIR/2_y12
             DECOY_155153_GYEDPPAALFR/2_y7_2
@@ -106,11 +126,14 @@ class FormatHelper(object):
         decoy = False
         key = key_
 
-        if key.startswith("DECOY_"):
-            key = key.split("DECOY_")[1]
-            decoy = True
-
-        components = key.split("_")
+        if len(key.split("_")) >= 3:
+            components = key.split("_")
+            # print "split into components", components
+            if components[0].startswith("DECOY"):
+                components = components[1:]
+                decoy = True
+            if components[0].startswith("PRECURSOR"):
+                components = components[1:]
 
         fr_charge = None
         if len(components) == 5:

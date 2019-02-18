@@ -1,11 +1,11 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: python
 python:
   - "2.7"
-  - "3.4"
   - "3.5"
   - "3.6"
+  - "3.7"
 before_install:
  - sudo apt-get update
  - sudo apt-get install -qq r-base
@@ -16,21 +16,21 @@ install:
   - pip install -U setuptools
   #   For Ubuntu 12.04, we have only R 2.x available and thus need an older rpy2
   #   version (2.2.5). For Ubuntu 14.04, we have R 3.0.x available which works
-  #   with rpy2 2.3.9 (see trusty packages).
+  #   with rpy2 2.3.9 (see trusty packages). For Ubuntu 16.04, we have R 3.2.3
+  #   available which works with rpy2 2.7.8.
   #   However, for Python 3.4 / 3.5 the older version of rpy2 wont work
   #   (we thus disable the tests).
   - pip install -U Cython
-  - pip install -U statsmodels
+  - pip install statsmodels
   - pip install biopython
-  - pip install pymsnumpress
-  - pip install configobj lxml xlwt xlsxwriter pyteomics
-  - pip install rpy2==2.3.9
+  - pip install configobj lxml xlwt xlsxwriter pyteomics PyMSNumpress
+  - pip install rpy2==2.7.8
   - travis_retry python setup.py develop --with_cython && python setup_travis.py develop --with_cython
 script: 
   # Disable the rpy2 tests for Python 3.x
   # Disable the Cython tests for Python 3.x as they only work under 2.x
   - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then nosetests -w test/; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.4* ]]; then nosetests -a '!rpy2' -w test/; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then nosetests -a '!rpy2' -w test/; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then nosetests -a '!rpy2' -w test/; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.7* ]]; then nosetests -a '!rpy2' -w test/; fi
 cache: pip

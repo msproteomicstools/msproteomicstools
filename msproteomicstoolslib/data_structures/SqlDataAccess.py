@@ -105,6 +105,9 @@ class SqlDataAccess(object):
         intensity_array = []
         for chr_id, compr, data_type, d in data:
             result = []
+            # if len(d) == 0:
+            #     pass
+
             if compr == 5:
                 # tmp = [ord(q) for q in zlib.decompress(d)]
                 tmp = bytearray( zlib.decompress(d) )
@@ -120,6 +123,8 @@ class SqlDataAccess(object):
                 else:
                     result = [0]
 
+            if len(result) == 0:
+                result = [ 0 ]
             if data_type == 1:
                 res[chr_id][1] = result
             elif data_type == 2:

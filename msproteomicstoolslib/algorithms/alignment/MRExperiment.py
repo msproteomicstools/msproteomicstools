@@ -110,6 +110,8 @@ class MRExperiment(object):
             gr_protein = []
             for precursor_group in r:
                 for peptide_precursor in precursor_group:
+                    print(peptide_precursor)
+                    print(peptide_precursor.get_best_peakgroup())
                     if (peptide_precursor.get_best_peakgroup().get_fdr_score() < fdr_cutoff):
                         gr.append( precursor_group.getPeptideGroupLabel() )
                         if not precursor_group.get_decoy():

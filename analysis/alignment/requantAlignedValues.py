@@ -60,6 +60,160 @@ from feature_alignment import Experiment
 
 VERBOSE = False
 
+class ImputeValuesHelper(object):
+    """
+    Static object with some helper methods.
+    """
+
+    @staticmethod
+    def select_correct_swath(swath_chromatograms, mz):
+        """Select the correct chromatogram
+
+        Args:
+            swath_chromatograms(dict): containing the objects pointing to the original chrom mzML (see runImputeValues)
+            mz(float): the mz value of the precursor
+        """
+        mz = mz + SWATH_EDGE_SHIFT
+        swath_window_low = int(mz // 25) * 25
+        swath_window_high = int(mz // 25) * 25 + 25
+        res = {}
+        for k, v in swath_chromatograms.items():
+            # TODO smarter selection here
+            selected = [vv for prec_mz, vv in v.items() if prec_mz >= swath_window_low and prec_mz < swath_window_high]
+            if len(v) == 1: 
+                # We have merged chrom.mzML file (only one file)
+                selected = list(v.values())
+            if len(selected) == 1: 
+                res[k] = selected[0]
+        return res
+
+class DummyChrom:
+    """
+    Chromatogram:
+      [  [RT_0, INT_0], [RT_1, INT_1], ... ]
+    """
+    pass
+
+class SqMassSwathChromatogramRun(object):
+    """ A single SWATH LC-MS/MS run in SqMass format.
+    """
+
+
+    def __init__(self):
+        self.chromfiles = []
+        self.type = "SQL"
+
+    def parse(self, runid, files):
+        """ Parse a set of files which all belong to the same experiment 
+        """
+
+        assert len(files) == 1
+        filename = files[0]
+
+        import sqlite3
+        self.conn = sqlite3.connect(filename)
+        self.c = self.conn.cursor()
+
+        nr_ch = self.c.execute("SELECT COUNT(*) FROM CHROMATOGRAM")
+        print ("Found", list(nr_ch)[0][0], "chromatograms")
+
+    def getChromatogram(self, chromid):
+        return self.getDataForChromatogramFromNativeId(chromid)
+
+    def getDataForAllChromatograms(self):
+        """
+        Get data for all chromatograms
+        """
+
+        ret = DummyChrom()
+
+        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA, NATIVE_ID\
+                FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID"
+        data = [ row for row in self.c.execute(stmt)]
+
+        # Group the data arrays from the same chromatogram together
+        datad = dict()
+        for row in data:
+            tmp = datad.get(row[0], [])
+            tmp.append(row)
+            datad[ row[0] ] = tmp
+
+        # Fill the result vector
+        res = []
+        for chromdata in datad.values():
+            ret = DummyChrom()
+            ret.peaks = list(self._returnDataForChromatogram(chromdata, True).values())[0]
+            ret.native_id = chromdata[0][4]
+            res.append(ret)
+
+        return res
+
+    def getDataForChromatogramFromNativeId(self, native_id):
+        """
+        Get data from a single chromatogram
+
+        - compression is one of 0 = no, 1 = zlib, 2 = np-linear, 3 = np-slof, 4 = np-pic, 5 = np-linear + zlib, 6 = np-slof + zlib, 7 = np-pic + zlib
+        - data_type is one of 0 = mz, 1 = int, 2 = rt
+        - data contains the raw (blob) data for a single data array
+        """
+        ret = DummyChrom()
+        stmt = "SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA, NATIVE_ID \
+                FROM DATA INNER JOIN CHROMATOGRAM ON CHROMATOGRAM.ID = CHROMATOGRAM_ID WHERE NATIVE_ID = '%s'" % native_id 
+        # print ("SQL:", stmt)
+        data = [row for row in self.c.execute(stmt)]
+        ret.peaks = list(self._returnDataForChromatogram(data, True).values())[0]
+        return ret
+
+    def _returnDataForChromatogram(self, data, returnPairs):
+        import PyMSNumpress
+        import zlib
+
+        # prepare result
+        chr_ids = set([chr_id for chr_id, compr, data_type, d, nid in data] )
+        res = { chr_id : [None, None] for chr_id in chr_ids }
+
+        rt_array = []
+        intensity_array = []
+        for chr_id, compr, data_type, d, nid in data:
+            result = []
+            if len(d) == 0:
+                pass
+            elif compr == 5:
+                if sys.version_info >= (3, 0):
+                    tmp = [q for q in zlib.decompress(d)]
+                else:
+                    tmp = [ord(q) for q in zlib.decompress(d)]
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeLinear(tmp, result)
+            elif compr == 6:
+                if sys.version_info >= (3, 0):
+                    tmp = [q for q in zlib.decompress(d)]
+                else:
+                    tmp = [ord(q) for q in zlib.decompress(d)]
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeSlof(tmp, result)
+
+            if len(result) == 0:
+                result = [ 0 ]
+            if data_type == 1:
+                res[chr_id][1] = result
+            elif data_type == 2:
+                res[chr_id][0] = result
+            else:
+                raise Exception("Only expected RT or Intensity data for chromatogram")
+
+        if returnPairs:
+            rr = {}
+            for k,v in res.items():
+                rt = v[0]
+                i = v[1]
+                newr = [(a,b) for a,b in zip(rt, i)]
+                rr[k] = newr
+            res = rr
+
+        return res
+
+
 class SwathChromatogramRun(object):
     """ A single SWATH LC-MS/MS run.
 
@@ -68,6 +222,7 @@ class SwathChromatogramRun(object):
 
     def __init__(self):
         self.chromfiles = []
+        self.type = "mzML"
 
     def parse(self, runid, files):
         """ Parse a set of files which all belong to the same experiment
@@ -131,11 +286,20 @@ class SwathChromatogramCollection(object):
         self.cache = {}
         self.cached_run = runid
 
+        # We need to distinguish between the SQL data format and the
+        # indexedMzML format here (SQL is very inefficient for single queries)
         import copy
-        for run in self.allruns[runid].chromfiles:
-            for chromid, value in run.info['offsets'].items():
-              if value is None: continue
-              self.cache[ chromid ] = copy.copy(run[chromid])
+        if self.allruns[runid].type == "mzML":
+            for run in self.allruns[runid].chromfiles:
+                for chromid, value in run.info['offsets'].items():
+                  if value is None: continue
+                  self.cache[ chromid ] = copy.copy(run[chromid])
+
+        elif self.allruns[runid].type == "SQL":
+            # Get all data at once, then cache
+            alldata = self.allruns[runid].getDataForAllChromatograms()
+            for d in alldata:
+                  self.cache[ d.native_id ] = d
 
     def _getChromatogramCached(self, runid, chromid):
         assert runid == self.cached_run
@@ -180,11 +344,27 @@ class SwathChromatogramCollection(object):
             self.allruns[runid] = swathrun
             print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
+    def parseFromSqMass(self, files, runIdMapping):
+        """ Parse a set of different experiments.
+
+        Args:
+            files(list(filename)): a list of sqMass filenames
+            runIdMapping(dict): a dictionary mapping each filename to a run id
+        """
+        swath_chromatograms = {}
+        for filename in files:
+            start = time.time()
+            runid = runIdMapping[filename]
+            swathrun = SqMassSwathChromatogramRun()
+            swathrun.parse(runid, [filename])
+            self.allruns[runid] = swathrun
+            print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
+
     def parseFromMzML(self, mzML_files, runIdMapping):
         """ Parse a set of different experiments.
 
         Args:
-            mzML_files(list(filename)): a list of filenames of the mzML files
+            mzML_files(list(filename)): a list of mzML filenames (chromatogram mzML)
             runIdMapping(dict): a dictionary mapping each filename to a run id
         """
         swath_chromatograms = {}
@@ -266,17 +446,22 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     start = time.time()
     # Do only a single run : read only one single file
     swath_chromatograms = SwathChromatogramCollection()
-    if mzML_file.lower().endswith("sqmass"):
-        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
-        mapping_inv = dict((v[0], k) for k, v in mapping.items())
-        swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ], precursor_mapping = precursors_mapping, sequences_mapping = sequences_mapping)
-    else:
-        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
-        mapping_inv = dict((v[0], k) for k, v in mapping.items())
-        swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
+    # if mzML_file.lower().endswith("sqmass"):
+    #     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
+    #     mapping_inv = dict((v[0], k) for k, v in mapping.items())
+    #     swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ], precursor_mapping = precursors_mapping, sequences_mapping = sequences_mapping)
+    # else:
+    #     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
+    #     mapping_inv = dict((v[0], k) for k, v in mapping.items())
+    #     swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
 
-    if VERBOSE:
-        print (mapping)
+    # if VERBOSE:
+    #     print (mapping)
+
+    if mzML_file.endswith("sqMass"):
+        swath_chromatograms.parseFromSqMass([ mzML_file ], mapping_inv)
+    else:
+        swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
 
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
     assert len(swath_chromatograms.getRunIDs() ) == 1
@@ -316,6 +501,10 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
 
     else:
         raise Exception("Unknown method: " + method)
+
+    if options.cache_in_memory:
+        # Create the cache for run "rid" and then only extract peakgroups from this run
+        swath_chromatograms.createRunCache(str(rid))
 
     print("Alignment took %ss" % (time.time() - start) )
     start = time.time()
@@ -859,7 +1048,7 @@ def main(options):
 
         # Some parameter checking
         if options.do_single_run == "":
-            raise Exception("Input mzML file (--do_single_run) cannot be empty when choosing a tree-based approacht")
+            raise Exception("Input mzML file (--do_single_run) cannot be empty when choosing a tree-based approach")
 
         new_exp, multipeptides, rid = runSingleFileImputation(options,
                                                               options.peakgroups_infile,

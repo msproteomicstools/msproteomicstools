@@ -17,3 +17,11 @@ $ python gui/TAPIR.py  --in test/data/gui/dataset2_file* \
 $ python gui/TAPIR.py  --in test/data/gui/dataset2_file* \
     test/data/gui/dataset2_description.csv
 
+For dataset 3 and 4 simply use:
+
+$ python gui/TAPIR.py  --in test/data/gui/dataset3* 
+
+$ python gui/TAPIR.py  --in test/data/gui/dataset4* 
+
+$ python gui/TAPIR.py  --in test/data/gui/dataset5/* 
+
