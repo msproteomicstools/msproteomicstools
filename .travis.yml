@@ -23,7 +23,7 @@ install:
   - pip install statsmodels
   - pip install biopython
   - pip install configobj lxml xlwt xlsxwriter pyteomics PyMSNumpress
-  - pip install rpy2==2.3.9
+  - pip install rpy2
   - travis_retry python setup.py develop --with_cython && python setup_travis.py develop --with_cython
 script: 
   # Disable the rpy2 tests for Python 3.x
