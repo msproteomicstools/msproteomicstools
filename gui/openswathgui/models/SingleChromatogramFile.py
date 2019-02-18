@@ -98,7 +98,7 @@ class SingleChromatogramFile():
         
         openswath_format = self._has_openswath_format(self._run)
         if openswath_format:
-            print "Determined chromatogram identifers to be in openswath formta (11111_PEPTIDE_2), will parse them accordingly."
+            print "Determined chromatogram identifers to be in openswath format (11111_PEPTIDE_2), will parse them accordingly."
             
         if openswath_format:
             if len( self._run.info['offsets'] ) > 0:

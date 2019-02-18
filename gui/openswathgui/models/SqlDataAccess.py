@@ -102,13 +102,19 @@ class SqlDataAccess(object):
         intensity_array = []
         for chr_id, compr, data_type, d in data:
             result = []
-            if compr == 5:
+            if len(d) == 0:
+                pass
+            elif compr == 5:
                 tmp = [ord(q) for q in zlib.decompress(d)]
-                PyMSNumpress.decodeLinear(tmp, result)
-            if compr == 6:
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeLinear(tmp, result)
+            elif compr == 6:
                 tmp = [ord(q) for q in zlib.decompress(d)]
-                PyMSNumpress.decodeSlof(tmp, result)
+                if len(tmp) > 0:
+                    PyMSNumpress.decodeSlof(tmp, result)
 
+            if len(result) == 0:
+                result = [ 0 ]
             if data_type == 1:
                 res[chr_id][1] = result
             elif data_type == 2:

@@ -39,8 +39,10 @@ import os
 
 try:
     from msproteomicstoolslib.format.TransformationCollection import TransformationCollection
-    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader, inferMapping
+    from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
+    from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping, buildPeakgroupMap
     from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
+    from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 except ImportError:
     print "Could not find msproteomicstoolslib, certain functions are not available."
 
@@ -89,8 +91,10 @@ class DataModel(object):
     responsible for setting the self.runs parameter.
 
     Attributes:
-        runs(list of :class:`.SwathRun`): The MS runs which are handled by this class
-        runs(bool): Whether to draw individual transitions
+        self.runs(list of :class:`.SwathRun` or :class:`.SqlSwathRun`) : The MS runs which are handled by this class
+        self.fdr_cutoff(bool) : Selected FDR cutoff
+        self.only_show_quantified(bool) : Whether to only show peptides that are quantified
+        self.draw_transitions_(bool) : Whether to draw individual transitions
     """
 
     def __init__(self, fdr_cutoff = FDR_CUTOFF, only_quantified = ONLY_SHOW_QUANTIFIED):
@@ -209,6 +213,11 @@ class DataModel(object):
         inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType=fileType)
         print "Found the following mapping: mapping", mapping
 
+        # In some cases this will not work because no information is in the RUN field
+        if all([k[0] is None for k in mapping.values()]):
+            mapping = {}
+            inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType="")
+
         # Read the chromatograms
         swathfiles = SwathRunCollection()
         if fileType == "sqmass":
@@ -265,17 +274,7 @@ class DataModel(object):
 
         # Build map of the PeptideName/Charge to the individual multipeptide
         peakgroup_map = {}
-        for m in multipeptides:
-            pg = m.find_best_peptide_pg()
-            pepname = pg.get_value("FullPeptideName")
-            pepname = pepname.split("_run0")[0]
-            charge = pg.get_value("Charge")
-            if charge == "NA" or charge == "":
-                charge = "None"
-            identifier = pepname + "/" + charge
-            # identifier for precursor, see msproteomicstoolslib/format/SWATHScoringMapper.py
-            peakgroup_map[ identifier ] = m
-            peakgroup_map[ identifier + "_pr" ] = m
+        buildPeakgroupMap(multipeptides, peakgroup_map)
 
         for swathrun in swathfiles.getSwathFiles():
             if self.only_show_quantified:
@@ -371,6 +370,7 @@ class DataModel(object):
 
             # print "found precursros", precursors
             pelements = []
+            pm = None
             for p in precursors:
 
                 # get all transitions from all runs
@@ -397,10 +397,11 @@ class DataModel(object):
                                                         peptideSequence = pm.getFullSequence(),
                                                         datatype="Precursor") )
 
-            elements.append(ChromatogramTransition(seq,
-                                                   "NA",
-                                                   pelements, 
-                                                   datatype="Peptide",
-                                                   peptideSequence=pm.getFullSequence()) )
+            if pm is not None:
+                elements.append(ChromatogramTransition(seq,
+                                                       "NA",
+                                                       pelements, 
+                                                       datatype="Peptide",
+                                                       peptideSequence=pm.getFullSequence()) )
         return elements
 

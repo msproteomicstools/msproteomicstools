@@ -5,6 +5,9 @@
 
 import sys, csv, argparse
 
+qvalue_name = "m_score"
+# qvalue_name = "q_value" # for newer pyprophet
+
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
     usage += "\nThis program converts an mProphet TSV output file to a Mayu input file"
@@ -33,7 +36,7 @@ def write_output(infile, outfile):
             line[ header_dict["Sequence"]  ],
             line[ header_dict["ProteinName"]  ],
             "", # no mods
-            1 - float(line[ header_dict["m_score"]  ]),
+            1 - float(line[ header_dict[qvalue_name]  ]),
         ]
         outfile.writerow(newline)
 

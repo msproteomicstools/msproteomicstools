@@ -43,9 +43,16 @@ For the TAPIR graphical user interface, you will need the following dependencies
 To install on Linux, you can install those (except pymzml) on debian using:
 
     sudo apt-get install python python-numpy python-qt4 python-qwt5-qt4 python-guiqwt
+    sudo pip install pymzml==0.7.8
 
 For Windows, you can download precompiled binaries, for example from
-http://www.lfd.uci.edu/~gohlke/pythonlibs/ to obtain the binary Python modules.
+http://www.lfd.uci.edu/~gohlke/pythonlibs/ to obtain the binary Python modules:
+
+  pip install # guiqwt.wheel, guidata.wheel, PyQwt.wheel, PyQt4.wheel from gohlke
+
+  pip install Cython numpy scipy
+  pip install statsmodels lxml Biopython
+  pip install pymzml==0.7.8
 
 # Documentation 
 
@@ -56,4 +63,5 @@ To build the documentations, please see the [documentation README](docs/README)
 To upload a new version to PyPI:
 
     python setup.py sdist register upload
+
 

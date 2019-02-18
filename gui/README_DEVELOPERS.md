@@ -31,5 +31,4 @@ Deployment on windows work with pyinstaller:
     3.1 copy gui\building\TAPIR_win.spec .
     3.2 pyinstaller.exe TAPIR_win.spec
 
-
-
+Note: there is a bug where closing the application will cause a segfault in QFontEngineX11FT::freeServerGlyphSet which seems to be a Qt4 bug.

@@ -54,7 +54,8 @@ class SwathRunCollection(object):
     a simple flat list of chromatogram files.
     
     Attributes:
-        swath_chromatograms: Dictionary mapping of the form { run_id : :class:`.SwathRun`}
+        self.swath_chromatograms: Dictionary mapping of the form { run_id : :class:`.SwathRun`}
+
     """
 
     def __init__(self):
@@ -110,8 +111,20 @@ class SwathRunCollection(object):
         """
 
         self.swath_chromatograms = {}
-        for runid, f in enumerate(filenames):
-            self.swath_chromatograms[ runid ] = SqlSwathRun(runid_mapping[runid], f, False, precursor_mapping, sequences_mapping, protein_mapping)
+
+        numeric_id = 0
+        for runid, chromfiles in runid_mapping.iteritems():
+
+            # TODO : ugly hack! 
+            rid = [runid]
+            fname = chromfiles[0]
+            if numeric_id in runid_mapping:
+                rid = runid_mapping[numeric_id]
+                fname = filenames[numeric_id]
+
+
+            self.swath_chromatograms[ runid ] = SqlSwathRun(rid, fname, False, precursor_mapping, sequences_mapping, protein_mapping)
+            numeric_id += 1
 
     def initialize_from_chromatograms(self, runid_mapping, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
         """Initialize from a set of mapped chromatogram files. There may be
@@ -148,7 +161,7 @@ class SwathRunCollection(object):
         """
         Returns
         -------
-        runs : list of :class:`.SwathRun`
+        runs : list of :class:`.SwathRun` or :class:`.SqlSwathRun`
             All runs found in this collection
         """
         return self.swath_chromatograms.values()

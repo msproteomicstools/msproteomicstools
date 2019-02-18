@@ -12,6 +12,9 @@ associated executable scripts that use the library as well as a GUI for
 visualizing chromatograms, specifically output from `OpenSWATH
 <http://openswath.org/>`_.
 
+For questions, bug reports and contributions, please visit the official `GitHub page
+<https://github.com/msproteomicstools/msproteomicstools>`_.
+
 Contents of the library:
 
 .. toctree::

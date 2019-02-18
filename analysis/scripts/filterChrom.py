@@ -54,7 +54,7 @@ inverse = False
 if len(sys.argv) > 4:
     inverse = bool(sys.argv[4])
 
-print("Will filter with criteria ", filter_criteria, "(inverse: %s)" % inverse)
+print("Will filter with criteria", filter_criteria, "(inverse: %s)" % inverse)
 
 chroms_out = []
 try:
