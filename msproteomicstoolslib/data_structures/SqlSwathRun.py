@@ -34,13 +34,13 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os
+from .SqlDataAccess import SqlDataAccess
+from .FormatHelper import FormatHelper
 
-from SqlDataAccess import SqlDataAccess
-from FormatHelper import FormatHelper
-
-class SqlSwathRun():
+class SqlSwathRun(object):
     """Data Model for a single sqMass file.
 
     TODO: each file may contain multiple runs!
@@ -255,13 +255,14 @@ class SqlSwathRun():
         if not self._precursor_mapping.has_key(str(precursor)):
             return [ [ [0], [0] ] ]
 
-        transitions = []
         sql_ids = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             if chrom_id in self._id_mapping:
                 sql_id = self._id_mapping[ chrom_id ]
                 sql_ids.append(sql_id)
+
         transitions = self._run.getDataForChromatograms(sql_ids)
+
         return transitions
 
     def get_data_for_transition(self, transition_id):
@@ -272,8 +273,8 @@ class SqlSwathRun():
         if transition_id in self._id_mapping:
             return [self._run.getDataForChromatogram(self._id_mapping[transition_id])]
         else:
-            print "Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id
-            print "Please check your input data"
+            print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id)
+            print ("Please check your input data")
 
     def get_range_data(self, precursor):
 
@@ -335,4 +336,5 @@ class SqlSwathRun():
         tmp = self._assay_mapping.get(precursor_id, [])
         tmp.append(assay_rt)
         self._assay_mapping[precursor_id] = tmp
+
 

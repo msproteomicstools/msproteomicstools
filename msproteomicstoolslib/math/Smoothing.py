@@ -662,7 +662,7 @@ class SmoothingInterpolation:
         data1s, data2s = zip(*sorted(zip(data1, data2)))
 
         try:
-            from msproteomicstoolslib.cython._optimized import CyLinearInterpolateWrapper
+            from msproteomicstoolslib.cython._linear_interpol import CyLinearInterpolateWrapper
             self.f = CyLinearInterpolateWrapper(data1s, data2s, 0.0)
         except ImportError:
             print("WARNING: cannot import CyLinearInterpolateWrapper, will use Python version (slower).")

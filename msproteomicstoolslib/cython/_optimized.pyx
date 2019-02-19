@@ -1,6 +1,5 @@
 # distutils: language = c++
-# cython: c_string_encoding=ascii  # for cython>=0.19
-# encoding: latin-1
+# cython: c_string_type=str, c_string_encoding=ascii
 cimport cython
 cimport libc.stdlib
 cimport numpy as np
@@ -34,20 +33,16 @@ from libcpp cimport bool
 #  * PrecursorGroup.pyx
 #      Data structure for storing precursor groups
 #  
-#  * MSTAlignment.pyx
-#      Set of functions ported from the MST alignment code (in Python)
 #  * MSTAlignment_fast.pyx
 #      Set of functions ported from the MST alignment code (in Cython)
 #
 
-# note that Precursor.pyx is a free-standing module
+from PeakgroupWrapper cimport CyPeakgroupWrapperOnly
+from PeakgroupWrapper cimport c_peakgroup
 
+from PrecursorWrapper cimport CyPrecursorWrapperOnly
+from PrecursorWrapper cimport c_precursor
+from PrecursorGroup cimport CyPrecursorGroup
 
-include "LightTransformationData.pyx"
-include "PeakgroupWrapper.pyx"
-include "PrecursorWrapper.pyx"
-include "PrecursorGroup.pyx"
-
-include "MSTAlignment.pyx"
 include "MSTAlignment_fast.pyx"
 

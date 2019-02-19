@@ -42,7 +42,7 @@ CHROMTYPES = {
     3 : "Transition"
 } 
 
-CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.iteritems()])
+CHROMTYPES_r = dict([ (v,k) for k,v in CHROMTYPES.items()])
 
 class ChromatogramTransition(object):
     """

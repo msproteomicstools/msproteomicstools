@@ -14,11 +14,16 @@ from libcpp.pair cimport pair as libcpp_pair
 from cython.operator cimport dereference as deref, preincrement as inc, address as address
 from libcpp cimport bool
 
-## for stand-alone compile
-## include "LightTransformationData.pyx"
-## include "PeakgroupWrapper.pyx"
-## include "PrecursorWrapper.pyx"
-## include "PrecursorGroup.pyx"
+# from LightTransformationData import LightTransformationData
+from LightTransformationData cimport CyLinearInterpolateWrapper, CyLightTransformationData
+
+from PeakgroupWrapper cimport CyPeakgroupWrapperOnly
+from PeakgroupWrapper cimport c_peakgroup
+
+from PrecursorWrapper cimport CyPrecursorWrapperOnly
+from PrecursorWrapper cimport c_precursor
+from PrecursorGroup cimport CyPrecursorGroup
+
 include "CppTree.pyx"
 
 cdef cppclass mst_settings:
@@ -39,7 +44,7 @@ cdef cppclass mst_settings:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef cy_findAllPGForSeedTreeIter(c_node * current,
-        tr_data, multip, libcpp_map[libcpp_string, int] already_seen, libcpp_map[libcpp_string, double] * c_rt_map,
+        CyLightTransformationData tr_data, multip, libcpp_map[libcpp_string, int] already_seen, libcpp_map[libcpp_string, double] * c_rt_map,
         libcpp_unordered_map[libcpp_string, c_peakgroup*] * c_visited, mst_settings * settings):
     """
     A C++ MST tree which contains references to all nodes
@@ -117,7 +122,7 @@ cdef cpp_tree createTree(libcpp_vector[ libcpp_pair[ libcpp_string, libcpp_strin
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
+def static_cy_alignBestCluster(multipeptides, py_tree, CyLightTransformationData tr_data,
         double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose):
@@ -201,7 +206,7 @@ def static_cy_alignBestCluster(multipeptides, py_tree, tr_data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, tr_data, multip, CyPeakgroupWrapperOnly seed, 
+cdef static_cy_fast_findAllPGForSeed(cpp_tree * c_tree, CyLightTransformationData tr_data, multip, CyPeakgroupWrapperOnly seed, 
         dict _already_seen, double aligned_fdr_cutoff, double fdr_cutoff, bool correctRT_using_pg,
         double max_rt_diff, stdev_max_rt_per_run, bool use_local_stdev, double max_rt_diff_isotope,
         bool verbose, mst_settings * settings):

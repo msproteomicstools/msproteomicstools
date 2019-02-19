@@ -1,28 +1,17 @@
 # distutils: language = c++
-# cython: c_string_encoding=ascii  # for cython>=0.19
-# encoding: latin-1
+# cython: c_string_type=str, c_string_encoding=ascii
 cimport cython
 cimport libc.stdlib
 cimport numpy as np
 
-cdef extern from "precursor.h":
-    cdef cppclass c_precursor:
-        c_precursor()
-        c_precursor(libcpp_string my_id, libcpp_string run_id)
-
-        bool decoy
-        libcpp_vector[c_peakgroup] peakgroups
-        libcpp_string curr_id_
-        libcpp_string protein_name_
-        libcpp_string sequence_
-        libcpp_string run_id_
-        libcpp_string precursor_group_id
-
-        libcpp_string getRunId()
-        libcpp_string get_id()
-
-        void add_peakgroup_tpl(c_peakgroup & pg, libcpp_string tpl_id, int cluster_id)
-
+from libcpp.string cimport string as libcpp_string
+from libcpp.vector cimport vector as libcpp_vector
+from libcpp.map cimport map as libcpp_map
+from libcpp.pair cimport pair as libcpp_pair
+from cython.operator cimport dereference as deref, preincrement as inc, address as address
+from libcpp cimport bool
+from PrecursorWrapper cimport c_precursor
+from PeakgroupWrapper cimport CyPeakgroupWrapperOnly, c_peakgroup
 
 cdef class CyPrecursorWrapperOnly(object):
     """ A set of peakgroups that belong to the same precursor in a single run.
@@ -35,16 +24,14 @@ cdef class CyPrecursorWrapperOnly(object):
     found in the chromatogram of this precursor in this particular run.
     """
 
-    cdef c_precursor * inst 
-    cdef bool own_ptr
-
     def __dealloc__(self):
         if self.own_ptr:
             del self.inst
 
-    def __init__(self, bytes this_id, run, take_ownership=True):
+    def __init__(self, str this_id, run, take_ownership=True):
+        cdef str runid = <str>run.get_id()
         if run is not None:
-            self.inst = new c_precursor(this_id, <bytes>run.get_id())
+            self.inst = new c_precursor(this_id, runid)
 
         if take_ownership: self.own_ptr = True
         else: self.own_ptr = False
@@ -55,19 +42,19 @@ cdef class CyPrecursorWrapperOnly(object):
         return deref(self.inst).curr_id_ 
 
     def get_id(self):
-        return <bytes>( deref(self.inst).curr_id_ )
+        return <str>( deref(self.inst).curr_id_ )
 
     def get_decoy(self):
         return ( deref(self.inst).decoy )
 
     def getSequence(self):
-        return <bytes>( deref(self.inst).sequence_ )
+        return <str>( deref(self.inst).sequence_ )
 
     def getProteinName(self):
-        return <bytes>( deref(self.inst).protein_name_ )
+        return <str>( deref(self.inst).protein_name_ )
 
     def getRunId(self):
-        return <bytes>( deref(self.inst).run_id_ )
+        return <str>( deref(self.inst).run_id_ )
 
     cdef libcpp_vector[c_peakgroup].iterator get_all_peakgroups_cy_begin(self):
         return deref(self.inst).peakgroups.begin()
@@ -80,13 +67,13 @@ cdef class CyPrecursorWrapperOnly(object):
 
     #
     ### Setters
-    def setProteinName(self, bytes p):
-        deref(self.inst).protein_name_ = libcpp_string(<char*> p)
+    def setProteinName(self, str p):
+        deref(self.inst).protein_name_ = p
 
-    def setSequence(self, bytes p):
-        deref(self.inst).sequence_ = libcpp_string(<char*> p)
+    def setSequence(self, str p):
+        deref(self.inst).sequence_ = p
 
-    def set_decoy(self, bytes decoy):
+    def set_decoy(self, str decoy):
         if decoy in ["FALSE", "False", "0"]:
             deref(self.inst).decoy = False
         elif decoy in ["TRUE", "True", "1"]:
@@ -95,9 +82,9 @@ cdef class CyPrecursorWrapperOnly(object):
             raise Exception("Unknown decoy classifier '%s', please check your input data!" % decoy)
 
     def set_precursor_group(self, precursor_group):
-        deref(self.inst).precursor_group_id = <bytes>precursor_group.getPeptideGroupLabel()
+        deref(self.inst).precursor_group_id = <str>precursor_group.getPeptideGroupLabel()
 
-    def add_peakgroup_tpl(self, pg_tuple, bytes tpl_id, int cluster_id=-1):
+    def add_peakgroup_tpl(self, pg_tuple, str tpl_id, int cluster_id=-1):
         """Adds a peakgroup to this precursor.
 
         The peakgroup should be a tuple of length 4 with the following components:
@@ -126,7 +113,6 @@ cdef class CyPrecursorWrapperOnly(object):
 
         deref(self.inst).add_peakgroup_tpl(pg, tpl_id, cluster_id)
 
-
     # 
     # Peakgroup selection
     # 
@@ -134,7 +120,7 @@ cdef class CyPrecursorWrapperOnly(object):
         """
         """
         if deref(self.inst).peakgroups.empty():
-             return None
+            return None
 
         cdef libcpp_vector[c_peakgroup].iterator it = deref(self.inst).peakgroups.begin()
         cdef libcpp_vector[c_peakgroup].iterator best = deref(self.inst).peakgroups.begin()

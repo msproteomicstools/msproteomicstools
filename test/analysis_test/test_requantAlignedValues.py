@@ -187,11 +187,12 @@ class TestNoiseIntegration(unittest.TestCase):
 
         os.remove(tmpfilename_matrix)
 
-    def test_6_sqMass_singleShortestPath_requantAlignedValues(self):
+    @attr("sqMass")
+    def test_62_singleShortestPath_requantAlignedValues_sqMass(self):
         script = os.path.join(os.path.join(self.scriptdir, "alignment"), "requantAlignedValues.py")
         filename = os.path.join(self.datadir, "imputeValues/imputeValues_5_input.csv")
-        mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.mzML")
-        mzml_file = os.path.join(self.datadir, "imputeValues/split_olgas_otherfile.sqMass")
+        mzml_file = os.path.join(self.datadir, "imputeValues/r004_small/split_olgas_otherfile.chrom.sqMass")
+        # mzml_file = os.path.join(self.datadir, "imputeValues/split_olgas_otherfile.sqMass")
         expected_outcome = os.path.join(self.datadir, "imputeValues_6_output.csv")
         expected_matrix_outcome = os.path.join(self.datadir, "imputeValues_6_output_matrix.csv")
         tmpfilename = "imputeValues_6.out.tmp"

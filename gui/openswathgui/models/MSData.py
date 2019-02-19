@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os
 
@@ -43,12 +44,12 @@ try:
     from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping, buildPeakgroupMap
     from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment as Experiment
     from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
+    from msproteomicstoolslib.data_structures.SwathRun import SwathRun
 except ImportError:
-    print "Could not find msproteomicstoolslib, certain functions are not available."
+    print ("Could not find msproteomicstoolslib, certain functions are not available.")
 
-from ChromatogramTransition import ChromatogramTransition
-from SwathRun import SwathRun
-from SwathRunCollection import SwathRunCollection
+from .ChromatogramTransition import ChromatogramTransition
+from .SwathRunCollection import SwathRunCollection
 
 REALIGN_RUNS = True
 FDR_CUTOFF = 0.01
@@ -203,15 +204,15 @@ class DataModel(object):
             Description of the type of file the metadata file (valid: simple, traml, openswath)
         """
 
-        print "Input contained no mapping of run_id to the chromatograms."
-        print "Try to infer mapping for filetype %s - if this fails, please provide a yaml input." % fileType
+        print ("Input contained no mapping of run_id to the chromatograms.")
+        print ("Try to infer mapping for filetype %s - if this fails, please provide a yaml input." % fileType)
 
         precursors_mapping = {}
         sequences_mapping = {}
         protein_mapping = {}
         mapping = {}
         inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping, sequences_mapping, protein_mapping, fileType=fileType)
-        print "Found the following mapping: mapping", mapping
+        print ("Found the following mapping: mapping", mapping)
 
         # In some cases this will not work because no information is in the RUN field
         if all([k[0] is None for k in mapping.values()]):
@@ -231,7 +232,7 @@ class DataModel(object):
         if not fileType in ["simple", "traml"]:
             self._read_peakgroup_files(aligned_pg_files, swathfiles)
 
-        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
+        print ("Find in total a collection of %s runs." % len(swathfiles.getRunIds() ))
                     
     def load_from_yaml(self, yamlfile):
         """
@@ -281,8 +282,8 @@ class DataModel(object):
                 intersection = set(swathrun.get_all_precursor_ids()).intersection( peakgroup_map.keys() )
                 todelete = set(swathrun.get_all_precursor_ids()).difference(intersection)
                 if len(intersection) == 0:
-                    print "Could not find any intersection between identifiers in your transition file and the provided chromatograms"
-                    print len(intersection)
+                    print ("Could not find any intersection between identifiers in your transition file and the provided chromatograms")
+                    print (len(intersection))
                 swathrun.remove_precursors(todelete)
 
             # for each precursor in this run, identify the best peakgroup and store the value
@@ -308,7 +309,7 @@ class DataModel(object):
         except KeyError:
             swathfiles.initialize_from_chromatograms( dict( [ (d["id"], d["chromatograms"]) for d in RawData] ) )
         self.runs = [run for run in swathfiles.getSwathFiles()]
-        print "Find in total a collection of %s runs." % len(swathfiles.getRunIds() )
+        print ("Find in total a collection of %s runs." % len(swathfiles.getRunIds() ))
 
         try:
             self._read_trafo(RawData)
