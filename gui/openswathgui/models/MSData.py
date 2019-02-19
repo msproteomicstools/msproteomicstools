@@ -34,6 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
+from __future__ import print_function
 
 import os
 
@@ -221,7 +222,6 @@ class DataModel(object):
         # Read the chromatograms
         swathfiles = SwathRunCollection()
         if fileType == "sqmass":
-            # TODO?
             swathfiles.initialize_from_sql_map(mapping, rawdata_files, precursors_mapping, sequences_mapping, protein_mapping)
         elif self.only_show_quantified:
             swathfiles.initialize_from_chromatograms(mapping, precursors_mapping, sequences_mapping, protein_mapping)
