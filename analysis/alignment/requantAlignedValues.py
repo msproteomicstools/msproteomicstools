@@ -344,22 +344,6 @@ class SwathChromatogramCollection(object):
             self.allruns[runid] = swathrun
             print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
 
-    def parseFromSqMass(self, files, runIdMapping):
-        """ Parse a set of different experiments.
-
-        Args:
-            files(list(filename)): a list of sqMass filenames
-            runIdMapping(dict): a dictionary mapping each filename to a run id
-        """
-        swath_chromatograms = {}
-        for filename in files:
-            start = time.time()
-            runid = runIdMapping[filename]
-            swathrun = SqMassSwathChromatogramRun()
-            swathrun.parse(runid, [filename])
-            self.allruns[runid] = swathrun
-            print("Parsing chromatograms in", filename, "took %0.4fs" % (time.time() - start))
-
     def parseFromMzML(self, mzML_files, runIdMapping):
         """ Parse a set of different experiments.
 
@@ -446,22 +430,17 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     start = time.time()
     # Do only a single run : read only one single file
     swath_chromatograms = SwathChromatogramCollection()
-    # if mzML_file.lower().endswith("sqmass"):
-    #     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
-    #     mapping_inv = dict((v[0], k) for k, v in mapping.items())
-    #     swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ], precursor_mapping = precursors_mapping, sequences_mapping = sequences_mapping)
-    # else:
-    #     inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
-    #     mapping_inv = dict((v[0], k) for k, v in mapping.items())
-    #     swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
-
-    # if VERBOSE:
-    #     print (mapping)
-
-    if mzML_file.endswith("sqMass"):
-        swath_chromatograms.parseFromSqMass([ mzML_file ], mapping_inv)
+    if mzML_file.lower().endswith("sqmass"):
+        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False, fileType="sqmass")
+        mapping_inv = dict((v[0], k) for k, v in mapping.items())
+        swath_chromatograms.initialize_from_sql_map(mapping, [ mzML_file ], precursor_mapping = precursors_mapping, sequences_mapping = sequences_mapping)
     else:
+        inferMapping([ mzML_file ], [ peakgroups_file ], mapping, precursors_mapping, sequences_mapping, protein_mapping, verbose=False)
+        mapping_inv = dict((v[0], k) for k, v in mapping.items())
         swath_chromatograms.parseFromMzML([ mzML_file ], mapping_inv)
+
+    if VERBOSE:
+        print (mapping)
 
     print("Reading the chromatogram files took %ss" % (time.time() - start) )
     assert len(swath_chromatograms.getRunIDs() ) == 1
