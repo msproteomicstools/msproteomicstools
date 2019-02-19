@@ -152,12 +152,7 @@ class SWATHScoringReader:
             stdout.write("\rReading %s" % str(f))
             stdout.flush()
         if f.endswith(".osw"):
-            runid = file_nr
-            orig_fname = f
-            aligned_fname = f
-            current_run = Run([], {}, runid, f, orig_fname, aligned_fname, useCython=useCython)
-            runs.append(current_run)
-            self.parse_file(f, current_run)
+            self.parse_file(f, runs, useCython)
             continue
 
         header_dict = {}
@@ -255,14 +250,28 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         else:
             self.peptide_group_label_name = "transition_group_id"
 
-    def parse_file(self, filename, run):
+    def parse_file(self, filename, runs, useCython):
+
         import sqlite3
         conn = sqlite3.connect(filename)
+        c = conn.cursor()
+        query = """SELECT ID, FILENAME FROM RUN"""
+        res = [row for row in c.execute(query)]
+        for row in res:
+            runid = row[0]
+            current_run = Run([], {}, runid, filename, row[1], row[1], useCython=useCython)
+            runs.append(current_run)
+            self._parse_file(filename, current_run, runid, conn)
+
+    def _parse_file(self, filename, run, run_id, conn):
+
+        # Make sure the correct indices exist
         c = conn.cursor()
         c.executescript('''
             CREATE INDEX IF NOT EXISTS idx_precursor_precursor_id ON PRECURSOR (ID);
             CREATE INDEX IF NOT EXISTS idx_feature_precursor_id ON FEATURE (PRECURSOR_ID);
             CREATE INDEX IF NOT EXISTS idx_feature_feature_id ON FEATURE (ID);
+            CREATE INDEX IF NOT EXISTS idx_feature_run_id ON FEATURE (RUN_ID);
             CREATE INDEX IF NOT EXISTS idx_feature_ms2_feature_id ON FEATURE_MS2 (FEATURE_ID);
             CREATE INDEX IF NOT EXISTS idx_score_ms2_feature_id ON SCORE_MS2 (FEATURE_ID);
         ''')
@@ -274,7 +283,8 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         INNER JOIN (SELECT ID, DECOY FROM PRECURSOR) AS PRECURSOR ON FEATURE.PRECURSOR_ID = PRECURSOR.ID
         INNER JOIN PRECURSOR_PEPTIDE_MAPPING ON PRECURSOR.ID = PRECURSOR_PEPTIDE_MAPPING.PRECURSOR_ID 
         INNER JOIN (SELECT ID, MODIFIED_SEQUENCE FROM PEPTIDE) AS PEPTIDE ON PRECURSOR_PEPTIDE_MAPPING.PEPTIDE_ID = PEPTIDE.ID
-        """
+        WHERE RUN_ID = %s
+        """ % run_id
         q = [row for row in c.execute(query)]
         for row in q:
 
