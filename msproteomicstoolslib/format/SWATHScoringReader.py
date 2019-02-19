@@ -106,10 +106,16 @@ class SWATHScoringReader:
         
         """
         if filetype  == "openswath": 
-            return OpenSWATH_SWATHScoringReader(infiles, readmethod,
-                                                readfilter, errorHandling,
-                                                enable_isotopic_grouping=enable_isotopic_grouping,
-                                                read_cluster_id=read_cluster_id)
+            if len(infiles) > 0 and infiles[0].endswith(".osw"):
+                return OpenSWATH_OSW_SWATHScoringReader(infiles, readmethod,
+                                                    readfilter, errorHandling,
+                                                    enable_isotopic_grouping=enable_isotopic_grouping,
+                                                    read_cluster_id=read_cluster_id)
+            else:
+                return OpenSWATH_SWATHScoringReader(infiles, readmethod,
+                                                    readfilter, errorHandling,
+                                                    enable_isotopic_grouping=enable_isotopic_grouping,
+                                                    read_cluster_id=read_cluster_id)
         elif filetype  == "mprophet": 
             return mProphet_SWATHScoringReader(infiles, readmethod, readfilter)
         elif filetype  == "peakview": 
@@ -145,6 +151,15 @@ class SWATHScoringReader:
         if verbosity >= 10:
             stdout.write("\rReading %s" % str(f))
             stdout.flush()
+        if f.endswith(".osw"):
+            runid = file_nr
+            orig_fname = f
+            aligned_fname = f
+            current_run = Run([], {}, runid, f, orig_fname, aligned_fname, useCython=useCython)
+            runs.append(current_run)
+            self.parse_file(f, current_run)
+            continue
+
         header_dict = {}
         if f.endswith('.gz'):
             import gzip 
@@ -200,6 +215,124 @@ class SWATHScoringReader:
       print("Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped))
       return runs
 
+class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
+    """
+    Parser for OpenSWATH output
+    """
+
+    def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
+        self.infiles = infiles
+        self.run_id_name = "run_id"
+        self.readmethod = readmethod
+        self.aligned_run_id_name = "align_runid"
+        self.readfilter = readfilter
+        self.errorHandling = errorHandling
+        self.sequence_col = "Sequence"
+        self.read_cluster_id = read_cluster_id
+        if readmethod == "cminimal":
+            try:
+                from msproteomicstoolslib.cython.Precursor import CyPrecursor
+                from msproteomicstoolslib.cython._optimized import CyPrecursorWrapperOnly
+                self.Precursor = CyPrecursor
+                self.Precursor = CyPrecursorWrapperOnly
+            except ImportError as e:
+                print ("Requested method 'cminimal' but Cython extensions seem to be missing. Please compile and add them or use readmethod 'minimal'")
+                raise ValueError("Need Cython extensions for 'cminimal' readmethod.")
+
+        elif readmethod == "minimal":
+            self.Precursor = Precursor
+        elif readmethod == "gui":
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GuiPeakGroup
+            self.sequence_col = "FullPeptideName"
+        else:
+            # complete
+            self.Precursor = GeneralPrecursor
+            self.PeakGroup = GeneralPeakGroup
+
+        if enable_isotopic_grouping:
+            self.peptide_group_label_name = "peptide_group_label"
+        else:
+            self.peptide_group_label_name = "transition_group_id"
+
+    def parse_file(self, filename, run):
+        import sqlite3
+        conn = sqlite3.connect(filename)
+        c = conn.cursor()
+        c.executescript('''
+            CREATE INDEX IF NOT EXISTS idx_precursor_precursor_id ON PRECURSOR (ID);
+            CREATE INDEX IF NOT EXISTS idx_feature_precursor_id ON FEATURE (PRECURSOR_ID);
+            CREATE INDEX IF NOT EXISTS idx_feature_feature_id ON FEATURE (ID);
+            CREATE INDEX IF NOT EXISTS idx_feature_ms2_feature_id ON FEATURE_MS2 (FEATURE_ID);
+            CREATE INDEX IF NOT EXISTS idx_score_ms2_feature_id ON SCORE_MS2 (FEATURE_ID);
+        ''')
+
+        query = """
+        SELECT PRECURSOR.ID, SCORE_MS2.QVALUE, FEATURE.EXP_RT, PRECURSOR.DECOY, PEPTIDE.MODIFIED_SEQUENCE, PEPTIDE.ID, FEATURE.ID
+        FROM SCORE_MS2 
+        INNER JOIN (SELECT ID, PRECURSOR_ID, EXP_RT, RUN_ID FROM FEATURE) AS FEATURE ON FEATURE_ID = FEATURE.ID 
+        INNER JOIN (SELECT ID, DECOY FROM PRECURSOR) AS PRECURSOR ON FEATURE.PRECURSOR_ID = PRECURSOR.ID
+        INNER JOIN PRECURSOR_PEPTIDE_MAPPING ON PRECURSOR.ID = PRECURSOR_PEPTIDE_MAPPING.PRECURSOR_ID 
+        INNER JOIN (SELECT ID, MODIFIED_SEQUENCE FROM PEPTIDE) AS PEPTIDE ON PRECURSOR_PEPTIDE_MAPPING.PEPTIDE_ID = PEPTIDE.ID
+        """
+        q = [row for row in c.execute(query)]
+        for row in q:
+
+            trgr_id = row[0]
+            unique_peakgroup_id = row[0]
+            sequence = row[4]
+            peptide_group_label = row[5]
+
+            # Attributes that only need to be present in strict mode
+            intensity = -1
+            d_score = -1
+            cluster_id = -1
+            retention_time = row[2]
+            fdr_score = row[1]
+            protein_name = "NA"
+            thisid = row[6]
+            if row[3] == 0:
+                decoy = "FALSE"
+            elif row[3] == 1:
+                decoy = "TRUE"
+            else:
+                raise Exception("Unknown decoy", row[3])
+
+            # If the peptide does not yet exist, generate it
+            if not run.hasPrecursor(peptide_group_label, trgr_id):
+              p = self.Precursor(trgr_id, run)
+              p.setProteinName(protein_name)
+              p.setSequence(sequence)
+              p.set_decoy(decoy)
+              run.addPrecursor(p, peptide_group_label)
+
+            if self.readmethod == "cminimal":
+              peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+            elif self.readmethod == "minimal":
+              peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+            elif self.readmethod == "gui":
+              leftWidth = this_row[run.header_dict[left_width_name]]
+              assay_rt = -1
+              if "assay_rt" in run.header_dict:
+                assay_rt = this_row[run.header_dict["assay_rt"]]
+              rightWidth = this_row[run.header_dict[right_width_name]]
+              charge = this_row[run.header_dict[charge_name]]
+              peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
+              peakgroup.charge = charge
+              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            elif self.readmethod == "complete":
+              peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+              peakgroup.set_normalized_retentiontime(retention_time)
+              peakgroup.set_fdr_score(fdr_score)
+              peakgroup.set_feature_id(thisid)
+              peakgroup.set_intensity(intensity)
+              peakgroup.setClusterID(cluster_id)
+              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            else:
+                raise Exception("Unknown readmethod", self.readmethod)
+            
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     """
     Parser for OpenSWATH output
