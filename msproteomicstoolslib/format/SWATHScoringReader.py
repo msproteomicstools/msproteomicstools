@@ -212,7 +212,7 @@ class SWATHScoringReader:
 
 class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
     """
-    Parser for OpenSWATH output
+    Parser for OpenSWATH output in OSW (sqlite) format
     """
 
     def __init__(self, infiles, readmethod="minimal", readfilter=ReadFilter(), errorHandling="strict", enable_isotopic_grouping=False, read_cluster_id=True):
@@ -251,10 +251,15 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             self.peptide_group_label_name = "transition_group_id"
 
     def parse_file(self, filename, runs, useCython):
+        """
+        Parse a whole OSW file (which may contain data from multiple runs)
+        """
 
         import sqlite3
         conn = sqlite3.connect(filename)
         c = conn.cursor()
+
+        # Retrieve and then iterate over all available runs
         query = """SELECT ID, FILENAME FROM RUN"""
         res = [row for row in c.execute(query)]
         for row in res:
