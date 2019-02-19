@@ -39,10 +39,10 @@ import os
 import re
 import sqlite3
 
-from SwathRun import SwathRun
-from FormatHelper import FormatHelper
-from SqlDataAccess import SqlDataAccess
-from SqlSwathRun import SqlSwathRun
+from msproteomicstoolslib.data_structures.SwathRun import SwathRun
+from msproteomicstoolslib.data_structures.FormatHelper import FormatHelper
+from msproteomicstoolslib.data_structures.SqlDataAccess import SqlDataAccess
+from msproteomicstoolslib.data_structures.SqlSwathRun import SqlSwathRun
 
 class SwathRunCollection(object):
     """A collection of SWATH files

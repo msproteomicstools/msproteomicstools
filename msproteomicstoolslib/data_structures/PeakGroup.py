@@ -187,7 +187,7 @@ class GuiPeakGroup(PeakGroupBase):
     This implementation stores additional information including left/right width.
     """
     def __init__(self, fdr_score, intensity, leftWidth, rightWidth, assay_rt, peptide):
-      super(PeakGroupBase, self).__init__()
+      super(GuiPeakGroup, self).__init__()
       self.fdr_score = fdr_score
       self.intensity_ = intensity
       self.leftWidth_ = leftWidth

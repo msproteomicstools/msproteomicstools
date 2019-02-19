@@ -34,7 +34,7 @@ $Maintainer: Hannes Roest$
 $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
-
+from __future__ import print_function
 
 class SqlDataAccess(object):
 
@@ -51,6 +51,9 @@ class SqlDataAccess(object):
         - data_type is one of 0 = mz, 1 = int, 2 = rt
         - data contains the raw (blob) data for a single data array
         """
+
+        if len(ids) == 0:
+            return [ [ [0], [0] ] ]
 
         stmt ="SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA WHERE CHROMATOGRAM_ID IN ("
         for myid in ids:
@@ -76,7 +79,7 @@ class SqlDataAccess(object):
         """
 
         data = [row for row in self.c.execute("SELECT CHROMATOGRAM_ID, COMPRESSION, DATA_TYPE, DATA FROM DATA WHERE CHROMATOGRAM_ID = %s" % myid )]
-        return self._returnDataForChromatogram(data).values()[0]
+        return list(self._returnDataForChromatogram(data).values())[0]
 
     def getDataForChromatogramFromNativeId(self, native_id):
         """
@@ -102,16 +105,21 @@ class SqlDataAccess(object):
         intensity_array = []
         for chr_id, compr, data_type, d in data:
             result = []
-            if len(d) == 0:
-                pass
-            elif compr == 5:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+
+            if compr == 5:
+                # tmp = [ord(q) for q in zlib.decompress(d)]
+                tmp = bytearray( zlib.decompress(d) )
                 if len(tmp) > 0:
                     PyMSNumpress.decodeLinear(tmp, result)
-            elif compr == 6:
-                tmp = [ord(q) for q in zlib.decompress(d)]
+                else:
+                    result = [0]
+            if compr == 6:
+                # tmp = [ord(q) for q in zlib.decompress(d)]
+                tmp = bytearray( zlib.decompress(d) )
                 if len(tmp) > 0:
                     PyMSNumpress.decodeSlof(tmp, result)
+                else:
+                    result = [0]
 
             if len(result) == 0:
                 result = [ 0 ]

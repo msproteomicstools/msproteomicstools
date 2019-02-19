@@ -46,7 +46,7 @@ if __name__ == '__main__':
     try:
         from guiqwt.curve import CurveItem
     except ImportError:
-        print "Could not import guiqwt, will try to use Qwt only."
+        print ("Could not import guiqwt, will try to use Qwt only.")
         have_guiqwt = False
 
 from PyQt4 import QtGui, QtCore

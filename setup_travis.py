@@ -16,7 +16,11 @@ ext_modules = []
 if with_cython:
     ext_modules = [
 	    cythonize("msproteomicstoolslib/cython/_optimized.pyx", language="c++")[0],
-	    cythonize("msproteomicstoolslib/cython/Precursor.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/LightTransformationData.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/_linear_interpol.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/PrecursorWrapper.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/PeakgroupWrapper.pyx", language="c++")[0],
+	    cythonize("msproteomicstoolslib/cython/PrecursorGroup.pyx", language="c++")[0],
 	    cythonize("msproteomicstoolslib/algorithms/alignment/DataCacher.pyx", language="c++")[0]
 	    ]
 
