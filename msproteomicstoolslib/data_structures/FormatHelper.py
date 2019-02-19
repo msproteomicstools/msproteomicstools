@@ -115,9 +115,8 @@ class FormatHelper(object):
         decoy = False
         key = key_
 
+        components = key.split("_")
         if len(key.split("_")) >= 3:
-            components = key.split("_")
-            # print "split into components", components
             if components[0].startswith("DECOY"):
                 components = components[1:]
                 decoy = True
