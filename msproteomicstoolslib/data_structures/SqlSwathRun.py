@@ -255,12 +255,13 @@ class SqlSwathRun(object):
         if not self._precursor_mapping.has_key(str(precursor)):
             return [ [ [0], [0] ] ]
 
-        transitions = []
         sql_ids = []
         for chrom_id in self._precursor_mapping[str(precursor)]:
             if chrom_id in self._id_mapping:
                 sql_id = self._id_mapping[ chrom_id ]
                 sql_ids.append(sql_id)
+
+        transitions = self._run.getDataForChromatograms(sql_ids)
 
         return transitions
 
