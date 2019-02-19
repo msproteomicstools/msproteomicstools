@@ -35,12 +35,10 @@ $Authors: Hannes Roest$
 --------------------------------------------------------------------------
 """
 
-import MSData
-
 from PyQt4 import QtCore 
 from PyQt4.QtCore import Qt, QModelIndex
-from TreeModels import TreeNode
-from TreeModels import TreeModel
+from .TreeModels import TreeNode
+from .TreeModels import TreeModel
 
 # A TreeNode element
 class PeptideTreeNode(TreeNode):
