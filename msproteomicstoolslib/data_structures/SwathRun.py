@@ -158,8 +158,12 @@ class SwathRun(object):
         if run is None:
             return ["NA"]
 
-        print (self._all_swathes[run].get_transitions_with_mass_for_precursor(precursor))
-        return self._all_swathes[run].get_transitions_with_mass_for_precursor(precursor)
+        # Check for empty values (precursor chromatogram may be missing)
+        tmp = self._all_swathes[run].get_transitions_with_mass_for_precursor(precursor)
+        if len(tmp) == 0:
+            return ["NA"]
+
+        return tmp
 
     def get_all_precursor_ids(self):
         return self._precursor_run_map.keys()
