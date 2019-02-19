@@ -99,8 +99,9 @@ class TestUnitFormatHelper(unittest.TestCase):
         self.assertTrue(p4[3] == "3")
         self.assertTrue(p5[3] == "2")
 
+        self.assertTrue(self.h.parse("1234") is None)
+
     def test_compute_transitiongroup_from_key(self):
-        print (self.h._compute_transitiongroup_from_key(self.test_k1))
         self.assertEqual(self.h._compute_transitiongroup_from_key(self.test_k1), "DECOY_NVEVIEDDKQGIIR/2")
         self.assertEqual(self.h._compute_transitiongroup_from_key(self.test_k2), "DECOY_GYEDPPAALFR/2")
         self.assertEqual(self.h._compute_transitiongroup_from_key(self.test_k3), "DECOY_NVEVIEDDKQGIIR/2")
