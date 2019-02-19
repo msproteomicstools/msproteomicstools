@@ -176,7 +176,14 @@ def buildPeakgroupMap(multipeptides, peakgroup_map):
         peakgroup_map[ prkey ] = m
 
 def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein_mapping):
-    # Get the mapping ... 
+    """
+    Populate mapping from a single row in the CSV file.
+
+    Populate the precursors_mapping, sequences_mapping and protein_mapping
+    based on the information in a row in a CSV file. Read the relationship
+    between transition_ids, precursors, peptide sequences and proteins from the
+    CSV input file.
+    """
 
     if "FullPeptideName" in header_dict:
 
@@ -189,7 +196,11 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
         if "aggr_prec_Fragment_Annotation" in header_dict:
             pr_transitions = this_row[ header_dict["aggr_prec_Fragment_Annotation"] ].split(";")
 
-        if len(transitions) > 0 and len(transitions[-1]) == 0:
+        # Skip row if there are no transitions
+        if len(transitions) == 0:
+            return
+
+        if len(transitions[-1]) == 0:
             transitions = transitions[:-1]
         if len(pr_transitions) > 0 and len(pr_transitions[-1]) == 0:
             pr_transitions = pr_transitions[:-1]
