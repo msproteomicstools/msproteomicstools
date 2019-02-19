@@ -23,6 +23,12 @@ TAPIR uses model-view architecture with the following models and views
     - ./openswathgui/views/Plot.py (contains the plot view, derived from Qwt.QwtPlot for the Qwt implementation or from the GuiQwt library)
 
 
+Deployment on windows work with pyinstaller:
+
+  1. Install pymzml using "tapir_branch" https://github.com/hroest/pymzML/tree/tapir_branch
+  2. Install pyinstaller: pip install pyinstaller
+  3. Build executable:
+    3.1 copy gui\building\TAPIR_win.spec .
+    3.2 pyinstaller.exe TAPIR_win.spec
+
 Note: there is a bug where closing the application will cause a segfault in QFontEngineX11FT::freeServerGlyphSet which seems to be a Qt4 bug.
-
-

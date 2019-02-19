@@ -1,9 +1,14 @@
 # -*- mode: python -*-
 
+# Run this from the main directory:
+#   copy gui\building\TAPIR_win.spec .
+#   pyinstaller.exe TAPIR_win.spec
+
 import guidata
 import guiqwt
 import pymzml
 import pyopenms
+import msproteomicstoolslib
 
 def dir_files(path, rel):
     ret = []
@@ -17,12 +22,17 @@ def dir_files(path, rel):
 block_cipher = None
 
 
-a = Analysis(['Desktop\\msproteomicstools\\gui\\TAPIR.py'],
-             pathex=['C:\\Users\\George Rosenberger'],
+a = Analysis(['gui\\TAPIR.py'],
+             pathex=['C:\\Users\\roestlab\\msproteomicstools'],
              hiddenimports=[],
              hookspath=None,
              runtime_hooks=None,
              cipher=block_cipher)
+
+# This allows us to get data which will work when using relative paths inside
+# our code (best works with:
+## root = os.path.dirname(__file__)
+#
 a.datas.extend(dir_files(os.path.join(os.path.dirname(guidata.__file__),
     'images'), os.path.join('guidata', 'images')))
 a.datas.extend(dir_files(os.path.join(os.path.dirname(guiqwt.__file__),
@@ -43,4 +53,4 @@ exe = EXE(pyz,
           strip=None,
           upx=True,
           console=False ,
-          icon='Desktop\\msproteomicstools\\gui\\building\\icons\\tapir.ico')
+          icon='gui\\building\\icons\\tapir.ico')

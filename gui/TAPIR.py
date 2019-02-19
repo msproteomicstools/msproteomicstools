@@ -52,6 +52,8 @@ if __name__ == '__main__':
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
+TAPIR_VERSION = "1.1"
+
 # global parameters
 TITLE_FONT_SIZE = 10
 AXIS_FONT_SIZE = 8
@@ -607,7 +609,65 @@ class ConfigDialog(QtGui.QDialog):
         mainLayout.addLayout(self.buttonsLayout);
         self.setLayout(mainLayout);
 
+#
+## About Dialog
+#
+class AboutDialog(QtGui.QDialog):
+    """
+    About Dialog
+    """
+
+    def __init__(self, parent):
+        QtGui.QDialog.__init__(self, parent)
+        self.parent = parent
+        self._initUI()
+
+    def closeAction(self):
+        """
+        Responds to the close action
+        """
+        self.close()
+
+    def _initUI(self):
+
+        # Right side layout
+        # contentsWidget = QtGui.QListWidget()
+
+        # Close button
+        self.closeButton = QtGui.QPushButton("Close");
+        self.closeButton.clicked.connect(self.closeAction)
+        # connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
+
+        # Left side layout
+        updateGroup = QtGui.QGroupBox("About TAPIR");
+        self.test = QtGui.QLabel("TAPIR version %s\
+        \n\nSoftware for visualization of chromatographic data.\
+        \n\nPlease cite: Rost et al. Bioinformatics. 2015.\
+        \n\nDeveloped by Hannes Rost." % TAPIR_VERSION);
+
+        updateLayout = QtGui.QVBoxLayout()
+        updateLayout.addWidget(self.test);
+        updateGroup.setLayout(updateLayout);
+
+        ###################################
+        # Composition of elements
+        ###################################
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout.addWidget(updateGroup);
+
+        self.buttonsLayout = QtGui.QHBoxLayout()
+        self.buttonsLayout.addStretch(1);
+        self.buttonsLayout.addWidget(self.closeButton);
+
+        mainLayout = QtGui.QVBoxLayout()
+        mainLayout.addLayout(self.horizontalLayout);
+        mainLayout.addStretch(1);
+        mainLayout.addSpacing(12);
+        mainLayout.addLayout(self.buttonsLayout);
+        self.setLayout(mainLayout);
+
         self.setWindowTitle("Config Dialog");
+
 
 #
 ## Main Window
@@ -672,6 +732,11 @@ class MainWindow(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.close)
 
+        ### About
+        helpAction = QtGui.QAction(QtGui.QIcon(""), 'About', self)
+        helpAction.setStatusTip('About TAPIR')
+        helpAction.triggered.connect(self._showAboutDialog)
+
         self.statusBar()
 
         ###################################
@@ -682,6 +747,9 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(openFile)       
         fileMenu.addAction(openSettings)       
         fileMenu.addAction(exitAction)
+
+        fileMenu = menubar.addMenu('&Help')
+        fileMenu.addAction(helpAction)       
 
         ###################################
         # Toolbar
@@ -777,6 +845,10 @@ class MainWindow(QtGui.QMainWindow):
     def _showSettings(self):
         settings = ConfigDialog(self, self.settings)
         settings.show()
+
+    def _showAboutDialog(self):
+        about = AboutDialog(self)
+        about.show()
 
     def _refresh_view(self, time=0):
         """

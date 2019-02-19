@@ -39,7 +39,7 @@ from __future__ import print_function
 from sys import stdout, maxsize
 import csv
 
-maxInt = maxsize
+maxInt = 2147483647
 decrement = True
 
 while decrement:
