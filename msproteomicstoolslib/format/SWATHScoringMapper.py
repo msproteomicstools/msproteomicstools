@@ -189,7 +189,7 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
         if "aggr_prec_Fragment_Annotation" in header_dict:
             pr_transitions = this_row[ header_dict["aggr_prec_Fragment_Annotation"] ].split(";")
 
-        if len(transitions[-1]) == 0:
+        if len(transitions) > 0 and len(transitions[-1]) == 0:
             transitions = transitions[:-1]
         if len(pr_transitions) > 0 and len(pr_transitions[-1]) == 0:
             pr_transitions = pr_transitions[:-1]
