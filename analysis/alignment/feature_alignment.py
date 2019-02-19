@@ -299,6 +299,11 @@ class Experiment(MRExperiment):
         fraction_needed_selected = options.min_frac_selected
         file_format = options.file_format
 
+        sqlite = False
+        for file_nr, f in enumerate(infiles):
+          if f.endswith(".osw"):
+              sqlite = True
+
         # 1. Collect ids of selected features
         selected_pgs = []
         for m in multipeptides:
@@ -362,6 +367,18 @@ class Experiment(MRExperiment):
                     # otherwise the run_id is not guaranteed to be unique 
                     row_to_write[ header_dict["run_id"]] = selected_ids_dict[f_id].peptide.run.get_id()
                     writer.writerow(row_to_write)
+
+        elif len(outfile) > 0 and sqlite and file_format in ["openswath", "peakview_preprocess"]:
+            if os.path.exists(outfile):
+                os.remove(outfile)
+
+            import sqlite3
+            conn = sqlite3.connect(outfile)
+            c = conn.cursor()
+            c.execute("CREATE TABLE SELECTED_IDS (ID INT);")
+            # c.executemany('INSERT INTO SELECTED_IDS VALUES (?)', tuple(selected_ids_dict.keys()) )
+            c.executemany('INSERT INTO SELECTED_IDS (ID) VALUES (?)', [ (k,) for k in selected_ids_dict.keys()] )
+            conn.commit()
 
         elif len(outfile) > 0 and file_format in ["openswath", "peakview_preprocess"]:
 
