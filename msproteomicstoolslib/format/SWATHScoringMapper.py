@@ -249,12 +249,13 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
 
     import sqlite3, csv, os
 
+    # First get a map of all the sqMass runs that we have which maps the file-id to SQL-filename and the filename on disk
     sqlfile_map = []
     for k, filename in enumerate(rawdata_files):
         conn = sqlite3.connect(filename)
         c = conn.cursor()
         d = list(c.execute("SELECT ID, FILENAME, NATIVE_ID FROM RUN"))
-        assert len(d) == 1
+        assert len(d) == 1, "Merged SqMass files with multiple runs are not supported" # needs to have exactly one run
         sql_fn = d[0][1] # use filename
         sqlfile_map.append([k, 0, os.path.basename(sql_fn), os.path.basename(filename)])
         mapping[k] = [None]
@@ -300,11 +301,10 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
                     diskfile_base = diskfile_base.split(ending)[0]
 
                 # 2.2 remove common file endings from the tsv data
-                for ending in [".tsv", ".csv", ".xls", "_with_dscore_filtered", "_with_dscore", "_all_peakgroups"]:
+                for ending in [".gz", ".mzML", ".tsv", ".csv", ".xls", "_with_dscore_filtered", "_with_dscore", "_all_peakgroups"]:
                     aligned_fname = aligned_fname.split(ending)[0]
 
                 # 2.3 Check if we have a match
-                # print (aligned_fname, rfile_base, diskfile_base)
                 if aligned_fname == rfile_base:
                     if verbose:
                         print("- Found match:", os.path.basename(rfile), "->", os.path.basename(this_row[ header_dict["align_origfilename"] ]))
