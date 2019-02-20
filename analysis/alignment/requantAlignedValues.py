@@ -928,10 +928,16 @@ def _integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
     for chrom_id in chrom_ids:
         peaks = swath_chromatograms.getChromatogram(current_rid, chrom_id)
+
         # Check if we got a chromatogram with at least 1 peak:
         if peaks is None:
-            print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
-            return("NA")
+            # pyprophet export files do not contain the actual chromatogram id
+            # written in mzML / sqMass but they contain "id_ion_ordinal" from
+            # which we can parse the id
+            peaks = swath_chromatograms.getChromatogram(current_rid, chrom_id.split("_")[0])
+            if peaks is None:
+                print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
+                return("NA")
 
         if len(peaks) == 0:
             print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
