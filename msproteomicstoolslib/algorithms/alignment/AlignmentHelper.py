@@ -173,7 +173,9 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
     # pylab.clf()
 
     if len(data_0) == 0:
+        print("===================================")
         print("Warning, zero data! Consider increasing the anchor point cutoff (--alignment_score) to include more peptides.")
+        print("===================================")
         if force:
             null = smoothing.SmoothingNull()
             tr_data.addTrafo(id_0, id_1, null)
