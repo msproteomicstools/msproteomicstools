@@ -4,7 +4,8 @@ import csv
 
 from .version import __version__
 
-maxInt = sys.maxsize
+maxInt = 2147483647
+
 decrement = True
 while decrement:
     # decrease the maxInt value by factor 10 

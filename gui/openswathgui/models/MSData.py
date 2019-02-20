@@ -398,7 +398,7 @@ class DataModel(object):
                                                         peptideSequence = pm.getFullSequence(),
                                                         datatype="Precursor") )
 
-            if len(precursors) > 0: # if pm is not None:
+            if pm is not None:
                 elements.append(ChromatogramTransition(seq,
                                                        "NA",
                                                        pelements, 
