@@ -192,7 +192,7 @@ class SWATHScoringReader:
                     orig_fname = this_row[header_dict[ "filename"] ]
                 current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
                 runs.append(current_run)
-                print(current_run, "maps to ", orig_fname)
+                print(current_run, "maps to", orig_fname)
             else: 
                 assert len(current_run) == 1
                 current_run = current_run[0]
