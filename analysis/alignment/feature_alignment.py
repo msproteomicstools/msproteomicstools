@@ -39,8 +39,9 @@ from __future__ import print_function
 import os, sys, csv, time
 import numpy
 import argparse
-from msproteomicstoolslib.math.chauvenet import chauvenet
 import msproteomicstoolslib.math.Smoothing as smoothing
+from msproteomicstoolslib.version import __version__ as version
+from msproteomicstoolslib.math.chauvenet import chauvenet
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
@@ -654,10 +655,13 @@ def doReferenceAlignment(options, this_exp, multipeptides):
     print("Re-aligning peak groups took %0.2fs" % (time.time() - start) )
 
 def handle_args():
-    usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]" 
+    usage = ""
+    usage += "\nFeature Alignment -- version %d.%d.%d" % version
+    usage += "\n"
     usage += "\nThis program will select all peakgroups below the FDR cutoff in all files and try to align them to each other."
     usage += "\nIf only one file is given, it will act as peakgroup selector (best by m_score)" + \
-            "\nand will apply the provided FDR cutoff."
+             "\nand will apply the provided FDR cutoff."
+    usage += "\n"
 
     import ast
     parser = argparse.ArgumentParser(description = usage )
@@ -678,6 +682,7 @@ def handle_args():
     parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='none', help="Which columns are written besides Intensity (none, RT, score, source or full)", metavar="")
     parser.add_argument('--realign_method', dest='realign_method', default="diRT", help="RT alignment method (diRT, linear, splineR, splineR_external, splinePy, lowess, lowess_biostats, lowess_statsmodels, lowess_cython, nonCVSpline, CVSpline, Earth, WeightedNearestNeighbour, SmoothLLDMedian, None)", metavar="diRT")
     parser.add_argument('--force', action='store_true', default=False, help="Force alignment")
+    parser.add_argument("--version", dest="version", default="", help="Print version and exit")
 
     mst_parser = parser.add_argument_group('options for the MST')
 
@@ -699,6 +704,10 @@ def handle_args():
     # deprecated methods
     experimental_parser.add_argument('--realign_runs', action='store_true', default=False, help="Deprecated option (equals '--realign_method external_r')")
     experimental_parser.add_argument('--use_external_r', action='store_true', default=False, help="Deprecated option (equals '--realign_method external_r')")
+
+    if any([a.startswith("--version") for a in sys.argv]):
+        print (usage)
+        sys.exit()
 
     args = parser.parse_args(sys.argv[1:])
 

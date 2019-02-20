@@ -41,6 +41,7 @@ from __future__ import division
 import os, sys, csv, time
 import numpy
 import argparse
+from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.data_structures.PeakGroup import GeneralPeakGroup
 from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
 from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping
@@ -999,6 +1000,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile=No
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]"
+    usage += "\nRequantification -- version %d.%d.%d" % version
     usage += "\nThis program will impute missing values"
 
     parser = argparse.ArgumentParser(description = usage )
@@ -1017,10 +1019,15 @@ def handle_args():
     parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
     parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
+    parser.add_argument("--version", dest="version", default="", help="Print version and exit")
 
     experimental_parser = parser.add_argument_group('experimental options')
     experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
     experimental_parser.add_argument('--disable_isotopic_transfer', action='store_true', default=False, help="Disable the transfer of isotopic boundaries in all cases. If enabled (default), the best (best score) isotopic channel dictates the peak boundaries and all other channels use those boundaries. This ensures consistency in peak picking in all cases.")
+
+    if any([a.startswith("--version") for a in sys.argv]):
+        print (usage)
+        sys.exit()
 
     args = parser.parse_args(sys.argv[1:])
     args.verbosity = int(args.verbosity)
