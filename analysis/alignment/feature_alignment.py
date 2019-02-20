@@ -744,12 +744,15 @@ def main(options):
         def __init__(self, cutoff):
             self.cutoff = cutoff
         def __call__(self, row, header):
+            # No simple q-value header
             return True
         def getSQL(self):
             return "AND QVALUE < %s" % self.cutoff
 
 
     readfilter = ReadFilter()
+    if options.aligned_fdr_cutoff >= 0.0:
+        readfilter = FDRFilter(options.aligned_fdr_cutoff):
     if options.use_dscore_filter:
         readfilter = DReadFilter(float(options.dscore_cutoff))
 
