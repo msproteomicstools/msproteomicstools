@@ -125,7 +125,7 @@ class MRExperiment(object):
                 union_proteins.append(list(set(gr_protein)))
 
             all_prec += len(gr)
-            target_prec = len(gr_target)
+            target_prec += len(gr_target)
 
             self.union_target_transition_groups_set = self.union_target_transition_groups_set.union(gr_target)
             self.union_transition_groups_set = self.union_transition_groups_set.union(gr)
