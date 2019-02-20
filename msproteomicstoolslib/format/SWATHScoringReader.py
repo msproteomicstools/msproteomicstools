@@ -83,6 +83,8 @@ class ReadFilter(object):
 
     def __call__(self, row, header):
         return True
+    def getSQL(self):
+        return ""
 
 #
 # The Readers of the Scoring files
@@ -152,7 +154,7 @@ class SWATHScoringReader:
             stdout.write("\rReading %s" % str(f))
             stdout.flush()
         if f.endswith(".osw"):
-            self.parse_file(f, runs, useCython)
+            read += self.parse_file(f, runs, useCython)
             continue
 
         header_dict = {}
@@ -262,11 +264,13 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         # Retrieve and then iterate over all available runs
         query = """SELECT ID, FILENAME FROM RUN"""
         res = [row for row in c.execute(query)]
+        nrows = 0
         for row in res:
             runid = row[0]
             current_run = Run([], {}, runid, filename, row[1], row[1], useCython=useCython)
             runs.append(current_run)
-            self._parse_file(filename, current_run, runid, conn)
+            nrows += self._parse_file(filename, current_run, runid, conn)
+        return nrows
 
     def _parse_file(self, filename, run, run_id, conn):
 
@@ -282,14 +286,16 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         ''')
 
         query = """
-        SELECT PRECURSOR.ID, SCORE_MS2.QVALUE, FEATURE.EXP_RT, PRECURSOR.DECOY, PEPTIDE.MODIFIED_SEQUENCE, PEPTIDE.ID, FEATURE.ID
-        FROM SCORE_MS2 
-        INNER JOIN (SELECT ID, PRECURSOR_ID, EXP_RT, RUN_ID FROM FEATURE) AS FEATURE ON FEATURE_ID = FEATURE.ID 
+        SELECT PRECURSOR.ID, SCORE_MS2.QVALUE, FEATURE.EXP_RT, PRECURSOR.DECOY, PEPTIDE.MODIFIED_SEQUENCE, PEPTIDE.ID, FEATURE.ID, AREA_INTENSITY, SCORE_MS2.SCORE
+        FROM SCORE_MS2
+        INNER JOIN (SELECT FEATURE_ID, AREA_INTENSITY FROM FEATURE_MS2) AS FEATURE_MS2 ON SCORE_MS2.FEATURE_ID = FEATURE_MS2.FEATURE_ID
+        INNER JOIN (SELECT ID, PRECURSOR_ID, EXP_RT, RUN_ID FROM FEATURE) AS FEATURE ON SCORE_MS2.FEATURE_ID = FEATURE.ID
         INNER JOIN (SELECT ID, DECOY FROM PRECURSOR) AS PRECURSOR ON FEATURE.PRECURSOR_ID = PRECURSOR.ID
-        INNER JOIN PRECURSOR_PEPTIDE_MAPPING ON PRECURSOR.ID = PRECURSOR_PEPTIDE_MAPPING.PRECURSOR_ID 
+        INNER JOIN PRECURSOR_PEPTIDE_MAPPING ON PRECURSOR.ID = PRECURSOR_PEPTIDE_MAPPING.PRECURSOR_ID
         INNER JOIN (SELECT ID, MODIFIED_SEQUENCE FROM PEPTIDE) AS PEPTIDE ON PRECURSOR_PEPTIDE_MAPPING.PEPTIDE_ID = PEPTIDE.ID
         WHERE RUN_ID = %s
-        """ % run_id
+        %s
+        """ % (run_id, self.readfilter.getSQL() )
         q = [row for row in c.execute(query)]
         for row in q:
 
@@ -299,8 +305,8 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             peptide_group_label = row[5]
 
             # Attributes that only need to be present in strict mode
-            intensity = -1
-            d_score = -1
+            intensity = row[7]
+            d_score = row[8]
             cluster_id = -1
             retention_time = row[2]
             fdr_score = row[1]
@@ -347,6 +353,7 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
               run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
             else:
                 raise Exception("Unknown readmethod", self.readmethod)
+        return len(q)
             
 class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
     """

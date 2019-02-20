@@ -737,6 +737,16 @@ def main(options):
             self.cutoff = cutoff
         def __call__(self, row, header):
             return float(row[ header["d_score" ] ]) > self.cutoff
+        def getSQL(self):
+            return "AND SCORE > %s" % self.cutoff
+
+    class FDRFilter(object):
+        def __init__(self, cutoff):
+            self.cutoff = cutoff
+        def __call__(self, row, header):
+            return True
+        def getSQL(self):
+            return "AND QVALUE < %s" % self.cutoff
 
 
     readfilter = ReadFilter()
