@@ -14,6 +14,10 @@ if "--with_cython" in sys.argv:
     with_cython = True
     sys.argv.remove("--with_cython")
 
+# DO NOT FORGET TO BUMP THE VERSION IN version.py !!!!!!!!!!!!!!!!!!!
+VERSION = (0, 10, 0)
+# DO NOT FORGET TO BUMP THE VERSION IN version.py !!!!!!!!!!!!!!!!!!!
+
 import fnmatch
 all_scripts = []
 for root, dirnames, filenames in os.walk('analysis'):
@@ -41,7 +45,7 @@ if with_cython:
 	    ]
 
 setup(name='msproteomicstools',
-      version='0.10.0',
+      version="%d.%d.%d" % VERSION,
       description='Tools for MS-based proteomics',
       long_description='msproteomicstools - python module for MS-based proteomics',
       url='https://github.com/msproteomicstools/msproteomicstools',

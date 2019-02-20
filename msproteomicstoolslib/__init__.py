@@ -2,6 +2,8 @@ __all__ = ["data_structures", "format", "math", "util"]
 import sys
 import csv
 
+from .version import __version__
+
 maxInt = sys.maxsize
 decrement = True
 while decrement:
