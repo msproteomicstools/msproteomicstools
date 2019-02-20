@@ -751,8 +751,8 @@ def main(options):
 
 
     readfilter = ReadFilter()
-    if options.aligned_fdr_cutoff >= 0.0:
-        readfilter = FDRFilter(options.aligned_fdr_cutoff):
+    if float(options.aligned_fdr_cutoff) >= 0.0:
+        readfilter = FDRFilter(float(options.aligned_fdr_cutoff))
     if options.use_dscore_filter:
         readfilter = DReadFilter(float(options.dscore_cutoff))
 
