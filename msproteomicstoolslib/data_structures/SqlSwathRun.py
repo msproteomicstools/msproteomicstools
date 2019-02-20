@@ -58,6 +58,8 @@ class SqlSwathRun(object):
     """
 
     def __init__(self, runid, filename, load_in_memory=False, precursor_mapping = None, sequences_mapping = None, protein_mapping = {}):
+        self.verbose = False
+
         if runid is not None:
             assert len(runid) == 1
             self.runid = runid[0]
@@ -272,7 +274,7 @@ class SqlSwathRun(object):
 
         if transition_id in self._id_mapping:
             return [self._run.getDataForChromatogram(self._id_mapping[transition_id])]
-        else:
+        elif self.verbose:
             print ("Warning: Found chromatogram identifier '%s' that does not map to any chromatogram in the data." % transition_id)
             print ("Please check your input data")
 
