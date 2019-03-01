@@ -52,7 +52,7 @@ if __name__ == '__main__':
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, QModelIndex
 
-TAPIR_VERSION = "1.1"
+TAPIR_VERSION = "1.2"
 
 # global parameters
 TITLE_FONT_SIZE = 10

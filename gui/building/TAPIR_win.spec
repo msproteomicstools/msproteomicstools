@@ -1,5 +1,6 @@
 # -*- mode: python -*-
 
+# Important: 
 # Run this from the main directory:
 #   copy gui\building\TAPIR_win.spec .
 #   pyinstaller.exe TAPIR_win.spec
@@ -9,6 +10,11 @@ import guiqwt
 import pymzml
 import pyopenms
 import msproteomicstoolslib
+import PyMSNumpress
+import PyQt4
+
+import os
+cwd = os.getcwd()
 
 def dir_files(path, rel):
     ret = []
@@ -21,9 +27,8 @@ def dir_files(path, rel):
 
 block_cipher = None
 
-
 a = Analysis(['gui\\TAPIR.py'],
-             pathex=['C:\\Users\\roestlab\\msproteomicstools'],
+             pathex=[cwd],
              hiddenimports=[],
              hookspath=None,
              runtime_hooks=None,
@@ -52,5 +57,5 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=True,
-          console=False ,
+          console=False, # set to True for debug
           icon='gui\\building\\icons\\tapir.ico')
