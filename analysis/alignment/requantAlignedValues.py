@@ -41,6 +41,7 @@ from __future__ import division
 import os, sys, csv, time
 import numpy
 import argparse
+from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.data_structures.PeakGroup import GeneralPeakGroup
 from msproteomicstoolslib.format.SWATHScoringReader import SWATHScoringReader
 from msproteomicstoolslib.format.SWATHScoringMapper import inferMapping
@@ -387,7 +388,7 @@ class SwathChromatogramCollection(object):
 # runSingleFileImputation -> for tree based, new imputation
 # runImputeValues -> old method using .tr files
 
-def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test):
+def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test, initial_alignment_cutoff):
     """Impute values across chromatograms
 
     Args:
@@ -418,7 +419,7 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
                                           enable_isotopic_grouping = not options.disable_isotopic_grouping,
                                           read_cluster_id=True)
     new_exp = Experiment()
-    new_exp.runs = reader.parse_files()
+    new_exp.runs = reader.parse_files(verbosity=1)
     multipeptides = new_exp.get_all_multipeptides(fdr_cutoff_all_pg, verbose=False)
     print("Parsing the peakgroups file took %ss" % (time.time() - start) )
 
@@ -447,7 +448,6 @@ def runSingleFileImputation(options, peakgroups_file, mzML_file, method, is_test
     rid = list(swath_chromatograms.getRunIDs())[0]
 
     start = time.time()
-    initial_alignment_cutoff = 0.0001
     max_rt_diff = 30
     sd_data = -1 # We do not use the standard deviation data in this algorithm
     tr_data = transformations.LightTransformationData()
@@ -928,10 +928,16 @@ def _integrate_chromatogram(template_pg, current_run, swath_chromatograms,
 
     for chrom_id in chrom_ids:
         peaks = swath_chromatograms.getChromatogram(current_rid, chrom_id)
+
         # Check if we got a chromatogram with at least 1 peak:
         if peaks is None:
-            print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
-            return("NA")
+            # pyprophet export files do not contain the actual chromatogram id
+            # written in mzML / sqMass but they contain "id_ion_ordinal" from
+            # which we can parse the id
+            peaks = swath_chromatograms.getChromatogram(current_rid, chrom_id.split("_")[0])
+            if peaks is None:
+                print("chromatogram is None (tried to get %s from run %s)" % (chrom_id, current_rid))
+                return("NA")
 
         if len(peaks) == 0:
             print("chromatogram has no peaks None (tried to get %s from run %s)" % (chrom_id, current_rid))
@@ -994,6 +1000,7 @@ def write_out(new_exp, multipeptides, outfile, matrix_outfile, single_outfile=No
 
 def handle_args():
     usage = "" #usage: %prog --in \"files1 file2 file3 ...\" [options]"
+    usage += "\nRequantification -- version %d.%d.%d" % version
     usage += "\nThis program will impute missing values"
 
     parser = argparse.ArgumentParser(description = usage )
@@ -1011,10 +1018,16 @@ def handle_args():
     parser.add_argument('--realign_runs', dest='realign_method', default="lowess", help="How to re-align runs in retention time ('diRT': use only deltaiRT from the input file, 'linear': perform a linear regression using best peakgroups, 'splineR': perform a spline fit using R, 'splineR_external': perform a spline fit using R (start an R process using the command line), 'splinePy' use Python native spline from scikits.datasmooth (slow!), 'lowess': use Robust locally weighted regression (lowess smoother), 'nonCVSpline, CVSpline': splines with and without cross-validation, 'Earth' : use Multivariate Adaptive Regression Splines using py-earth")
     parser.add_argument('--verbosity', default=0, type=int, help="Verbosity")
     parser.add_argument('--do_single_run', default='', metavar="", help="Only do a single run")
+    parser.add_argument("--alignment_score", dest="alignment_score", default=0.0001, type=float, help="Minimal score needed for a feature to be considered for alignment between runs", metavar='0.0001')
+    parser.add_argument("--version", dest="version", default="", help="Print version and exit")
 
     experimental_parser = parser.add_argument_group('experimental options')
     experimental_parser.add_argument('--disable_isotopic_grouping', action='store_true', default=False, help="Disable grouping of isotopic variants by peptide_group_label, thus disabling matching of isotopic variants of the same peptide across channels. If turned off, each isotopic channel will be matched independently of the other. If enabled, the more certain identification will be used to infer the location of the peak in the other channel.")
     experimental_parser.add_argument('--disable_isotopic_transfer', action='store_true', default=False, help="Disable the transfer of isotopic boundaries in all cases. If enabled (default), the best (best score) isotopic channel dictates the peak boundaries and all other channels use those boundaries. This ensures consistency in peak picking in all cases.")
+
+    if any([a.startswith("--version") for a in sys.argv]):
+        print (usage)
+        sys.exit()
 
     args = parser.parse_args(sys.argv[1:])
     args.verbosity = int(args.verbosity)
@@ -1033,7 +1046,8 @@ def main(options):
                                                               options.peakgroups_infile,
                                                               options.do_single_run,
                                                               options.method,
-                                                              options.is_test)
+                                                              options.is_test,
+                                                              options.alignment_score)
     else:
         if not options.method == "reference" and not options.method == "allTrafo":
             print ("Found unknown method '%s', assuming 'reference'." % options.method)
