@@ -229,7 +229,7 @@ def mapRow(this_row, header_dict, precursors_mapping, sequences_mapping, protein
                 tmp.append(peptide_name)
             protein_mapping[protein_name] = tmp
 
-def getAlignedFilename(this_row, header_dict):
+def getAlignedFilename(this_row, header_dict, remove_common_endings=True):
 
     if this_row[ header_dict["align_origfilename"] ] == "NA":
         return None, None
@@ -242,6 +242,12 @@ def getAlignedFilename(this_row, header_dict):
     aligned_fname = tmp[-1]
     tmp = aligned_fname.split("/")
     aligned_fname = tmp[-1]
+
+    # remove common file endings from the tsv data
+    if remove_common_endings:
+        for ending in [".gz", ".mzML", ".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups", "_scored"]:
+            aligned_fname = aligned_fname.split(ending)[0]
+
     return aligned_fname, aligned_id
 
 def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
@@ -299,10 +305,6 @@ def sqlInferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping
                 diskfile_base = diskfile
                 for ending in [".gz", ".mzML", ".chrom", ".sqMass", "_with_dscore_filtered", "_with_dscore"]:
                     diskfile_base = diskfile_base.split(ending)[0]
-
-                # 2.2 remove common file endings from the tsv data
-                for ending in [".gz", ".mzML", ".tsv", ".csv", ".xls", "_with_dscore_filtered", "_with_dscore", "_all_peakgroups"]:
-                    aligned_fname = aligned_fname.split(ending)[0]
 
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
@@ -371,6 +373,7 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
 
             # 1. Get the original filename (find a non-NA entry) and the corresponding run id
             aligned_fname, aligned_id = getAlignedFilename(this_row, header_dict)
+
             if aligned_id is None or aligned_id in mapping:
                 continue 
 
@@ -382,10 +385,6 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                 rfile_base = os.path.basename(rfile)
                 for ending in [".sqMass", ".filter", ".mzML", ".chrom"]:
                     rfile_base = rfile_base.split(ending)[0]
-
-                # 2.2 remove common file endings from the tsv data
-                for ending in [".tsv", ".csv", ".xls", "_with_dscore", "_all_peakgroups", "_scored"]:
-                    aligned_fname = aligned_fname.split(ending)[0]
 
                 # 2.3 Check if we have a match
                 if aligned_fname == rfile_base:
