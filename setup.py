@@ -15,7 +15,7 @@ if "--with_cython" in sys.argv:
     sys.argv.remove("--with_cython")
 
 # DO NOT FORGET TO BUMP THE VERSION IN version.py !!!!!!!!!!!!!!!!!!!
-VERSION = (0, 10, 0)
+VERSION = (0, 11, 0)
 # DO NOT FORGET TO BUMP THE VERSION IN version.py !!!!!!!!!!!!!!!!!!!
 
 import fnmatch
