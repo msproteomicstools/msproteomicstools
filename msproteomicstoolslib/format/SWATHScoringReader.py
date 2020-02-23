@@ -821,21 +821,21 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
 
 def getMapping(chromatogramFiles, featureFiles, useCython = False):
     """
-    This function infer mapping between raw chromatogram files and feature files.
+    Returns a dictionary of feature files with Run objects. Only those Runs are included which
+    have corresponding mzML files available.
     Sometimes, a single feature file is provided for all chromatogram files, this function checks
-    whether there is corresponding feature file present for each chromatogram file.
-    It returns a dictionary with keys named as run# and values being a tuple of (chromatogram file, DIA file, feature file).
-
+    whether there is corresponding chromatogram file present for each run.
+    
     >>> chromatogramFiles = ["file1.chrom.mzML", "file2.chrom.mzML"]
     >>> featureFiles = ["file1.osw", "file2.osw"]
     >>> featureFiles_chromFiles_map = getMapping(chromatogramFiles, featureFiles)
-    >>> {"file1" : ("file1.mzML", run1), "file2" : ("file2.mzML", run2)}
+    >>> {"file1.osw" : [run1], "file2.osw" : [run2]}
     """
 
-    # Read osw file. Create a dictionary of "Spectra file": Run()
+    # Read osw file. Create a dictionary of "Feature file": Run()
     MS_feature_fileMapping = getRunfromFeatureFile(featureFiles, useCython)
 
-    # Read mzML, get a dictionary of all provided mzML file.
+    # Read mzML, get a list of all provided mzML file.
     chromFiles = []
     for filename in chromatogramFiles:
         base_name = getBaseName(filename)
@@ -845,7 +845,7 @@ def getMapping(chromatogramFiles, featureFiles, useCython = False):
             chromFiles.append(base_name)
 
     # Iterate through the osw file and find associated mzML file.
-    # Throw warning with filename is a pair is missing.
+    # Remove Run from the dictionary if mzML file is missing and Throw warning.
     # Add to the final dictionary if the basename has associated chromatogram file and OpenSWATH feature file.
 
     for featureFile, runs in MS_feature_fileMapping.items():
@@ -865,13 +865,11 @@ def getMapping(chromatogramFiles, featureFiles, useCython = False):
 
 def getRunfromFeatureFile(featureFiles, useCython = False):
     """
-    Return as dictionary with key as mass-spectra file and value as associated feature file.
+    Return as dictionary with key as feature file and value as associated Run objects.
 
     >>> featureFiles = ["merged.osw"]
     >>> fileMapping = getRunfromFeatureFile(featureFiles)
-    >>> fileMapping["file1.mzML.gz"].get_openswath_filename()
-    >>> fileMapping["file1.mzML.gz"].get_original_filename()
-    >>> fileMapping['file1.mzML.gz'].get_id()
+    >>> fileMapping = {"merged.osw": [Run0, Run1, Run2]}
     """
 
     import sqlite3
