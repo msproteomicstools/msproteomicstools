@@ -230,3 +230,19 @@ class csv_table:
             res = [ tmp[i] for tmp in self.rows]
         return res
 
+def getBaseName(filename):
+    """
+    Returns a basename for filename. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.
+    
+    >>> getBaseName('data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz')
+    >>> hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt
+    """
+
+    fileBase = filename
+    # Remove directory separator from filename
+    for dir_sep in ["/", "\\"]:
+        fileBase = fileBase.split(dir_sep)[-1]
+    # First remove gz, then sqmass, then mzML & then chrom, if present.
+    for ending in [".gz", ".sqMass", ".mzML", ".chrom"]:
+        fileBase = fileBase.split(ending)[0]
+    return fileBase

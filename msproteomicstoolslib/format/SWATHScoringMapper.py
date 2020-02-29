@@ -37,6 +37,7 @@ $Authors: Hannes Roest$
 
 from __future__ import print_function
 from sys import stdout, maxsize
+from msproteomicstoolslib.util.utils import getBaseName
 import csv
 import os
 
@@ -405,3 +406,94 @@ def inferMapping(rawdata_files, aligned_pg_files, mapping, precursors_mapping,
                     "to either rename your files to have matching filenames " +\
                     "or provide an input yaml file describing the matching in detail.")
 
+def MSfileRunMapping(chromatogramFiles, runs, useCython = False):
+    """
+    Return as dictionary with key as mass-spectra file and value as associated chromatogram file and Run.
+
+    Usually one feature file can contain multiple runs and maps to
+    multiple chromatogram files (mzML). This function will try to match the
+    chromatogram file name to each run using get_openswath_filename.
+    Note that both files have some typical endings that are _not_ shared,
+    these are generally removed before comparison.
+
+    >>> chromatogramFiles = ["file1.chrom.mzML", "file2.chrom.mzML"]
+    >>> fileMapping = MSfileRunMapping(featureFiles)
+    >>> {"../file1.mzML.gz": ("file1.chrom.mzML", run1), "../file2.mzML.gz": ("file2.chrom.mzML", run2)}
+    """
+
+    chromFiles = {}
+    # Get the dictionary {'basename': chromatogramFile, ...}
+    for filename in chromatogramFiles:
+        base_name = getBaseName(filename)
+        if base_name in chromFiles.keys():
+            print(str(filename) + " has basename same as of another mzML file. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.")
+        else:
+            chromFiles[base_name] = filename
+    
+    MSfile_featureFile_mapping = {}
+    for run in runs:
+        MSfile = run.get_openswath_filename()
+        if MSfile not in MSfile_featureFile_mapping.keys():
+            MSfile_featureFile_mapping[MSfile] = (chromFiles.get(base_name), run)
+
+    return MSfile_featureFile_mapping
+
+def getPrecursorTransitionMapping(filename):
+    """
+    Get mapping transition IDs for a precursor. An osw file is expected that 
+    must have PRECURSOR and TRANSITION_PRECURSOR_MAPPING tables. It fills IDs in
+    precursors_mapping dictionary.
+    In feature file, transition IDs uniquely match to a Precursor. Multiple precursors can map to
+    a peptide, as derived precursors may have different charge.
+    similarly, multiple peptides can map to a protein.
+    
+    >>> precursors_mapping = getPrecursorTransitionMapping('merged.osw')
+    """
+    
+    conn = create_connection(filename)
+    c = conn.cursor()
+    c.executescript('''
+            CREATE INDEX IF NOT EXISTS idx_precursor_precursor_id ON PRECURSOR (ID);
+            CREATE INDEX IF NOT EXISTS idx_peptide_peptide_id ON PEPTIDE (ID);
+            CREATE INDEX IF NOT EXISTS idx_precursor_peptide_mapping_peptide_id ON PRECURSOR_PEPTIDE_MAPPING (PEPTIDE_ID);
+            CREATE INDEX IF NOT EXISTS idx_precursor_peptide_mapping_precursor_id ON PRECURSOR_PEPTIDE_MAPPING (PRECURSOR_ID);
+        ''')
+    query = """
+    SELECT PRECURSOR.ID AS transition_group_id,
+    TRANSITION_PRECURSOR_MAPPING.TRANSITION_ID AS transition_id,
+    PEPTIDE.MODIFIED_SEQUENCE AS sequence,
+    PRECURSOR.CHARGE AS charge
+    FROM PRECURSOR
+    INNER JOIN TRANSITION_PRECURSOR_MAPPING ON TRANSITION_PRECURSOR_MAPPING.PRECURSOR_ID = PRECURSOR.ID
+	INNER JOIN PRECURSOR_PEPTIDE_MAPPING ON PRECURSOR_PEPTIDE_MAPPING.PRECURSOR_ID = PRECURSOR.ID
+    INNER JOIN PEPTIDE ON PRECURSOR_PEPTIDE_MAPPING.PEPTIDE_ID = PEPTIDE.ID
+    ORDER BY transition_group_id;
+    """
+
+    precursors_mapping = {}
+    data = [row for row in c.execute(query)]
+    for this_row in data:
+        if len(this_row) == 0: 
+            continue
+        trgr_id = int(this_row[0])
+        transition_id = int(this_row[1])
+        # Add transition_group_id to precursors_mapping if not present.
+        if trgr_id not in precursors_mapping:
+            precursors_mapping[trgr_id] = []
+        # Get the transition mapping.
+        tmp = precursors_mapping.get(trgr_id, [])
+        if transition_id not in tmp:
+            precursors_mapping[trgr_id].append(transition_id)
+    conn.close()
+    return precursors_mapping
+
+def create_connection(db_file):
+    import sqlite3
+    from sqlite3 import Error as sql_error
+    
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+    except sql_error as e:
+        print(e)
+    return conn
