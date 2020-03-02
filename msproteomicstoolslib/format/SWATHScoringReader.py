@@ -154,7 +154,10 @@ class SWATHScoringReader:
                 stdout.write("\rReading %s" % str(f))
                 stdout.flush()
             if f.endswith(".osw"):
-                read += self.parse_file(f, runs, useCython)
+                if not self.infiles_chromfiles_map:
+                    read += self.parse_file(f, runs, useCython)
+                else:
+                    read += self.parse_file_selective(f, runs, useCython)
                 continue
 
             header_dict = {}
@@ -211,6 +214,13 @@ class SWATHScoringReader:
         if verbosity >= 10: stdout.write("\r\r\n") # clean up
         print("Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped))
         return runs
+    
+    def map_infiles_chromfiles(self, chromatogramFiles, useCython=False):
+        """
+        Updates the infiles_chromfiles_map with a dictionary. The dictionary has a mapping between each feature
+        file (osw) and chromatogram file (chrom.mzML).
+        """
+        self.infiles_chromfiles_map = getMapping(chromatogramFiles, self.infiles, useCython = False)
 
 class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
     """
@@ -226,6 +236,7 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
         self.read_cluster_id = read_cluster_id
+        self.infiles_chromfiles_map = {}
         if readmethod == "cminimal":
             try:
                 from msproteomicstoolslib.cython.Precursor import CyPrecursor
@@ -272,6 +283,26 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             nrows += self._parse_file(filename, current_run, runid, conn)
         return nrows
 
+    def parse_file_selective(self, filename, runs, useCython):
+        """
+        Parse a OSW file. Pick runs that has corresponding mzML file. 
+        """
+
+        nrows = 0
+        if filename not in self.infiles_chromfiles_map:
+            return nrows
+
+        import sqlite3
+        conn = sqlite3.connect(filename)
+
+        # Retrieve available runs from the dictionary and then iterate over them
+        for current_run in self.infiles_chromfiles_map[filename]:
+            runid = current_run.get_id()
+            runs.append(current_run)
+            nrows += self._parse_file(filename, current_run, runid, conn)
+        conn.close()
+        return nrows
+
     def _parse_file(self, filename, run, run_id, conn):
 
         # Make sure the correct indices exist
@@ -284,7 +315,7 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             CREATE INDEX IF NOT EXISTS idx_feature_ms2_feature_id ON FEATURE_MS2 (FEATURE_ID);
             CREATE INDEX IF NOT EXISTS idx_score_ms2_feature_id ON SCORE_MS2 (FEATURE_ID);
         ''')
-
+        # TODO: Shubham: Add left width and right width
         query = """
         SELECT PRECURSOR.ID, SCORE_MS2.QVALUE, FEATURE.EXP_RT, PRECURSOR.DECOY, PEPTIDE.MODIFIED_SEQUENCE, PEPTIDE.ID, FEATURE.ID, AREA_INTENSITY, SCORE_MS2.SCORE
         FROM SCORE_MS2
@@ -318,6 +349,8 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
                 decoy = "TRUE"
             else:
                 raise Exception("Unknown decoy", row[3])
+            # left_width = run [8]
+            # right_width = run [9]
 
             # If the peptide does not yet exist, generate it
             if not run.hasPrecursor(peptide_group_label, trgr_id):
@@ -786,3 +819,94 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
             peakgroup.setClusterID(cluster_id)
             run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
+def getMapping(chromatogramFiles, featureFiles, useCython = False):
+    """
+    Returns a dictionary of feature files with Run objects. Only those Runs are included which
+    have corresponding mzML files available.
+    Sometimes, a single feature file is provided for all chromatogram files, this function checks
+    whether there is corresponding chromatogram file present for each run.
+    
+    >>> chromatogramFiles = ["file1.chrom.mzML", "file2.chrom.mzML"]
+    >>> featureFiles = ["file1.osw", "file2.osw"]
+    >>> featureFiles_chromFiles_map = getMapping(chromatogramFiles, featureFiles)
+    >>> {"file1.osw" : [run1], "file2.osw" : [run2]}
+    """
+
+    # Read osw file. Create a dictionary of "Feature file": Run()
+    MS_feature_fileMapping = getRunfromFeatureFile(featureFiles, useCython)
+
+    # Read mzML, get a list of all provided mzML file.
+    chromFiles = []
+    for filename in chromatogramFiles:
+        base_name = getBaseName(filename)
+        if base_name in chromFiles:
+            print(str(filename) + " has basename same as of another mzML file. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.")
+        else:
+            chromFiles.append(base_name)
+
+    # Iterate through the osw file and find associated mzML file.
+    # Remove Run from the dictionary if mzML file is missing and Throw warning.
+    # Add to the final dictionary if the basename has associated chromatogram file and OpenSWATH feature file.
+
+    for featureFile, runs in MS_feature_fileMapping.items():
+        for run in runs:
+            MSrun = getBaseName(run.get_openswath_filename())
+            if(MSrun not in chromFiles):
+                # Warning
+                print("Chromatogram file associated with " + run.get_openswath_filename() + " from " + run.get_original_filename() + " is not found. Skipping!")
+                MS_feature_fileMapping[featureFile].remove(run)
+        if len(MS_feature_fileMapping[featureFile]) == 0:
+            del MS_feature_fileMapping[featureFile]
+    
+    if not MS_feature_fileMapping:
+        # Error
+        raise Exception("Feature files and chromatogram files do not have matching names.")
+    return MS_feature_fileMapping
+
+def getRunfromFeatureFile(featureFiles, useCython = False):
+    """
+    Return as dictionary with key as feature file and value as associated Run objects.
+
+    >>> featureFiles = ["merged.osw"]
+    >>> fileMapping = getRunfromFeatureFile(featureFiles)
+    >>> fileMapping = {"merged.osw": [Run0, Run1, Run2]}
+    """
+
+    import sqlite3
+    MSfile_featureFile_mapping = {}
+    for filename in featureFiles:
+        MSfile_featureFile_mapping[filename] = []
+        conn = sqlite3.connect(filename)
+        c = conn.cursor()
+        try:
+            # Retrieve and then iterate over all available runs
+            query = """SELECT ID, FILENAME FROM RUN"""
+            results = [row for row in c.execute(query)]
+            for (run_id, MS_file) in results:
+                current_run = Run([], {}, run_id, filename, MS_file, MS_file, useCython=useCython)
+                MSfile_featureFile_mapping[filename].append(current_run)
+        
+        except sqlite3.Error as e:
+            print("An error occured in reading file " + str(filename) + ", ", e.args[0])
+            conn.close()
+                
+        # Close the connection
+        conn.close()
+    return MSfile_featureFile_mapping
+
+def getBaseName(filename):
+    """
+    Returns a basename for filename. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.
+    
+    >>> getBaseName('data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz')
+    >>> hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt
+    """
+
+    fileBase = filename
+    # Remove directory separator from filename
+    for dir_sep in ["/", "\\"]:
+        fileBase = fileBase.split(dir_sep)[-1]
+    # First remove gz, then sqmass, then mzML & then chrom, if present.
+    for ending in [".gz", ".sqMass", ".mzML", ".chrom"]:
+        fileBase = fileBase.split(ending)[0]
+    return fileBase
