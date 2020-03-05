@@ -313,6 +313,44 @@ class SplineAligner():
 
         return self.transformation_collection
 
+    def rt_align_pair(self, refrun, eXprun, multipeptides):
+        """
+        Returns the smoothing object that aligns reference run (refrun) against experiment run (eXprun).
+        """
+
+        sm = smoothing.getSmoothingObj(smoother = self.smoother, tmpdir = self.tmpdir_)
+
+        # get those peptides we want to use for alignment => for this use the mapping
+        # data1 = reference data (master)
+        # data2 = data to be aligned (slave)
+        data1,data2 = self._getRTData(eXprun, refrun, multipeptides)
+        if len(data1) < 2:
+            print("No common identifications between %s and %s. Only found %s features below a cutoff of %s" % ( 
+                refrun.get_id(), eXprun.get_id(), len(data1), self.alignment_fdr_threshold_) )
+            print("If you ran the chromatogram_alignment.py script, try to use local alignment only." )
+            raise Exception("Not enough datapoints (less than 2 datapoints).")
+
+        # Since we want to predict how to convert from slave to master, slave
+        # is first and master is second.
+        sm.initialize(data2, data1)
+        data2_aligned = sm.predict(data2)
+
+        # Store transformation in collection (from refrun to eXprun)
+        self.transformation_collection.addTransformationData([data2, data1], refrun.get_id(), eXprun.get_id() )
+        self.transformation_collection.addTransformedData(data2_aligned, refrun.get_id(), eXprun.get_id() )
+
+        stdev = numpy.std(numpy.array(data1) - numpy.array(data2_aligned))
+        median = numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
+        print("Will align run %s against %s, using %s features" % (refrun.get_id(), eXprun.get_id(), len(data1)) )
+        print("  Computed stdev", stdev, "and median", median )
+
+        # Store error for later
+        d = self.transformation_error.transformations.get(refrun.get_id(), {})
+        d[eXprun.get_id()] = [stdev, median]
+        self.transformation_error.transformations[ refrun.get_id() ] = d
+
+        return sm
+
     def getTransformationError(self):
         """
         Get the error of the transformation
