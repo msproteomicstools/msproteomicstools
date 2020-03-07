@@ -313,6 +313,10 @@ class SplineAligner():
 
         return self.transformation_collection
 
+    def initialize_transformation_error(self):
+        """Initialzes transformation error (Not sure if it can be moved to __init__)"""
+        self.transformation_error = TransformationError()
+
     def rt_align_pair(self, refrun, eXprun, multipeptides):
         """
         Returns the smoothing object that aligns reference run (refrun) against experiment run (eXprun).
@@ -339,14 +343,12 @@ class SplineAligner():
         self.transformation_collection.addTransformationData([data2, data1], refrun.get_id(), eXprun.get_id() )
         self.transformation_collection.addTransformedData(data2_aligned, refrun.get_id(), eXprun.get_id() )
 
-        stdev = numpy.std(numpy.array(data1) - numpy.array(data2_aligned))
+        RSE = numpy.std(numpy.array(data1) - numpy.array(data2_aligned)) # Residual Standard Error is an estimate of standard-deviation
         median = numpy.median(numpy.array(data1) - numpy.array(data2_aligned))
-        print("Will align run %s against %s, using %s features" % (refrun.get_id(), eXprun.get_id(), len(data1)) )
-        print("  Computed stdev", stdev, "and median", median )
 
         # Store error for later
         d = self.transformation_error.transformations.get(refrun.get_id(), {})
-        d[eXprun.get_id()] = [stdev, median]
+        d[eXprun.get_id()] = [RSE, median]
         self.transformation_error.transformations[ refrun.get_id() ] = d
 
         return sm

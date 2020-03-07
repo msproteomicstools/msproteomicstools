@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
 import os, sys, csv, time
-import numpy
+
 import argparse
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.version import __version__ as version
@@ -15,6 +15,7 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_
 from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
+import numpy as np
 from analysis.alignment.feature_alignment import Experiment
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.SWATHScoringMapper import MSfileRunMapping, getPrecursorTransitionMapping
@@ -170,7 +171,7 @@ reference_run = get_multipeptide_reference_run(multipeptides, alignment_fdr_thre
 
 # Pairwise global alignment
 spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
-
+spl_aligner.initialize_transformation_error()
 # Initialize XIC smoothing function
 sm = smoothing.getXIC_SmoothingObj(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
 def smoothXICs(XIC_Group, sm):
@@ -183,23 +184,39 @@ def smoothXICs(XIC_Group, sm):
 
 # Use multiprocessing tool for extracting chromatograms
 prec_id = 9719 #, 9720
-ref_run_id = reference_run[prec_id].get_id()
-transition_ids = run_chromIndex_map[ref_run_id][prec_id]
-XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
-XICs_ref_sm = smoothXICs(XICs_ref, sm)
-
-for prec_id in precursor_mapping:
+RSEdistFactor = 4
+for prec_id in precursor_to_transitionID:
     refrun = reference_run[prec_id]
     eXps = list(set(runs) - set([refrun]))
     # Extract XICs from reference run
-    ref_run_id = refrun.get_id()
-    transition_ids = run_chromIndex_map[ref_run_id][prec_id]
-    XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
+    refrun_id = refrun.get_id()
+    chrom_ids = run_chromIndex_map[refrun_id][prec_id]
+    XICs_ref = extractXIC_group(chrom_file_accessor[refrun_id], chrom_ids)
     XICs_ref_sm = smoothXICs(XICs_ref, sm)
     # Iterate through all other runs and align them to the reference run
     for eXprun in eXps:
-        # Global alignment
+        ## Extract XICs from experiment run
+        eXprun_id = eXprun.get_id()
+        chrom_ids = run_chromIndex_map[eXprun_id][prec_id]
+        XICs_eXp = extractXIC_group(chrom_file_accessor[eXprun_id], chrom_ids)
+        XICs_eXp_sm = smoothXICs(XICs_eXp, sm)
+        # Get time component
+        t_ref = XICs_ref_sm[0][0]
+        t_eXp = XICs_eXp_sm[0][0]
+        ## Set up constraints for penalizing similarity matrix
+        # Get constraining end-points using Global alignment
         globalAligner = spl_aligner.rt_align_pair(refrun, eXprun, multipeptides)
+        B1p = globalAligner.predict([ t_ref[0] ])
+        B2p = globalAligner.predict([ t_ref[-1] ])
+        # Get width of the constraining window
+        adaptiveRT = RSEdistFactor * spl_aligner.transformation_error.transformations[refrun_id][eXprun_id][0]
+        samplingTime = (t_ref[-1] - t_ref[0]) / (len(t_ref) - 1)
+        noBeef = np.ceil(adaptiveRT/samplingTime)
+        ## Get intensity values to build similarity matrix
+        intensityList_ref = np.array([xic[1] for xic in XICs_ref_sm])
+        intensityList_eXp = np.array([xic[1] for xic in XICs_eXp_sm])
+        intensityList_ref = np.ascontiguousarray(intensityList_ref)
+        intensityList_eXp = np.ascontiguousarray(intensityList_eXp)
 
     
     

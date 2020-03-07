@@ -929,7 +929,7 @@ class LoessSmooth(LowessSmoothingBase):
         return [ r[0] for r in result], [r[1] for r in result]
     
     def smooth(self, xhat, yhat):
-        return xhat, self.predict(xhat)
+        return xhat, numpy.array(self.predict(xhat))
 
 class SgolaySmooth:
     """Savitzky-Golay smoothing. It preserves the peak shape"""
