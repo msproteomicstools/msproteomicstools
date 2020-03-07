@@ -21,6 +21,12 @@ from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.SWATHScoringMapper import MSfileRunMapping, getPrecursorTransitionMapping
 #from analysis.alignment.chromatogram_alignment import get_reference_run, get_precursor_reference_run, get_multipeptide_reference_run
 
+import matplotlib.pyplot as plt
+fig = plt.figure()
+plt.close()
+from pyopenms import OnDiscMSExperiment
+import msproteomicstoolslib.math.Smoothing as smoothing
+
 # Get a single reference run
 def get_reference_run(experiment, multipeptides, alignment_fdr_threshold = 0.05):
     """
@@ -99,6 +105,14 @@ def get_multipeptide_reference_run(multipeptides, alignment_fdr_threshold = 0.05
     return reference_run
 
 
+def extractXIC_group(mz, chromIndices):
+    """ Extract chromatograms for chromatrogram indices """
+    XIC_group = [None]*len(chromIndices)
+    for i in range(len(chromIndices)):
+        # Chromatogram is a tuple (time_array, intensity_array) of numpy array
+        XIC_group[i] = mz.getChromatogram(chromIndices[i]).get_peaks()
+    return XIC_group
+
 infiles = ["../DIAlignR/inst/extdata/osw/merged.osw"]
 chromatograms = ["../DIAlignR/inst/extdata/mzml/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML",
  "../DIAlignR/inst/extdata/mzml/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML",
@@ -114,7 +128,35 @@ reader = SWATHScoringReader.newReader(infiles, file_format, readmethod, readfilt
 runs = reader.parse_files()
 MStoFeature = MSfileRunMapping(chromatograms, runs)
 # MStoFeature[runs[0].get_openswath_filename()][0]
-precursor_mapping = getPrecursorTransitionMapping(infiles[0])
+precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
+
+# Establish connection to mzML files
+# TODO Add the mz accessor to Run object
+chrom_file_accessor = {}
+for run in runs:
+    mz = OnDiscMSExperiment()
+    mzml_file = MStoFeature[run.get_openswath_filename()][0]
+    mz.openFile(mzml_file)
+    chrom_file_accessor[run.get_id()] = mz
+
+# Get precursor to chromatogram indices
+run_chromIndex_map = {}
+for run in runs:
+    meta_data = chrom_file_accessor[run.get_id()].getMetaData()
+    precursor_to_chromIndex = {}
+    # Initialize chromatogram indices with -1
+    for prec in precursor_to_transitionID:
+        precursor_to_chromIndex[prec] = [-1]*len(precursor_to_transitionID[prec])
+    # Iterate through Native IDs in mzML file
+    for i in range(meta_data.getNrChromatograms()):
+        nativeID = int(meta_data.getChromatogram(i).getNativeID())
+        # Check if Native ID matches to any of our transition IDs.
+        for prec in precursor_to_transitionID:
+            if nativeID in precursor_to_transitionID[prec]:
+                # Find the index of transition ID and insert chromatogram index
+                index = precursor_to_transitionID[prec].index(nativeID)
+                precursor_to_chromIndex[prec][index] = i
+    run_chromIndex_map[run.get_id()] = precursor_to_chromIndex
 
 this_exp = Experiment()
 this_exp.set_runs(runs)
@@ -128,55 +170,42 @@ reference_run = get_reference_run(this_exp, multipeptides, alignment_fdr_thresho
 reference_run = get_precursor_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
 reference_run = get_multipeptide_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
 
+# Initialize smoothing function
+sm = smoothing.getXIC_SmoothingObj(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
+def smoothXICs(XIC_Group, sm):
+    XIC_Group_sm = []
+    for XIC in XIC_Group:
+        sm.initialize(XIC[0], XIC[1])
+        XIC_sm = sm.smooth(XIC[0], XIC[1])
+        XIC_Group_sm.append(XIC_sm)
+    return XIC_Group_sm
+
+# Use multiprocessing tool for extracting chromatograms
+prec_id = 9719 #, 9720
+ref_run_id = reference_run[prec_id].get_id()
+transition_ids = run_chromIndex_map[ref_run_id][prec_id]
+XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
+XICs_ref_sm = smoothXICs(XICs_ref, sm)
+
+for prec_id in precursor_mapping:
+    ref_run_id = reference_run[prec_id].get_id()
+    transition_ids = run_chromIndex_map[ref_run_id][prec_id]
+    XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
+    XICs_ref_sm = smoothXICs(XICs_ref, sm)
+    
 # Iterate through each precursor and get the alignment.
-    #Get precursor id
-    #Get associated transition id
-    #Extract XICs using pyopenms
-    #smooth XICs using pyopenms
     #Get smoothing from SplineAligner. Check if smoothing is already present.
     #calculate AdaptiveRT
     #getAlignObj function that calls DIAlignPy
     # SplineAligner.py _spline_align_runs(self, bestrun, run, multipeptides)
 
+fig = plt.figure()
+XIC_Group = XICs_ref_sm
+for k in range(len(XIC_Group)):
+    x = XIC_Group[k][0]
+    y = XIC_Group[k][1]
+    plt.plot(x, y)
 
-for i in range(len(multipeptides)):
-    for run in runs:
-        id = run.get_id()
-        prec = multipeptides[0].getPrecursorGroup(id).getAllPrecursors()
-        
-
-
-
-options = handle_args()
-
-# python ./analysis/alignment/chromatogram_alignment.py --in file1_input.csv file2_input.csv file3_input.csv --out aligned.csv  --method best_overall --max_rt_diff 90 --target_fdr 0.01 --max_fdr_quality 0.05
-
-# multipeptides[i].get_peptides()[j].get_run()
-#                                   .get_precursors()
-
-getAllPeptides # Returns a list of Precursor from each run. How come there are only three?
-getPrecursorGroup
-getPrecursorGroups
-
-
-runs[0].get_id() # 125704171604355508
-runs[1].get_id() # 6752973645981403097
-runs[2].get_id() # 2234664662238281994
-
-multipeptides[0].getPrecursorGroup(6752973645981403097)
-multipeptides[0].getPrecursorGroup(2234664662238281994).getOverallBestPeakgroup().get_fdr_score()
-multipeptides[0].getPrecursorGroup(2234664662238281994).getAllPrecursors()[0].get_best_peakgroup().get_fdr_score()
-
-id = multipeptides[0].getPrecursorGroup(2234664662238281994).getAllPrecursors()[0].get_id()
-id = 9719
-id = 9720
-chromid = precursor_mapping[id]
-
-run = pymzml.run.Reader(chromatograms[0], build_index_from_scratch=True)
-run.info["seekable"]
-run.info["offsets"].items()
-run[str(chromid[0])].peaks
-
-getOverallBestPeakgroup
-getAllPrecursors
-getAllPeakgroups
+plt.ylabel('Intensity')
+plt.show()
+plt.close()
