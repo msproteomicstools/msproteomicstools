@@ -911,8 +911,6 @@ class LoessSmooth(LowessSmoothingBase):
         if len(data2) < 100:
             frac = 1.0
         else:
-            print(self.kernelLen)
-            print(len(data1))
             frac = self.kernelLen / len(data1)
 
         k = 0
@@ -923,13 +921,15 @@ class LoessSmooth(LowessSmoothingBase):
 
             if any( [math.isnan(r[1]) for r in result] ):
                 print ("WARNING: lowess returned NA data points! We are trying to fix it")
-                delta = delta * k
-                result = lowess(numpy.array(data2), numpy.array(data1), delta=delta, frac=frac, it=10)
+                result = lowess(numpy.array(data2), numpy.array(data1), delta=0.0, frac=frac, it=10)
                 frac = 1.0
             else:
                 break
 
         return [ r[0] for r in result], [r[1] for r in result]
+    
+    def smooth(self, xhat, yhat):
+        return xhat, self.predict(xhat)
 
 class SgolaySmooth:
     """Savitzky-Golay smoothing. It preserves the peak shape"""
@@ -941,11 +941,11 @@ class SgolaySmooth:
         self.window_length = kernelLen
         self.polyorder = polyOrd
 
-    def initialize(self):
+    def initialize(self, data1, data2):
         pass
 
-    def predict(self, xhat):
-        return savgol_filter(numpy.array(xhat), self.window_length, self.polyorder)
+    def smooth(self, xhat, yhat):
+        return xhat, savgol_filter(numpy.array(yhat), self.window_length, self.polyorder)
 
 class GaussianSmooth:
     """
@@ -959,9 +959,9 @@ class GaussianSmooth:
         sigma = kernelLen / np.sqrt(8 * np.log(2))
         self.sigma = sigma*0.3706505 # Scaled to have quartiles at +/- 0.25*sigma
 
-    def initialize(self):
+    def initialize(self, data1, data2):
         pass
 
-    def predict(self, xhat):
-        return gaussian_filter1d(numpy.array(xhat), sigma = self.sigma, mode = 'constant', cval = 0.0)
+    def smooth(self, xhat, yhat):
+        return xhat, gaussian_filter1d(numpy.array(yhat), sigma = self.sigma, mode = 'constant', cval = 0.0)
 
