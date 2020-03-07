@@ -12,15 +12,13 @@ from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix, TreeConsensusAlignment
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, addDataToTrafo
-from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
 from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
 from analysis.alignment.feature_alignment import Experiment
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.SWATHScoringMapper import MSfileRunMapping, getPrecursorTransitionMapping
-#from analysis.alignment.chromatogram_alignment import get_reference_run, get_precursor_reference_run, get_multipeptide_reference_run
-
+from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligner
 import matplotlib.pyplot as plt
 fig = plt.figure()
 plt.close()
@@ -170,7 +168,10 @@ reference_run = get_reference_run(this_exp, multipeptides, alignment_fdr_thresho
 reference_run = get_precursor_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
 reference_run = get_multipeptide_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
 
-# Initialize smoothing function
+# Pairwise global alignment
+spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
+
+# Initialize XIC smoothing function
 sm = smoothing.getXIC_SmoothingObj(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
 def smoothXICs(XIC_Group, sm):
     XIC_Group_sm = []
@@ -188,10 +189,19 @@ XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
 XICs_ref_sm = smoothXICs(XICs_ref, sm)
 
 for prec_id in precursor_mapping:
-    ref_run_id = reference_run[prec_id].get_id()
+    refrun = reference_run[prec_id]
+    eXps = list(set(runs) - set([refrun]))
+    # Extract XICs from reference run
+    ref_run_id = refrun.get_id()
     transition_ids = run_chromIndex_map[ref_run_id][prec_id]
     XICs_ref = extractXIC_group(chrom_file_accessor[ref_run_id], transition_ids)
     XICs_ref_sm = smoothXICs(XICs_ref, sm)
+    # Iterate through all other runs and align them to the reference run
+    for eXprun in eXps:
+        # Global alignment
+        globalAligner = spl_aligner.rt_align_pair(refrun, eXprun, multipeptides)
+
+    
     
 # Iterate through each precursor and get the alignment.
     #Get smoothing from SplineAligner. Check if smoothing is already present.
