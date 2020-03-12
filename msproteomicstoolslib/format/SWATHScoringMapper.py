@@ -461,6 +461,7 @@ def getPrecursorTransitionMapping(filename):
     query = """
     SELECT PRECURSOR.ID AS transition_group_id,
     TRANSITION_PRECURSOR_MAPPING.TRANSITION_ID AS transition_id,
+    PRECURSOR_PEPTIDE_MAPPING.PEPTIDE_ID AS peptide_id,
     PEPTIDE.MODIFIED_SEQUENCE AS sequence,
     PRECURSOR.CHARGE AS charge
     FROM PRECURSOR
@@ -477,13 +478,14 @@ def getPrecursorTransitionMapping(filename):
             continue
         trgr_id = int(this_row[0])
         transition_id = int(this_row[1])
+        peptide_id = int(this_row[2])
         # Add transition_group_id to precursors_mapping if not present.
         if trgr_id not in precursors_mapping:
-            precursors_mapping[trgr_id] = []
+            precursors_mapping[trgr_id] = (peptide_id, [])
         # Get the transition mapping.
-        tmp = precursors_mapping.get(trgr_id, [])
+        tmp = precursors_mapping.get(trgr_id, (peptide_id, []))[1]
         if transition_id not in tmp:
-            precursors_mapping[trgr_id].append(transition_id)
+            precursors_mapping[trgr_id][1].append(transition_id)
     conn.close()
     return precursors_mapping
 
