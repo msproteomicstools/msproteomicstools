@@ -28,7 +28,9 @@ from pyopenms import OnDiscMSExperiment
 import msproteomicstoolslib.math.Smoothing as smoothing
 from DIAlignPy import AffineAlignObj, alignChromatogramsCpp
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import addDataToTrafo
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, addDataToTrafo
+from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
+
 
 # Get a single reference run
 def get_reference_run(experiment, multipeptides, alignment_fdr_threshold = 0.05):
@@ -135,6 +137,12 @@ def get_pair_trafo(tr_data, spl_aligner, run_0, run_1, multipeptides,
                         realign_method = spl_aligner.smoother, max_rt_diff = max_rt_diff, force=force)
     return tr_data.getTrafo(run1_id, run0_id), tr_data.getStdev(run1_id, run0_id)
 
+# Build a chromatogram extractor class
+# It has params: mz, max_chromlength
+# It has function: extractXIC_group
+# meta_data = mz.getMetaData()
+# maxIndex = len(meta_data.getChromatograms())
+
 def extractXIC_group(mz, chromIndices):
     """ Extract chromatograms for chromatrogram indices """
     XIC_group = [None]*len(chromIndices)
@@ -229,11 +237,12 @@ RSEdistFactor = 4
 # Calculate the aligned retention time for each precursor across all runs
 prec_ids = list(precursor_to_transitionID.keys())
 retention_time = {}
+retention_time['precursor_id'] = prec_ids
 for run in runs:
     retention_time[run.get_id()] = [None]*len(prec_ids)
 
 for i in range(len(prec_ids)):
-    prec_id = prec_ids[i]
+    prec_id = prec_ids[i] #9719 9720
     refrun = reference_run.get(prec_id)
     if not refrun:
         print("The precursor {} doesn't have any associated reference run. Skipping!".format(prec_id))
@@ -299,12 +308,47 @@ for i in range(len(prec_ids)):
         t_eXp_aligned = get_aligned_time(t_eXp, AlignedIndices['indexAligned_eXp'])
         t_eXp_aligned = pd.Series(t_eXp_aligned).interpolate(method ='linear', limit_area = 'inside')
         t_ref_aligned = np.asarray(t_ref_aligned)
+        t_eXp_aligned = np.asarray(t_eXp_aligned)
         index = np.nanargmin(np.abs(t_ref_aligned - refRT))
         eXpRT = t_eXp_aligned[index]
         retention_time[eXprun_id][i] = eXpRT
+        # Update retention time of all peak-groups to reference peak-group
+        # get all peak-groups.
+        prec = eXprun.getPrecursor(peptide_group_label, prec_id)
+        if prec is None:
+            # TODO
+            # Map boundaries, integrate area.
+            # Create a precursor with the new peak-group and add it to the eXprun. 
+            continue
+        # Get their retention times.
+        mutable = [list(pg) for pg in prec.peakgroups_]
+        for k in range(len(mutable)):
+            # Get corresponding retention time from reference run.
+            index = np.nanargmin(np.abs(t_eXp_aligned - mutable[k][2]))
+            # Update the retention time.
+            mutable[k][2] = t_ref_aligned[index]
+        
+        # Insert back in precusor.
+        prec.peakgroups_ = [ tuple(m) for m in mutable]
 
 retention_time = pd.DataFrame.from_dict(retention_time)
-retention_time = retention_time.dropna(how='all')
+retention_time.dropna(how = 'any', thresh = len(runs), inplace=True)
+retention_time.reset_index(drop=True, inplace=True)
+
+AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = adaptiveRT, fdr_cutoff = 0.01,
+                    aligned_fdr_cutoff = 0.05, method = "best_overall")
+al = this_exp.print_stats(multipeptides, 0.05, 0.1, 1)
+
+
+fraction_needed_selected = 0.0
+write_out_matrix_file("GDYD.csv", runs, multipeptides, fraction_needed_selected, "RT", 0.05)
+
+
+# Go through each multipeptide
+# Find all precursors
+# Find all peak groups for each precursor.
+# Select the peakgroup for quantification. Set cluster_id = 1.
+# 
 """
 B1p = 19.955
 B2p = 49.998
@@ -319,8 +363,38 @@ chromAlignObj.indexA_aligned # [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 chromAlignObj.indexB_aligned # [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 10]
 """
 
+
+
+# p.get_best_peakgroup().select_this_peakgroup()
+"""
+retention_time
+    precursor_id  125704171604355508  6752973645981403097  2234664662238281994
+0           1967             5050.60               5049.6              5049.60
+1           2474             6458.33               Nan                 6458.60
+2           3864             3701.50               3664.0              3701.29
+3           4618             5222.12               5220.8              5220.80
+4           9719             2794.40               2793.6              2793.60
+5           9720             2541.83               2540.2              2540.20
+6          13678             4522.31               4521.3              4521.30
+7          13679             3874.85               3876.1              3876.10
+8          14378             4305.99               4306.5              4306.50
+9          17186             4649.70               4651.0              4651.00
+10         20003             4131.70               4128.3              4130.72
+
+prec_id = 3864 # 2474, 20003
+# For 3864 picks a peak from run1 based on FDR, if matched over boundary the peak should be different that is
+# not even picked by OpenSWATH. Same for run0, OpenSWATH didn't even pick that feature.
+# For 2474, some reason it didn't even have reasonable peak-groups in all three runs. Investigate
+runs[0].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
+runs[1].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
+runs[2].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
+
+run_id = runs[2].get_id()
+chrom_ids = run_chromIndex_map[run_id][prec_id]
+XICs_eXp = extractXIC_group(chrom_file_accessor[run_id], chrom_ids)
+XICs_eXp_sm = smoothXICs(XICs_eXp, sm)
 fig = plt.figure()
-XIC_Group = XICs_ref_sm
+XIC_Group = XICs_eXp_sm
 for k in range(len(XIC_Group)):
     x = XIC_Group[k][0]
     y = XIC_Group[k][1]
@@ -329,3 +403,4 @@ for k in range(len(XIC_Group)):
 plt.ylabel('Intensity')
 plt.show()
 plt.close()
+"""
