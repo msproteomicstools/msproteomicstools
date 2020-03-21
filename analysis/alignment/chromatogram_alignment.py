@@ -6,7 +6,7 @@ import argparse
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.math.chauvenet import chauvenet
-from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
+
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
@@ -24,6 +24,7 @@ from msproteomicstoolslib.algorithms.alignment.SplineAligner import SplineAligne
 import matplotlib.pyplot as plt
 fig = plt.figure()
 plt.close()
+from msproteomicstoolslib.format.TransformationCollection import initialize_transformation
 from pyopenms import OnDiscMSExperiment
 from analysis.chromatogram_utils.smooth_chromatograms import chromSmoother
 from analysis.alignment.reference_run_selection import referenceForPrecursor
@@ -33,18 +34,6 @@ from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 
 
-def initialize_transformation():
-    # Initialize objects to get transformation
-    try:
-        from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
-        if optimized_cython:
-            tr_data = CyLightTransformationData()
-        else:
-            tr_data = LightTransformationData()
-    except ImportError:
-        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
-        tr_data = LightTransformationData()
-    return tr_data
 
 # Build a chromatogram extractor class
 # It has params: mz, max_chromlength
