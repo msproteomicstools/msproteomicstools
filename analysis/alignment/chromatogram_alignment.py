@@ -27,29 +27,12 @@ plt.close()
 from msproteomicstoolslib.format.TransformationCollection import initialize_transformation
 from pyopenms import OnDiscMSExperiment
 from analysis.chromatogram_utils.smooth_chromatograms import chromSmoother
+from analysis.chromatogram_utils.chromatogramMapper import *
 from analysis.alignment.reference_run_selection import referenceForPrecursor
 from DIAlignPy import AffineAlignObj, alignChromatogramsCpp
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, get_pair_trafo
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
-
-
-
-# Build a chromatogram extractor class
-# It has params: mz, max_chromlength
-# It has function: extractXIC_group
-# meta_data = mz.getMetaData()
-# maxIndex = len(meta_data.getChromatograms())
-
-def extractXIC_group(mz, chromIndices):
-    """ Extract chromatograms for chromatrogram indices """
-    XIC_group = [None]*len(chromIndices)
-    for i in range(len(chromIndices)):
-        # Chromatogram is a tuple (time_array, intensity_array) of numpy array
-        # mz.getChromatogramById(chromIndices[i]).getIntensityArray()
-        # mz.getChromatogramById(chromIndices[i]).getTimeArray()
-        XIC_group[i] = mz.getChromatogram(chromIndices[i]).get_peaks()
-    return XIC_group
 
 def get_aligned_time(t, indices, skipValue = -1):
     t_aligned = [None]*len(indices)
@@ -75,37 +58,8 @@ runs = reader.parse_files()
 MStoFeature = MSfileRunMapping(chromatograms, runs)
 # MStoFeature[runs[0].get_openswath_filename()][0]
 precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
-
-
-# Establish connection to mzML files
-# TODO Add the mz accessor to Run object
-chrom_file_accessor = {}
-for run in runs:
-    mz = OnDiscMSExperiment()
-    mzml_file = MStoFeature[run.get_openswath_filename()][0]
-    mz.openFile(mzml_file)
-    chrom_file_accessor[run.get_id()] = mz
-
-
-# Get precursor to chromatogram indices
-invalid_chromIndex = -1
-run_chromIndex_map = {}
-for run in runs:
-    meta_data = chrom_file_accessor[run.get_id()].getMetaData()
-    precursor_to_chromIndex = {}
-    # Initialize chromatogram indices with -1
-    for prec in precursor_to_transitionID:
-        precursor_to_chromIndex[prec] = [invalid_chromIndex]*len(precursor_to_transitionID[prec][1])
-    # Iterate through Native IDs in mzML file
-    for i in range(meta_data.getNrChromatograms()):
-        nativeID = int(meta_data.getChromatogram(i).getNativeID())
-        # Check if Native ID matches to any of our transition IDs.
-        for prec in precursor_to_transitionID:
-            if nativeID in precursor_to_transitionID[prec][1]:
-                # Find the index of transition ID and insert chromatogram index
-                index = precursor_to_transitionID[prec][1].index(nativeID)
-                precursor_to_chromIndex[prec][index] = i
-    run_chromIndex_map[run.get_id()] = precursor_to_chromIndex
+MZs = mzml_accessors(runs, MStoFeature)
+MZs.get_precursor_to_chromID(precursor_to_transitionID)
 
 this_exp = Experiment()
 this_exp.set_runs(runs)
@@ -114,8 +68,8 @@ fdr_cutoff = 0.05
 multipeptides = this_exp.get_all_multipeptides(fdr_cutoff, verbose=False, verbosity= 10)
 print("Mapping the precursors took %0.2fs" % (time.time() - start) )
 
-best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
 # Reference based alignment
+best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
 reference_run = referenceForPrecursor(refType="best_run", run= best_run, alignment_fdr_threshold = 0.05).get_reference_for_precursors(multipeptides)
 # Pairwise global alignment
 spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
@@ -132,6 +86,7 @@ retention_time['precursor_id'] = prec_ids
 for run in runs:
     retention_time[run.get_id()] = [None]*len(prec_ids)
 
+
 for i in range(len(prec_ids)):
     prec_id = prec_ids[i] #9719 9720
     refrun = reference_run.get(prec_id)
@@ -141,11 +96,9 @@ for i in range(len(prec_ids)):
     eXps = list(set(runs) - set([refrun]))
     # Extract XICs from reference run
     refrun_id = refrun.get_id()
-    chrom_ids = run_chromIndex_map[refrun_id][prec_id]
-    if invalid_chromIndex in chrom_ids:
-        print("Can't extract XICs for precursor {} from run {}. Skipping!".format(prec_id, refrun_id))
+    XICs_ref = MZs.extractXIC_group(refrun, prec_id)
+    if not XICs_ref:
         continue
-    XICs_ref = extractXIC_group(chrom_file_accessor[refrun_id], chrom_ids)
     XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
     # For each precursor, we need peptide_group_label and trgr_id
     peptide_group_label = precursor_to_transitionID[prec_id][0]
@@ -157,11 +110,9 @@ for i in range(len(prec_ids)):
     for eXprun in eXps:
         ## Extract XICs from experiment run
         eXprun_id = eXprun.get_id()
-        chrom_ids = run_chromIndex_map[eXprun_id][prec_id]
-        if invalid_chromIndex in chrom_ids:
-            print("Can't extract XICs for precursor {} from run {}".format(prec_id, refrun_id))
+        XICs_eXp = MZs.extractXIC_group(eXprun, prec_id)
+        if not XICs_eXp:
             continue
-        XICs_eXp = extractXIC_group(chrom_file_accessor[eXprun_id], chrom_ids)
         XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
         # Get time component
         t_ref = XICs_ref_sm[0][0]
