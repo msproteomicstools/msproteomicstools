@@ -43,6 +43,63 @@ def get_aligned_time(t, indices, skipValue = -1):
     t_aligned =  np.asarray(pd.Series(t_aligned).interpolate(method ='linear', limit_area = 'inside'))
     return t_aligned
 
+def updateRetentionTime(run, peptide_group_label, prec_id, t_ref_aligned, t_eXp_aligned):
+    prec = run.getPrecursor(peptide_group_label, prec_id)
+    if prec is None:
+        # TODO
+        # Map boundaries, integrate area.
+        # Create a precursor with the new peak-group and add it to the run. 
+        return
+    else:
+        # Get their retention times.
+        mutable = [list(pg) for pg in prec.peakgroups_]
+        for k in range(len(mutable)):
+            # Get corresponding retention time from reference run.
+            index = np.nanargmin(np.abs(t_eXp_aligned - mutable[k][2]))
+            # Update the retention time.
+            mutable[k][2] = t_ref_aligned[index]
+        # Insert back in precusor.
+        prec.peakgroups_ = [ tuple(m) for m in mutable]
+
+def RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, RSEdistFactor, tr_data, spl_aligner, eXprun, refrun, multipeptides,
+                            alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
+                            goFactor = 0.125, geFactor = 40,
+                            cosAngleThresh = 0.3, OverlapAlignment = True,
+                            dotProdThresh = 0.96, gapQuantile = 0.5,
+                            hardConstrain = False, samples4gradient = 100):
+    # Get time component
+    t_ref = XICs_ref_sm[0][0]
+    t_eXp = XICs_eXp_sm[0][0]
+    ## Set up constraints for penalizing similarity matrix
+    # Get RT tranfromation from refrun to eXprun.
+    globalAligner, stdErr = get_pair_trafo(tr_data, spl_aligner, eXprun, refrun, multipeptides)
+    # Get constraining end-points using Global alignment
+    B1p = globalAligner.predict([ t_ref[0] ])[0]
+    B2p = globalAligner.predict([ t_ref[-1] ])[0]
+    # Get width of the constraining window
+    adaptiveRT = RSEdistFactor * stdErr
+    samplingTime = (t_ref[-1] - t_ref[0]) / (len(t_ref) - 1)
+    noBeef = np.ceil(adaptiveRT/samplingTime)
+    ## Get intensity values to build similarity matrix
+    intensityList_ref = np.ascontiguousarray(np.array([xic[1] for xic in XICs_ref_sm], dtype=np.double))
+    intensityList_eXp = np.ascontiguousarray(np.array([xic[1] for xic in XICs_eXp_sm], dtype=np.double))
+    chromAlignObj = AffineAlignObj(256, 256)
+    alignChromatogramsCpp(chromAlignObj, intensityList_ref, intensityList_eXp,
+                                alignType = b"hybrid", tA = t_ref, tB = t_eXp,
+                                normalization = b"mean", simType = b"dotProductMasked",
+                                B1p = B1p, B2p = B2p, noBeef = noBeef,
+                                goFactor = 0.125, geFactor = 40,
+                                cosAngleThresh = 0.3, OverlapAlignment = True,
+                                dotProdThresh = 0.96, gapQuantile = 0.5,
+                                hardConstrain = False, samples4gradient = 100)
+    AlignedIndices = pd.DataFrame(list(zip(chromAlignObj.indexA_aligned, chromAlignObj.indexB_aligned)),
+                                    columns =['indexAligned_ref', 'indexAligned_eXp'])
+    AlignedIndices['indexAligned_ref'] -= 1
+    AlignedIndices['indexAligned_eXp'] -= 1
+    t_ref_aligned = get_aligned_time(t_ref, AlignedIndices['indexAligned_ref'])
+    t_eXp_aligned = get_aligned_time(t_eXp, AlignedIndices['indexAligned_eXp'])
+    return t_ref_aligned, t_eXp_aligned
+
 infiles = ["../DIAlignR/inst/extdata/osw/merged.osw"]
 chromatograms = ["../DIAlignR/inst/extdata/mzml/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML",
  "../DIAlignR/inst/extdata/mzml/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML",
@@ -71,7 +128,7 @@ print("Mapping the precursors took %0.2fs" % (time.time() - start) )
 
 # Reference based alignment
 best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
-reference_run = referenceForPrecursor(refType="best_run", run= best_run, alignment_fdr_threshold = 0.05).get_reference_for_precursors(multipeptides)
+reference_run = referenceForPrecursor(refType="precursor_specific", run= best_run, alignment_fdr_threshold = 0.05).get_reference_for_precursors(multipeptides)
 # Pairwise global alignment
 spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
 tr_data = initialize_transformation()
@@ -90,7 +147,7 @@ for i in range(len(prec_ids)):
         print("The precursor {} doesn't have any associated reference run. Skipping!".format(prec_id))
         continue
     eXps = list(set(runs) - set([refrun]))
-    # Extract XICs from reference run
+    # Extract XICs from reference run and smooth it.
     refrun_id = refrun.get_id()
     XICs_ref = MZs.extractXIC_group(refrun, prec_id)
     if not XICs_ref:
@@ -106,72 +163,23 @@ for i in range(len(prec_ids)):
         if not XICs_eXp:
             continue
         XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
-        # Get time component
-        t_ref = XICs_ref_sm[0][0]
-        t_eXp = XICs_eXp_sm[0][0]
-        ## Set up constraints for penalizing similarity matrix
-        # Get RT tranfromation from refrun to eXprun.
-        globalAligner, stdErr = get_pair_trafo(tr_data, spl_aligner, eXprun, refrun, multipeptides, max_rt_diff = 300)
-        # Get constraining end-points using Global alignment
-        B1p = globalAligner.predict([ t_ref[0] ])[0]
-        B2p = globalAligner.predict([ t_ref[-1] ])[0]
-        # Get width of the constraining window
-        adaptiveRT = RSEdistFactor * stdErr
-        samplingTime = (t_ref[-1] - t_ref[0]) / (len(t_ref) - 1)
-        noBeef = np.ceil(adaptiveRT/samplingTime)
-        ## Get intensity values to build similarity matrix
-        intensityList_ref = np.array([xic[1] for xic in XICs_ref_sm], dtype=np.double)
-        intensityList_eXp = np.array([xic[1] for xic in XICs_eXp_sm], dtype=np.double)
-        intensityList_ref = np.ascontiguousarray(intensityList_ref)
-        intensityList_eXp = np.ascontiguousarray(intensityList_eXp)
-        chromAlignObj = AffineAlignObj(256, 256)
-        alignChromatogramsCpp(chromAlignObj, intensityList_ref, intensityList_eXp,
-                                    alignType = b"hybrid", tA = t_ref, tB = t_eXp,
-                                    normalization = b"mean", simType = b"dotProductMasked",
-                                    B1p = B1p, B2p = B2p, noBeef = noBeef,
-                                    goFactor = 0.125, geFactor = 40,
-                                    cosAngleThresh = 0.3, OverlapAlignment = True,
-                                    dotProdThresh = 0.96, gapQuantile = 0.5,
-                                    hardConstrain = False, samples4gradient = 100)
-        AlignedIndices = pd.DataFrame(list(zip(chromAlignObj.indexA_aligned, chromAlignObj.indexB_aligned)),
-	                                    columns =['indexAligned_ref', 'indexAligned_eXp'])
-        AlignedIndices['indexAligned_ref'] -= 1
-        AlignedIndices['indexAligned_eXp'] -= 1
-        t_ref_aligned = get_aligned_time(t_ref, AlignedIndices['indexAligned_ref'])
-        t_eXp_aligned = get_aligned_time(t_eXp, AlignedIndices['indexAligned_eXp'])
+        t_ref_aligned, t_eXp_aligned = RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, RSEdistFactor,
+                            tr_data, spl_aligner, eXprun, refrun, multipeptides,
+                            alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
+                            goFactor = 0.125, geFactor = 40,
+                            cosAngleThresh = 0.3, OverlapAlignment = True,
+                            dotProdThresh = 0.96, gapQuantile = 0.5,
+                            hardConstrain = False, samples4gradient = 100)
         # Update retention time of all peak-groups to reference peak-group
-        # get all peak-groups.
-        prec = eXprun.getPrecursor(peptide_group_label, prec_id)
-        if prec is None:
-            # TODO
-            # Map boundaries, integrate area.
-            # Create a precursor with the new peak-group and add it to the eXprun. 
-            continue
-        # Get their retention times.
-        mutable = [list(pg) for pg in prec.peakgroups_]
-        for k in range(len(mutable)):
-            # Get corresponding retention time from reference run.
-            index = np.nanargmin(np.abs(t_eXp_aligned - mutable[k][2]))
-            # Update the retention time.
-            mutable[k][2] = t_ref_aligned[index]
-        
-        # Insert back in precusor.
-        prec.peakgroups_ = [ tuple(m) for m in mutable]
+        updateRetentionTime(eXprun, peptide_group_label, prec_id, t_ref_aligned, t_eXp_aligned)
 
-AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = adaptiveRT, fdr_cutoff = 0.01,
+AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = 40, fdr_cutoff = 0.01,
                     aligned_fdr_cutoff = 0.05, method = "best_overall")
 al = this_exp.print_stats(multipeptides, 0.05, 0.1, 1)
-
 
 fraction_needed_selected = 0.0
 write_out_matrix_file("GDYD.csv", runs, multipeptides, fraction_needed_selected, "RT", 0.05)
 
-
-# Go through each multipeptide
-# Find all precursors
-# Find all peak groups for each precursor.
-# Select the peakgroup for quantification. Set cluster_id = 1.
-# 
 """
 B1p = 19.955
 B2p = 49.998
@@ -187,8 +195,6 @@ chromAlignObj.indexB_aligned # [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 10]
 """
 
 
-
-# p.get_best_peakgroup().select_this_peakgroup()
 """
 retention_time
     precursor_id  125704171604355508  6752973645981403097  2234664662238281994

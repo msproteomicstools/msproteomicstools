@@ -31,24 +31,22 @@ class referenceForPrecursor():
     """
     Calculates reference run for each precursor.
     Returns a dictionary with Precursor_id as key and Run as value.
+    refType must be either best_run, multipeptide_specific or precursor_specific.
     """
     def __init__(self, refType="best_run", run = None, alignment_fdr_threshold = 0.05):
-        """
-        refType must be either best_run, multipeptide_specific or precursor_specific. 
-        """
         self.referenceType = refType
         self.alignment_fdr_threshold = alignment_fdr_threshold
-        if(refType == "best_run"):
-            if not run:
-                raise Exception("run should be provided if refType is best_run.")
-            self.best_run = run
+        self.best_run = run
 
-    def get_reference_for_precursors(self, multipeptides, refType = "best_run"):
-        if (refType == "best_run"):
-            return self._get_reference_run(multipeptides)
-        elif (refType == "precursor_specific"):
+    def get_reference_for_precursors(self, multipeptides):
+        if (self.referenceType == "best_run"):
+            if not self.best_run:
+                raise Exception("run should be provided with initialization if refType is best_run.")
+            else:
+                return self._get_reference_run(multipeptides)
+        elif (self.referenceType == "precursor_specific"):
             return self._get_precursor_reference_run(multipeptides)
-        elif (refType == "multipeptide_specific"):
+        elif (self.referenceType == "multipeptide_specific"):
             return self._get_multipeptide_reference_run(multipeptides)
         else:
             raise Exception("refType must be either best_run, multipeptide_specific or precursor_specific.")
