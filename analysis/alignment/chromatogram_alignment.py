@@ -40,6 +40,7 @@ def get_aligned_time(t, indices, skipValue = -1):
         index = indices[i]
         if index != skipValue:
             t_aligned[i] = t[index]
+    t_aligned =  np.asarray(pd.Series(t_aligned).interpolate(method ='linear', limit_area = 'inside'))
     return t_aligned
 
 infiles = ["../DIAlignR/inst/extdata/osw/merged.osw"]
@@ -81,11 +82,6 @@ chrom_smoother = chromSmoother(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
 RSEdistFactor = 4
 # Calculate the aligned retention time for each precursor across all runs
 prec_ids = list(precursor_to_transitionID.keys())
-retention_time = {}
-retention_time['precursor_id'] = prec_ids
-for run in runs:
-    retention_time[run.get_id()] = [None]*len(prec_ids)
-
 
 for i in range(len(prec_ids)):
     prec_id = prec_ids[i] #9719 9720
@@ -102,10 +98,6 @@ for i in range(len(prec_ids)):
     XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
     # For each precursor, we need peptide_group_label and trgr_id
     peptide_group_label = precursor_to_transitionID[prec_id][0]
-    refRT = refrun.getPrecursor(peptide_group_label, prec_id).get_best_peakgroup().get_normalized_retentiontime()
-    retention_time[refrun_id][i] = refRT
-    # Get the retention time of the precursor from reference run
-    # refRT = best_feature_RT()
     # Iterate through all other runs and align them to the reference run
     for eXprun in eXps:
         ## Extract XICs from experiment run
@@ -146,14 +138,7 @@ for i in range(len(prec_ids)):
         AlignedIndices['indexAligned_ref'] -= 1
         AlignedIndices['indexAligned_eXp'] -= 1
         t_ref_aligned = get_aligned_time(t_ref, AlignedIndices['indexAligned_ref'])
-        t_ref_aligned = pd.Series(t_ref_aligned).interpolate(method ='linear', limit_area = 'inside')
         t_eXp_aligned = get_aligned_time(t_eXp, AlignedIndices['indexAligned_eXp'])
-        t_eXp_aligned = pd.Series(t_eXp_aligned).interpolate(method ='linear', limit_area = 'inside')
-        t_ref_aligned = np.asarray(t_ref_aligned)
-        t_eXp_aligned = np.asarray(t_eXp_aligned)
-        index = np.nanargmin(np.abs(t_ref_aligned - refRT))
-        eXpRT = t_eXp_aligned[index]
-        retention_time[eXprun_id][i] = eXpRT
         # Update retention time of all peak-groups to reference peak-group
         # get all peak-groups.
         prec = eXprun.getPrecursor(peptide_group_label, prec_id)
@@ -172,10 +157,6 @@ for i in range(len(prec_ids)):
         
         # Insert back in precusor.
         prec.peakgroups_ = [ tuple(m) for m in mutable]
-
-retention_time = pd.DataFrame.from_dict(retention_time)
-retention_time.dropna(how = 'any', thresh = len(runs), inplace=True)
-retention_time.reset_index(drop=True, inplace=True)
 
 AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = adaptiveRT, fdr_cutoff = 0.01,
                     aligned_fdr_cutoff = 0.05, method = "best_overall")
