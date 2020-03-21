@@ -1,19 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
+"""
+=========================================================================
+        DIAlignPy -- Alignment of Targeted Mass Spectrometry Runs
+=========================================================================
+
+<Shubham Gupta reference_run_selection.py>
+Copyright (C) 2020 Shubham Gupta
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+--------------------------------------------------------------------------
+$Maintainer: Shubham Gupta$
+$Authors: Shubham Gupta$
+--------------------------------------------------------------------------
+"""
 import os, sys, csv, time
 
 import argparse
 import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.math.chauvenet import chauvenet
-
-from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
-from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
-from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
-from msproteomicstoolslib.algorithms.alignment.AlignmentMST import getDistanceMatrix, TreeConsensusAlignment
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, addDataToTrafo
-from msproteomicstoolslib.algorithms.alignment.FDRParameterEstimation import ParamEst
-from msproteomicstoolslib.algorithms.PADS.MinimumSpanningTree import MinimumSpanningTree
 
 import numpy as np
 import pandas as pd
