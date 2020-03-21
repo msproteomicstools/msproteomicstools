@@ -225,3 +225,17 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
         tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
         tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
 
+def get_pair_trafo(tr_data, spl_aligner, run_0, run_1, multipeptides,
+                    max_rt_diff = 30, force = False, optimized_cython = False):
+    """
+    Returns the smoothing object that aligns run1 against run0.
+    If the object is not present in tr_data, smmothing function is calculated and added to it.
+    """
+    run0_id = run_0.get_id()
+    run1_id = run_1.get_id()
+    # Add pairwise transformation if not found
+    tmp = tr_data.trafo.get(run1_id, {})
+    if not tmp.get(run0_id):
+        addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
+                        realign_method = spl_aligner.smoother, max_rt_diff = max_rt_diff, force=force)
+    return tr_data.getTrafo(run1_id, run0_id), tr_data.getStdev(run1_id, run0_id)

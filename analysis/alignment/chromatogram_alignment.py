@@ -25,10 +25,10 @@ import matplotlib.pyplot as plt
 fig = plt.figure()
 plt.close()
 from pyopenms import OnDiscMSExperiment
-import msproteomicstoolslib.math.Smoothing as smoothing
+from analysis.chromatogram_utils.smooth_chromatograms import chromSmoother
 from DIAlignPy import AffineAlignObj, alignChromatogramsCpp
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
-from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, addDataToTrafo
+from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, get_pair_trafo
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
 
 
@@ -123,20 +123,6 @@ def initialize_transformation():
         tr_data = LightTransformationData()
     return tr_data
 
-def get_pair_trafo(tr_data, spl_aligner, run_0, run_1, multipeptides,
-                    max_rt_diff = 30, force = False, optimized_cython = False):
-    """
-    Returns the smoothing object that aligns run1 against run0.
-    """
-    run0_id = run_0.get_id()
-    run1_id = run_1.get_id()
-    # Add pairwise transformation if not found
-    tmp = tr_data.trafo.get(run1_id, {})
-    if not tmp.get(run0_id):
-        addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
-                        realign_method = spl_aligner.smoother, max_rt_diff = max_rt_diff, force=force)
-    return tr_data.getTrafo(run1_id, run0_id), tr_data.getStdev(run1_id, run0_id)
-
 # Build a chromatogram extractor class
 # It has params: mz, max_chromlength
 # It has function: extractXIC_group
@@ -223,14 +209,7 @@ reference_run = get_multipeptide_reference_run(multipeptides, alignment_fdr_thre
 spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
 tr_data = initialize_transformation()
 # Initialize XIC smoothing function
-sm = smoothing.getXIC_SmoothingObj(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
-def smoothXICs(XIC_Group, sm):
-    XIC_Group_sm = []
-    for XIC in XIC_Group:
-        sm.initialize(XIC[0], XIC[1])
-        XIC_sm = sm.smooth(XIC[0], XIC[1])
-        XIC_Group_sm.append(XIC_sm)
-    return XIC_Group_sm
+chrom_smoother = chromSmoother(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
 
 # TODO Use multiprocessing tool for extracting chromatograms
 RSEdistFactor = 4
@@ -255,7 +234,7 @@ for i in range(len(prec_ids)):
         print("Can't extract XICs for precursor {} from run {}. Skipping!".format(prec_id, refrun_id))
         continue
     XICs_ref = extractXIC_group(chrom_file_accessor[refrun_id], chrom_ids)
-    XICs_ref_sm = smoothXICs(XICs_ref, sm)
+    XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
     # For each precursor, we need peptide_group_label and trgr_id
     peptide_group_label = precursor_to_transitionID[prec_id][0]
     refRT = refrun.getPrecursor(peptide_group_label, prec_id).get_best_peakgroup().get_normalized_retentiontime()
@@ -271,7 +250,7 @@ for i in range(len(prec_ids)):
             print("Can't extract XICs for precursor {} from run {}".format(prec_id, refrun_id))
             continue
         XICs_eXp = extractXIC_group(chrom_file_accessor[eXprun_id], chrom_ids)
-        XICs_eXp_sm = smoothXICs(XICs_eXp, sm)
+        XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
         # Get time component
         t_ref = XICs_ref_sm[0][0]
         t_eXp = XICs_eXp_sm[0][0]
@@ -392,7 +371,7 @@ runs[2].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
 run_id = runs[2].get_id()
 chrom_ids = run_chromIndex_map[run_id][prec_id]
 XICs_eXp = extractXIC_group(chrom_file_accessor[run_id], chrom_ids)
-XICs_eXp_sm = smoothXICs(XICs_eXp, sm)
+XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
 fig = plt.figure()
 XIC_Group = XICs_eXp_sm
 for k in range(len(XIC_Group)):
