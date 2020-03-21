@@ -26,88 +26,11 @@ fig = plt.figure()
 plt.close()
 from pyopenms import OnDiscMSExperiment
 from analysis.chromatogram_utils.smooth_chromatograms import chromSmoother
+from analysis.alignment.reference_run_selection import referenceForPrecursor
 from DIAlignPy import AffineAlignObj, alignChromatogramsCpp
 from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
 from msproteomicstoolslib.algorithms.alignment.AlignmentHelper import write_out_matrix_file, get_pair_trafo
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
-
-
-# Get a single reference run
-def get_reference_run(experiment, multipeptides, alignment_fdr_threshold = 0.05):
-    """
-    Returns a dectionary with precursor id as key and run as value.
-    Single reference run for each precursor.
-    """
-    best_run = experiment.determine_best_run(alignment_fdr_threshold = 0.05)
-    reference_run = {}
-    precursor_ids = set()
-    for i in range(len(multipeptides)):
-        # Get precursor groups from each multipeptide
-        prec_groups =  multipeptides[i].getPrecursorGroups()
-        for prec_group in prec_groups:
-            # Get precursors from a precursor group
-            precs = prec_group.getAllPrecursors()
-            for prec in precs:
-                # Get all precursor ids
-                precursor_ids.add(prec.get_id())
-    # Get a sorted list
-    precursor_ids = sorted(precursor_ids)
-    # Assign best_run as reference run for each precursor_id
-    reference_run = dict.fromkeys(precursor_ids , best_run)
-    return reference_run    
-
-# Get reference run for each precursor
-def get_precursor_reference_run(multipeptides, alignment_fdr_threshold = 0.05):
-    """
-    Returns a dectionary with precursor id as key and run as value.
-    Precursors may have different reference runs based on FDR score of associated best peak group.
-    """
-    reference_run = {}
-    for i in range(len(multipeptides)):
-        # Get precursor groups from each multipeptide
-        prec_groups =  multipeptides[i].getPrecursorGroups()
-        for prec_group in prec_groups:
-            # Get precursors from a precursor group
-            precs = prec_group.getAllPrecursors()
-            max_fdr = 1.0
-            for prec in precs:
-                # Get all precursor ids
-                prec_id = prec.get_id()
-                # Get best FDR value for the precursor
-                cur_fdr = prec.get_best_peakgroup().get_fdr_score()
-                if cur_fdr <= alignment_fdr_threshold and cur_fdr < max_fdr:
-                    max_fdr = cur_fdr
-                    # Make Run of the current precursor as the reference run
-                    reference_run[prec_id] = prec.getRun()
-            if prec_id not in reference_run:
-                # No peak group has FDR lower than alignment_fdr_threshold
-                reference_run[prec_id] = None
-    return reference_run
-
-# Get reference run for each precursor-group
-def get_multipeptide_reference_run(multipeptides, alignment_fdr_threshold = 0.05):
-    """
-    Returns a dectionary with precursor id as key and run as value.
-    Precursors may have different reference runs based on FDR score of associated multipeptide's best peak group.
-    """
-    reference_run = {}
-    for i in range(len(multipeptides)):
-        # Get precursor groups from each multipeptide
-        prec_groups =  multipeptides[i].getPrecursorGroups()
-        max_fdr = 1.0
-        refRun = None
-        for prec_group in prec_groups:
-            precs = prec_group.getAllPrecursors()
-            cur_fdr = prec_group.getOverallBestPeakgroup().get_fdr_score()
-            if cur_fdr <= alignment_fdr_threshold and cur_fdr < max_fdr:
-                max_fdr = cur_fdr
-                refRun = prec_group.run_
-            for prec in precs:
-                # Get all precursor ids
-                prec_id = prec.get_id()
-                # Make Run of the current precursor as the reference run
-                reference_run[prec_id] = refRun
-    return reference_run
 
 
 def initialize_transformation():
@@ -164,6 +87,7 @@ MStoFeature = MSfileRunMapping(chromatograms, runs)
 # MStoFeature[runs[0].get_openswath_filename()][0]
 precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
 
+
 # Establish connection to mzML files
 # TODO Add the mz accessor to Run object
 chrom_file_accessor = {}
@@ -172,6 +96,7 @@ for run in runs:
     mzml_file = MStoFeature[run.get_openswath_filename()][0]
     mz.openFile(mzml_file)
     chrom_file_accessor[run.get_id()] = mz
+
 
 # Get precursor to chromatogram indices
 invalid_chromIndex = -1
@@ -200,11 +125,9 @@ fdr_cutoff = 0.05
 multipeptides = this_exp.get_all_multipeptides(fdr_cutoff, verbose=False, verbosity= 10)
 print("Mapping the precursors took %0.2fs" % (time.time() - start) )
 
+best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
 # Reference based alignment
-reference_run = get_reference_run(this_exp, multipeptides, alignment_fdr_threshold = 0.05)
-reference_run = get_precursor_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
-reference_run = get_multipeptide_reference_run(multipeptides, alignment_fdr_threshold = 0.05)
-
+reference_run = referenceForPrecursor(refType="best_run", run= best_run, alignment_fdr_threshold = 0.05).get_reference_for_precursors(multipeptides)
 # Pairwise global alignment
 spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
 tr_data = initialize_transformation()
