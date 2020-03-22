@@ -27,14 +27,10 @@ $Authors: Shubham Gupta$
 --------------------------------------------------------------------------
 """
 import os, sys, csv, time
-
-import argparse
-import msproteomicstoolslib.math.Smoothing as smoothing
-from msproteomicstoolslib.version import __version__ as version
-from msproteomicstoolslib.math.chauvenet import chauvenet
-
 import numpy as np
 import pandas as pd
+import argparse
+from msproteomicstoolslib.version import __version__ as version
 from analysis.alignment.feature_alignment import Experiment
 from msproteomicstoolslib.format.SWATHScoringReader import *
 from msproteomicstoolslib.format.SWATHScoringMapper import MSfileRunMapping, getPrecursorTransitionMapping
@@ -79,8 +75,8 @@ def updateRetentionTime(run, peptide_group_label, prec_id, t_ref_aligned, t_eXp_
         # Insert back in precusor.
         prec.peakgroups_ = [ tuple(m) for m in mutable]
 
-def RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, RSEdistFactor, tr_data, spl_aligner, eXprun, refrun, multipeptides,
-                            alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
+def RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, tr_data, spl_aligner, eXprun, refrun, multipeptides,
+                            RSEdistFactor = 4, alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
                             goFactor = 0.125, geFactor = 40,
                             cosAngleThresh = 0.3, OverlapAlignment = True,
                             dotProdThresh = 0.96, gapQuantile = 0.5,
@@ -118,85 +114,128 @@ def RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, RSEdistFactor, tr_data, spl_aligne
     t_eXp_aligned = get_aligned_time(t_eXp, AlignedIndices['indexAligned_eXp'])
     return t_ref_aligned, t_eXp_aligned
 
-infiles = ["../DIAlignR/inst/extdata/osw/merged.osw"]
-chromatograms = ["../DIAlignR/inst/extdata/mzml/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML",
- "../DIAlignR/inst/extdata/mzml/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML",
- "../DIAlignR/inst/extdata/mzml/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML"]
+def plotXICs(XIC_Group):
+    fig = plt.figure()
+    for k in range(len(XIC_Group)):
+        x = XIC_Group[k][0]
+        y = XIC_Group[k][1]
+        plt.plot(x, y)
+    plt.ylabel('Intensity')
+    plt.show()
 
-readfilter = ReadFilter()
-file_format = 'openswath'
-readmethod = "minimal"
+def handle_args():
+    usage = ""
+    usage += "\nFeature Alignment -- version %d.%d.%d" % version
+    usage += "\n"
+    usage += "\nThis program aligns MS2 chromatograms to map peakgroups across runs. Post-alignment peakgroups below a certain FDR cutoff will be selcted."
+    usage += "\n"
 
-reader = SWATHScoringReader.newReader(infiles, file_format, readmethod, readfilter,
-                                        enable_isotopic_grouping = False, read_cluster_id = False)
-# reader.map_infiles_chromfiles(chromatograms)
-runs = reader.parse_files()
-MStoFeature = MSfileRunMapping(chromatograms, runs)
-# MStoFeature[runs[0].get_openswath_filename()][0]
-precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
-MZs = mzml_accessors(runs, MStoFeature)
-MZs.get_precursor_to_chromID(precursor_to_transitionID)
+    parser = argparse.ArgumentParser(description = usage )
+    parser.add_argument('--chromatograms', dest="chromatogram_files", required=True, nargs = '+', help = 'A list of chromatogram files', metavar="file.chrom.mzML")
+    parser.add_argument('--features', dest="feature_files", required=True, nargs = '+', help = 'A list of pyProphet output files containing all peakgroups (use quotes around the filenames)', metavar="file.osw")
+    parser.add_argument('--file_format', default='osw', help="Input file format (osw)", metavar="")
+    parser.add_argument("--out_matrix", dest="matrix_outfile", default="", help="Matrix containing one peak group per row (supports .csv, .tsv or .xlsx)", metavar="")
+    parser.add_argument("--fdr_cutoff", dest="fdr_cutoff", default=0.01, type=float, help="Fixed FDR cutoff used for seeding (only assays where at least one peakgroup in one run is below this cutoff will be included in the result), see also target_fdr for a non-fixed cutoff", metavar='0.01')
+    parser.add_argument("--min_fdr_quality", dest="nonaligned_fdr_cutoff", default=0.01, type=float, help="m-score cutoff below that peakgroups need not be evaluated with retention time alignment.", metavar='0.01')
+    parser.add_argument("--max_fdr_quality", dest="aligned_fdr_cutoff", default=0.05, help="Extension m-score score cutoff, peakgroups of this quality will still be considered for alignment during extension", metavar='0.05')
+    parser.add_argument("--max_rt_diff", dest="rt_diff_cutoff", default=30, help="Maximal difference in RT (in seconds) for two aligned features", metavar='30')
+    parser.add_argument("--frac_selected", dest="min_frac_selected", default=0.0, type=float, help="Do not write peakgroup if selected in less than this fraction of runs (range 0 to 1)", metavar='0')
+    parser.add_argument('--global_align_method', default='loess', help="Method to use for a global RT alignment of runs (linear, loess).")
+    parser.add_argument('--chromatogram_align_method', default='hybrid', help="Method to use for RT alignment of chromatograms (local, global, hybrid).")
+    parser.add_argument('--method', default='best_overall', help="Method to use for the clustering (best_overall).")
+    parser.add_argument("--verbosity", default=0, type=int, help="Verbosity (0 = little)", metavar='0')
+    parser.add_argument("--matrix_output_method", dest="matrix_output_method", default='RT', help="Which columns are written besides Intensity (none, RT, score, source or full)", metavar="")
+    parser.add_argument('--force', action='store_true', default=False, help="Force alignment")
+    parser.add_argument("--version", dest="version", default="", help="Print version and exit")
 
-this_exp = Experiment()
-this_exp.set_runs(runs)
-start = time.time()
-fdr_cutoff = 0.05
-multipeptides = this_exp.get_all_multipeptides(fdr_cutoff, verbose=False, verbosity= 10)
-print("Mapping the precursors took %0.2fs" % (time.time() - start) )
+    if any([a.startswith("--version") for a in sys.argv]):
+        print(usage)
+        sys.exit()
+    
+    args = parser.parse_args(sys.argv[1:])
 
-# Reference based alignment
-best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
-reference_run = referenceForPrecursor(refType="precursor_specific", run= best_run, alignment_fdr_threshold = 0.05).get_reference_for_precursors(multipeptides)
-# Pairwise global alignment
-spl_aligner = SplineAligner(alignment_fdr_threshold = 0.05, smoother="lowess", experiment=this_exp)
-tr_data = initialize_transformation()
-# Initialize XIC smoothing function
-chrom_smoother = chromSmoother(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
+    if args.matrix_outfile == "":
+        args.matrix_outfile = "DIAlignPy.csv"
+    if args.min_frac_selected < 0.0 or args.min_frac_selected > 1.0:
+        raise Exception("Argument frac_selected needs to be a number between 0 and 1.0")
 
-# TODO Use multiprocessing tool for extracting chromatograms
-RSEdistFactor = 4
-# Calculate the aligned retention time for each precursor across all runs
-prec_ids = list(precursor_to_transitionID.keys())
+    return args
 
-for i in range(len(prec_ids)):
-    prec_id = prec_ids[i] #9719 9720
-    refrun = reference_run.get(prec_id)
-    if not refrun:
-        print("The precursor {} doesn't have any associated reference run. Skipping!".format(prec_id))
-        continue
-    eXps = list(set(runs) - set([refrun]))
-    # Extract XICs from reference run and smooth it.
-    refrun_id = refrun.get_id()
-    XICs_ref = MZs.extractXIC_group(refrun, prec_id)
-    if not XICs_ref:
-        continue
-    XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
-    # For each precursor, we need peptide_group_label and trgr_id
-    peptide_group_label = precursor_to_transitionID[prec_id][0]
-    # Iterate through all other runs and align them to the reference run
-    for eXprun in eXps:
-        ## Extract XICs from experiment run
-        eXprun_id = eXprun.get_id()
-        XICs_eXp = MZs.extractXIC_group(eXprun, prec_id)
-        if not XICs_eXp:
+def main(options):
+    infiles = options.feature_files
+    chromatograms = options.chromatogram_files
+
+    readfilter = ReadFilter()
+    file_format = 'openswath'
+    readmethod = "minimal"
+
+    reader = SWATHScoringReader.newReader(infiles, file_format, readmethod, readfilter,
+                                            enable_isotopic_grouping = False, read_cluster_id = False)
+    # reader.map_infiles_chromfiles(chromatograms)
+    runs = reader.parse_files()
+    MStoFeature = MSfileRunMapping(chromatograms, runs)
+    precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
+    MZs = mzml_accessors(runs, MStoFeature)
+    MZs.get_precursor_to_chromID(precursor_to_transitionID)
+
+    this_exp = Experiment()
+    this_exp.set_runs(runs)
+    start = time.time()
+    fdr_cutoff = options.aligned_fdr_cutoff
+    multipeptides = this_exp.get_all_multipeptides(fdr_cutoff, verbose=False, verbosity= 10)
+    print("Mapping the precursors took %0.2fs" % (time.time() - start) )
+
+    # Reference based alignment
+    # best_run = this_exp.determine_best_run(alignment_fdr_threshold = 0.05)
+    reference_run = referenceForPrecursor(refType="precursor_specific", alignment_fdr_threshold = options.fdr_cutoff).get_reference_for_precursors(multipeptides)
+    # Pairwise global alignment
+    spl_aligner = SplineAligner(alignment_fdr_threshold = fdr_cutoff, smoother="lowess", experiment=this_exp)
+    tr_data = initialize_transformation()
+    # Initialize XIC smoothing function
+    chrom_smoother = chromSmoother(smoother = "sgolay", kernelLen = 11, polyOrd = 4)
+
+    # Calculate the aligned retention time for each precursor across all runs
+    prec_ids = list(precursor_to_transitionID.keys())
+    for i in range(len(prec_ids)):
+        prec_id = prec_ids[i] #9719 9720
+        refrun = reference_run.get(prec_id)
+        if not refrun:
+            print("The precursor {} doesn't have any associated reference run. Skipping!".format(prec_id))
             continue
-        XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
-        t_ref_aligned, t_eXp_aligned = RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm, RSEdistFactor,
-                            tr_data, spl_aligner, eXprun, refrun, multipeptides,
-                            alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
-                            goFactor = 0.125, geFactor = 40,
-                            cosAngleThresh = 0.3, OverlapAlignment = True,
-                            dotProdThresh = 0.96, gapQuantile = 0.5,
-                            hardConstrain = False, samples4gradient = 100)
-        # Update retention time of all peak-groups to reference peak-group
-        updateRetentionTime(eXprun, peptide_group_label, prec_id, t_ref_aligned, t_eXp_aligned)
+        eXps = list(set(runs) - set([refrun]))
+        # Extract XICs from reference run and smooth it.
+        XICs_ref = MZs.extractXIC_group(refrun, prec_id)
+        if not XICs_ref:
+            continue
+        XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
+        # For each precursor, we need peptide_group_label and trgr_id
+        peptide_group_label = precursor_to_transitionID[prec_id][0]
+        # Iterate through all other runs and align them to the reference run
+        for eXprun in eXps:
+            ## Extract XICs from experiment run and smooth it.
+            XICs_eXp = MZs.extractXIC_group(eXprun, prec_id)
+            if not XICs_eXp:
+                continue
+            XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
+            t_ref_aligned, t_eXp_aligned = RTofAlignedXICs(XICs_ref_sm, XICs_eXp_sm,
+                                tr_data, spl_aligner, eXprun, refrun, multipeptides, RSEdistFactor = 4,
+                                alignType = b"hybrid", normalization = b"mean", simType = b"dotProductMasked",
+                                goFactor = 0.125, geFactor = 40,
+                                cosAngleThresh = 0.3, OverlapAlignment = True,
+                                dotProdThresh = 0.96, gapQuantile = 0.5,
+                                hardConstrain = False, samples4gradient = 100)
+            # Update retention time of all peak-groups to reference peak-group
+            updateRetentionTime(eXprun, peptide_group_label, prec_id, t_ref_aligned, t_eXp_aligned)
 
-AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = 40, fdr_cutoff = 0.01,
-                    aligned_fdr_cutoff = 0.05, method = "best_overall")
-al = this_exp.print_stats(multipeptides, 0.05, 0.1, 1)
+    AlignmentAlgorithm().align_features(multipeptides, rt_diff_cutoff = 40, fdr_cutoff = 0.01,
+                        aligned_fdr_cutoff = options.aligned_fdr_cutoff, method = options.method)
+    al = this_exp.print_stats(multipeptides, 0.05, 0.1, 1)
+    write_out_matrix_file(options.matrix_outfile, runs, multipeptides, options.min_frac_selected,
+                         options.matrix_output_method, 0.05)
 
-fraction_needed_selected = 0.0
-write_out_matrix_file("GDYD.csv", runs, multipeptides, fraction_needed_selected, "RT", 0.05)
+if __name__=="__main__":
+    options = handle_args()
+    main(options)
 
 """
 B1p = 19.955
@@ -211,7 +250,6 @@ chromAlignObj = AffineAlignObj(256, 256)
 chromAlignObj.indexA_aligned # [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 chromAlignObj.indexB_aligned # [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 10]
 """
-
 
 """
 retention_time
@@ -235,19 +273,4 @@ prec_id = 3864 # 2474, 20003
 runs[0].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
 runs[1].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
 runs[2].getPrecursor(precursor_to_transitionID[prec_id][0], prec_id).peakgroups_
-
-run_id = runs[2].get_id()
-chrom_ids = run_chromIndex_map[run_id][prec_id]
-XICs_eXp = extractXIC_group(chrom_file_accessor[run_id], chrom_ids)
-XICs_eXp_sm = chrom_smoother.smoothXICs(XICs_eXp)
-fig = plt.figure()
-XIC_Group = XICs_eXp_sm
-for k in range(len(XIC_Group)):
-    x = XIC_Group[k][0]
-    y = XIC_Group[k][1]
-    plt.plot(x, y)
-
-plt.ylabel('Intensity')
-plt.show()
-plt.close()
 """

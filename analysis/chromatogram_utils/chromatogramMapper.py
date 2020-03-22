@@ -32,6 +32,7 @@ from pyopenms import OnDiscMSExperiment
 class mz_pointer():
     def __init__(self, filename):
         # Establish connection to mzML files
+        # TODO Use multiprocessing tool for extracting chromatograms
         mz = OnDiscMSExperiment()
         mz.openFile(filename)
         self.filename = filename
