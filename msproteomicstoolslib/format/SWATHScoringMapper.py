@@ -472,6 +472,7 @@ def getPrecursorTransitionMapping(filename):
     """
 
     precursors_mapping = {}
+    precursors_sequence = {}
     data = [row for row in c.execute(query)]
     for this_row in data:
         if len(this_row) == 0: 
@@ -479,15 +480,18 @@ def getPrecursorTransitionMapping(filename):
         trgr_id = int(this_row[0])
         transition_id = int(this_row[1])
         peptide_id = int(this_row[2])
+        sequence = this_row[3]
+        charge = this_row[4]
         # Add transition_group_id to precursors_mapping if not present.
         if trgr_id not in precursors_mapping:
-            precursors_mapping[trgr_id] = (peptide_id, [])
+            precursors_sequence[trgr_id] = (peptide_id, sequence, charge)
+            precursors_mapping[trgr_id] = []
         # Get the transition mapping.
-        tmp = precursors_mapping.get(trgr_id, (peptide_id, []))[1]
+        tmp = precursors_mapping.get(trgr_id, [])
         if transition_id not in tmp:
-            precursors_mapping[trgr_id][1].append(transition_id)
+            precursors_mapping[trgr_id].append(transition_id)
     conn.close()
-    return precursors_mapping
+    return precursors_mapping, precursors_sequence
 
 def create_connection(db_file):
     import sqlite3

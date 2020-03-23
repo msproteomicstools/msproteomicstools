@@ -83,14 +83,14 @@ class mzml_accessors():
             precursor_to_chromIndex = {}
             # Initialize chromatogram indices with -1
             for prec in precursor_to_transitionID:
-                precursor_to_chromIndex[prec] = [invalid_chromIndex]*len(precursor_to_transitionID[prec][1])
+                precursor_to_chromIndex[prec] = [invalid_chromIndex]*len(precursor_to_transitionID[prec])
             # Iterate through Native IDs in mzML file
             for i in range(meta_data.getNrChromatograms()):
                 nativeID = int(meta_data.getChromatogram(i).getNativeID())
                 # Check if Native ID matches to any of our transition IDs.
                 for prec in precursor_to_transitionID:
-                    if nativeID in precursor_to_transitionID[prec][1]:
+                    if nativeID in precursor_to_transitionID[prec]:
                         # Find the index of transition ID and insert chromatogram index
-                        index = precursor_to_transitionID[prec][1].index(nativeID)
+                        index = precursor_to_transitionID[prec].index(nativeID)
                         precursor_to_chromIndex[prec][index] = i
             self.run_chromIndex_map[run.get_id()] = precursor_to_chromIndex

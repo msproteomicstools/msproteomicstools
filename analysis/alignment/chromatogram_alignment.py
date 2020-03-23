@@ -174,7 +174,7 @@ def main(options):
     # reader.map_infiles_chromfiles(chromatograms)
     runs = reader.parse_files()
     MStoFeature = MSfileRunMapping(chromatograms, runs)
-    precursor_to_transitionID = getPrecursorTransitionMapping(infiles[0])
+    precursor_to_transitionID, precursor_sequence = getPrecursorTransitionMapping(infiles[0])
     MZs = mzml_accessors(runs, MStoFeature)
     MZs.get_precursor_to_chromID(precursor_to_transitionID)
 
@@ -209,7 +209,7 @@ def main(options):
             continue
         XICs_ref_sm = chrom_smoother.smoothXICs(XICs_ref)
         # For each precursor, we need peptide_group_label and trgr_id
-        peptide_group_label = precursor_to_transitionID[prec_id][0]
+        peptide_group_label = precursor_sequence[prec_id][0]
         # Iterate through all other runs and align them to the reference run
         for eXprun in eXps:
             ## Extract XICs from experiment run and smooth it.
@@ -231,7 +231,7 @@ def main(options):
                         aligned_fdr_cutoff = options.aligned_fdr_cutoff, method = options.method)
     al = this_exp.print_stats(multipeptides, 0.05, 0.1, 1)
     write_out_matrix_file(options.matrix_outfile, runs, multipeptides, options.min_frac_selected,
-                         options.matrix_output_method, 0.05)
+                         options.matrix_output_method, True, 0.05, precursor_sequence)
 
 if __name__=="__main__":
     options = handle_args()

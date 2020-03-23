@@ -50,11 +50,14 @@ else:
     pass
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
-                          style="none", write_requant=True, aligner_mscore_treshold=1.0):
+                          style="none", write_requant=True, aligner_mscore_treshold=1.0, precursor_sequence = None):
     matrix_writer = getwriter(matrix_outfile)
 
     run_ids = [r.get_id() for r in allruns]
-    header = ["Peptide", "Protein"]
+    if precursor_sequence == None:
+        header = ["Peptide", "Protein"]
+    else:
+        header = ["Peptide", "Sequence", "Charge", "Protein"]
     for r in allruns:
         fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
         header.extend(["Intensity_%s" % fname])
@@ -95,8 +98,14 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
                 continue
 
             # Write first two columns of the matrix
-            for i in [trgr_id, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
-                matrix_writer.write(i)
+            if precursor_sequence == None:
+                for i in [trgr_id, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
+                    matrix_writer.write(i)
+            else:
+                seque = precursor_sequence[trgr_id][1]
+                charge = precursor_sequence[trgr_id][2]
+                for i in [trgr_id, seque, charge, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
+                    matrix_writer.write(i)
 
             # Write other columns (one or two per run, depending on format)
             rts = []
