@@ -50,11 +50,14 @@ else:
     pass
 
 def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_needed_selected,
-                          style="none", write_requant=True, aligner_mscore_treshold=1.0):
+                          style="none", write_requant=True, aligner_mscore_treshold=1.0, precursor_sequence = None):
     matrix_writer = getwriter(matrix_outfile)
 
     run_ids = [r.get_id() for r in allruns]
-    header = ["Peptide", "Protein"]
+    if precursor_sequence == None:
+        header = ["Peptide", "Protein"]
+    else:
+        header = ["Peptide", "Sequence", "Charge", "Protein"]
     for r in allruns:
         fname = "%s_%s" % (os.path.basename(r.orig_filename), r.get_id() )
         header.extend(["Intensity_%s" % fname])
@@ -95,8 +98,14 @@ def write_out_matrix_file(matrix_outfile, allruns, multipeptides, fraction_neede
                 continue
 
             # Write first two columns of the matrix
-            for i in [trgr_id, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
-                matrix_writer.write(i)
+            if precursor_sequence == None:
+                for i in [trgr_id, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
+                    matrix_writer.write(i)
+            else:
+                seque = precursor_sequence[trgr_id][1]
+                charge = precursor_sequence[trgr_id][2]
+                for i in [trgr_id, seque, charge, multipep.find_best_peptide_pg().getPeptide().getProteinName()]:
+                    matrix_writer.write(i)
 
             # Write other columns (one or two per run, depending on format)
             rts = []
@@ -225,3 +234,17 @@ def addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
         tr_data.addTrafo(id_0, id_1, sm_0_1, stdev_0_1)
         tr_data.addTrafo(id_1, id_0, sm_1_0, stdev_1_0)
 
+def get_pair_trafo(tr_data, spl_aligner, run_0, run_1, multipeptides,
+                    max_rt_diff = 30, force = False, optimized_cython = False):
+    """
+    Returns the smoothing object that aligns run1 against run0.
+    If the object is not present in tr_data, smmothing function is calculated and added to it.
+    """
+    run0_id = run_0.get_id()
+    run1_id = run_1.get_id()
+    # Add pairwise transformation if not found
+    tmp = tr_data.trafo.get(run1_id, {})
+    if not tmp.get(run0_id):
+        addDataToTrafo(tr_data, run_0, run_1, spl_aligner, multipeptides,
+                        realign_method = spl_aligner.smoother, max_rt_diff = max_rt_diff, force=force)
+    return tr_data.getTrafo(run1_id, run0_id), tr_data.getStdev(run1_id, run0_id)

@@ -475,6 +475,26 @@ class Experiment(MRExperiment):
                 myYaml["RawData"].append(this)
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
+    def determine_best_run(self, alignment_fdr_threshold):
+        """
+        Returns the run that has the highest number of high-scoring (below certain FDR) peakgroups.  
+        """
+        maxcount = -1
+        bestrun = -1
+        for run in self.runs:
+            cnt = 0
+            for prgroup in run:
+                for peptide in prgroup:
+                    if peptide.get_decoy(): continue
+                    pg = peptide.get_best_peakgroup()
+                    if pg.get_fdr_score() < alignment_fdr_threshold:
+                        cnt += 1
+            if cnt > maxcount:
+                maxcount = cnt
+                bestrun = run.get_id()
+        print("Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, alignment_fdr_threshold))
+        return [r for r in self.runs if r.get_id() == bestrun][0]
+
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
     print("Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100))
 

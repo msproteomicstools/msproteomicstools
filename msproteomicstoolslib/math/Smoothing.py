@@ -41,7 +41,9 @@ import os
 import csv
 import math
 import random
+import numpy as np
 from numpy import median, absolute
+
 
 def get_smooting_operator(use_scikit=False, use_linear=False, use_external_r = False, tmpdir=None):
   if use_linear: 
