@@ -447,7 +447,7 @@ def getPrecursorTransitionMapping(filename):
     a peptide, as derived precursors may have different charge.
     similarly, multiple peptides can map to a protein.
     
-    >>> precursors_mapping = getPrecursorTransitionMapping('merged.osw')
+    >>> precursors_mapping, precursors_sequences = getPrecursorTransitionMapping('merged.osw')
     """
     
     conn = create_connection(filename)
@@ -472,7 +472,7 @@ def getPrecursorTransitionMapping(filename):
     """
 
     precursors_mapping = {}
-    precursors_sequence = {}
+    precursors_sequences = {}
     data = [row for row in c.execute(query)]
     for this_row in data:
         if len(this_row) == 0: 
@@ -484,14 +484,14 @@ def getPrecursorTransitionMapping(filename):
         charge = this_row[4]
         # Add transition_group_id to precursors_mapping if not present.
         if trgr_id not in precursors_mapping:
-            precursors_sequence[trgr_id] = (peptide_id, sequence, charge)
+            precursors_sequences[trgr_id] = (peptide_id, sequence, charge)
             precursors_mapping[trgr_id] = []
         # Get the transition mapping.
         tmp = precursors_mapping.get(trgr_id, [])
         if transition_id not in tmp:
             precursors_mapping[trgr_id].append(transition_id)
     conn.close()
-    return precursors_mapping, precursors_sequence
+    return precursors_mapping, precursors_sequences
 
 def create_connection(db_file):
     import sqlite3

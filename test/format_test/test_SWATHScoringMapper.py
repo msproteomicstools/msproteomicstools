@@ -67,6 +67,7 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
         self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
         self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
         self.datadir_gui = os.path.join(self.datadir, "gui")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
 
     def test_newReader(self):
         filename = os.path.join(self.datadir, "dataset3.csv")
@@ -90,6 +91,21 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
 
         self.assertEqual(len(peakgroup_map.keys()), 2)
         self.assertEqual(sorted(list(peakgroup_map.keys())), ['testpeptide/0', 'testpeptide/0_pr'])
+
+    def test_getPrecursorTransitionMapping(self):
+        filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
+        precursors_mapping, precursors_sequences = mapper.getPrecursorTransitionMapping(filename)
+
+        self.assertIsInstance(precursors_mapping, dict)
+        self.assertIsInstance(precursors_sequences, dict)
+        self.assertEqual(len(precursors_mapping), 322)
+        self.assertEqual(len(precursors_mapping), 322)
+        # Non-decoy precursor
+        self.assertEqual(precursors_mapping[32], [192, 193, 194, 195, 196, 197])
+        self.assertEqual(precursors_sequences[32], (7040, 'GNNSVYMNNFLNLILQNER', 3))
+        # Decoy precursor
+        self.assertEqual(precursors_mapping[20517], [123098, 123099, 123100, 123101, 123102, 123103])
+        self.assertEqual(precursors_sequences[20517], (10334, 'LALAYLNAQAQEAR', 2)) 
 
 if __name__ == '__main__':
     unittest.main()
