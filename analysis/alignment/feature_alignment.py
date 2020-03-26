@@ -43,7 +43,7 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.math.chauvenet import chauvenet
 from msproteomicstoolslib.format.SWATHScoringReader import *
-from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
+from msproteomicstoolslib.format.TransformationCollection import initialize_transformation, TransformationCollection, LightTransformationData
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
@@ -544,15 +544,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     
     # Get alignments
     start = time.time()
-    try:
-        from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
-        if optimized_cython:
-            tr_data = CyLightTransformationData()
-        else:
-            tr_data = LightTransformationData()
-    except ImportError:
-        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
-        tr_data = LightTransformationData()
+    tr_data = initialize_transformation(optimized_cython)
 
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],

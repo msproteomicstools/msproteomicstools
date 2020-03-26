@@ -39,11 +39,11 @@ from __future__ import print_function
 import msproteomicstoolslib.math.Smoothing as smoothing
 import numpy
 
-def initialize_transformation():
+def initialize_transformation(useCython = False):
     # Initialize objects to get transformation
     try:
         from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
-        if optimized_cython:
+        if useCython:
             tr_data = CyLightTransformationData()
         else:
             tr_data = LightTransformationData()
