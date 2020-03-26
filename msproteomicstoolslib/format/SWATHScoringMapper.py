@@ -433,6 +433,9 @@ def MSfileRunMapping(chromatogramFiles, runs, useCython = False):
     MSfile_featureFile_mapping = {}
     for run in runs:
         MSfile = run.get_openswath_filename()
+        base_name = getBaseName(MSfile)
+        if base_name not in chromFiles.keys():
+            continue
         if MSfile not in MSfile_featureFile_mapping.keys():
             MSfile_featureFile_mapping[MSfile] = (chromFiles.get(base_name), run)
 
