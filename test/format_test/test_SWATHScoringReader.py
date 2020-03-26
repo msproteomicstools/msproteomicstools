@@ -249,9 +249,9 @@ class TestFunctions(unittest.TestCase):
     
     def test_getMapping(self):
         filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
-        MS_file1 = os.path.join(self.datadir_DIAlign, 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML')
-        MS_file2 = os.path.join(self.datadir_DIAlign, 'hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML')
-        chromatogramFiles = [MS_file1, MS_file2]
+        chromFile1 = os.path.join(self.datadir_DIAlign, 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML')
+        chromFile2 = os.path.join(self.datadir_DIAlign, 'hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML')
+        chromatogramFiles = [chromFile1, chromFile2]
         featureFiles = [filename]
         featureFiles_chromFiles_map = reader.getMapping(chromatogramFiles, featureFiles)
         run0 = Run([], {}, 125704171604355508, filename, 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz',
