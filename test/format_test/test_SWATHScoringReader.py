@@ -39,6 +39,7 @@ import unittest
 import os
 
 import msproteomicstoolslib.format.SWATHScoringReader as reader
+from msproteomicstoolslib.data_structures.Run import Run
 
 def doTest(self, runs):
     self.assertEqual(len(runs), 4)
@@ -64,6 +65,7 @@ class TestUnitScoringReaderOpenSWATH(unittest.TestCase):
         self.dirname = os.path.dirname(os.path.abspath(__file__))
         self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
         self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
 
     def test_newReader(self):
         filename = os.path.join(self.datadir, "feature_alignment_openswath_input_1.csv")
@@ -115,6 +117,25 @@ class TestUnitScoringReaderOpenSWATH(unittest.TestCase):
         self.assertEqual(len(all_pg), 2)
         self.assertEqual(all_pg[0].get_cluster_id(), 1)
         self.assertEqual(all_pg[1].get_cluster_id(), 2)
+
+    def test_map_infiles_chromfiles_min(self):
+        filename = os.path.join(self.datadir_DIAlign, "merged.osw")
+        r = reader.SWATHScoringReader.newReader([filename], "openswath", "minimal")
+        chromatogramFile1 = os.path.join(self.datadir_DIAlign, 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML')
+        chromatogramFile2 = os.path.join(self.datadir_DIAlign, 'hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML')
+        r.map_infiles_chromfiles([chromatogramFile1, chromatogramFile2])
+
+        self.assertIsInstance(r.infiles_chromfiles_map[filename][0], Run)
+        self.assertEqual(r.infiles_chromfiles_map[filename][0].get_openswath_filename(), 
+                        "data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz")
+        self.assertEqual(r.infiles_chromfiles_map[filename][0].get_id(), 125704171604355508)
+        self.assertEqual(r.infiles_chromfiles_map[filename][1].get_original_filename(), filename)
+        self.assertEqual(r.infiles_chromfiles_map[filename][1].get_aligned_filename(), 
+                        "data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz")
+        
+    def test_map_infiles_chromfiles_complete(self):
+        # TODO
+        pass
 
 class TestUnitScoringReaderPeakView(unittest.TestCase):
 
@@ -217,6 +238,60 @@ class TestUnitSWATHScoringReader(unittest.TestCase):
     def test(self):
         self.assertRaises(Exception, reader.SWATHScoringReader)
         self.assertRaises(Exception, reader.SWATHScoringReader.newReader, ["test"], "DoesntExist", "complete")
+
+class TestFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
+        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
+    
+    def test_getMapping(self):
+        filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
+        MS_file1 = os.path.join(self.datadir_DIAlign, 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML')
+        MS_file2 = os.path.join(self.datadir_DIAlign, 'hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML')
+        chromatogramFiles = [MS_file1, MS_file2]
+        featureFiles = [filename]
+        featureFiles_chromFiles_map = reader.getMapping(chromatogramFiles, featureFiles)
+        run0 = Run([], {}, 125704171604355508, filename, 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz',
+         'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz', useCython=False)
+        run1 = Run([], {}, 6752973645981403097, filename, 'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz',
+         'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz', useCython=False)
+        
+        # featureFiles_chromFiles_map = {filename : [run0, run1]}
+        self.assertIsInstance(featureFiles_chromFiles_map[filename][0], Run)
+        self.assertEqual(featureFiles_chromFiles_map[filename][0].get_openswath_filename(), 
+                        "data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz")
+        self.assertEqual(featureFiles_chromFiles_map[filename][0].get_id(), 125704171604355508)
+        self.assertEqual(featureFiles_chromFiles_map[filename][1].get_original_filename(), filename)
+        self.assertEqual(featureFiles_chromFiles_map[filename][1].get_aligned_filename(), 
+                        "data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz")
+
+    def test_getRunfromFeatureFile(self):
+        filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
+        run0 = Run([], {}, 125704171604355508, filename, 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz',
+         'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz', useCython=False)
+        run1 = Run([], {}, 6752973645981403097, filename, 'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz',
+         'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz', useCython=False)
+        run2 = Run([], {}, 2234664662238281994, filename, 'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz',
+         'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz', useCython=False)
+        fileMapping = reader.getRunfromFeatureFile([filename])
+        
+        # fileMapping = {filename : [run0, run1, run2]}
+        self.assertIsInstance(fileMapping[filename][0], Run)
+        self.assertEqual(fileMapping[filename][0].get_openswath_filename(), 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz')
+        self.assertEqual(fileMapping[filename][1].get_id(), 6752973645981403097)
+        self.assertEqual(fileMapping[filename][2].get_original_filename(), filename)
+        self.assertEqual(fileMapping[filename][2].get_aligned_filename(), 'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz')
+
+    def test_getBaseName(self):
+        filename = 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz'
+        self.assertEqual(reader.getBaseName(filename), 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt')
+
+        filename = 'data\\raw\\hr_K120808_Strep10%P.sqMass'
+        self.assertEqual(reader.getBaseName(filename), 'hr_K120808_Strep10%P')
+
 
 if __name__ == '__main__':
     unittest.main()

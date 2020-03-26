@@ -91,7 +91,15 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
 
         self.assertEqual(len(peakgroup_map.keys()), 2)
         self.assertEqual(sorted(list(peakgroup_map.keys())), ['testpeptide/0', 'testpeptide/0_pr'])
+ 
+class TestFunctions(unittest.TestCase):
 
+    def setUp(self):
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
+        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
+    
     def test_getPrecursorTransitionMapping(self):
         filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
         precursors_mapping, precursors_sequences = mapper.getPrecursorTransitionMapping(filename)
@@ -105,7 +113,7 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
         self.assertEqual(precursors_sequences[32], (7040, 'GNNSVYMNNFLNLILQNER', 3))
         # Decoy precursor
         self.assertEqual(precursors_mapping[20517], [123098, 123099, 123100, 123101, 123102, 123103])
-        self.assertEqual(precursors_sequences[20517], (10334, 'LALAYLNAQAQEAR', 2)) 
+        self.assertEqual(precursors_sequences[20517], (10334, 'LALAYLNAQAQEAR', 2))
 
 if __name__ == '__main__':
     unittest.main()
