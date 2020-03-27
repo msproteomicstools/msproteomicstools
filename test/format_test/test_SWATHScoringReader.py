@@ -285,14 +285,6 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(fileMapping[filename][2].get_original_filename(), filename)
         self.assertEqual(fileMapping[filename][2].get_aligned_filename(), 'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz')
 
-    def test_getBaseName(self):
-        filename = 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz'
-        self.assertEqual(reader.getBaseName(filename), 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt')
-
-        filename = 'data\\raw\\hr_K120808_Strep10%P.sqMass'
-        self.assertEqual(reader.getBaseName(filename), 'hr_K120808_Strep10%P')
-
-
 if __name__ == '__main__':
     unittest.main()
 
