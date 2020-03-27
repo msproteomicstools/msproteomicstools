@@ -75,7 +75,7 @@ class mzml_accessors():
         else:
             return self.pointers[run.get_id()].extractXIC_group_(chrom_ids)
 
-    def get_precursor_to_chromID(self, precursor_to_transitionID, invalid_chromIndex = -1):
+    def set_precursor_to_chromID(self, precursor_to_transitionID, invalid_chromIndex = -1):
         self.invalid_chromIndex = invalid_chromIndex
         # Get precursor to chromatogram indices
         for run in self.runs:

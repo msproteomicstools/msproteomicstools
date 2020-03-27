@@ -171,7 +171,7 @@ def main(options):
 
     reader = SWATHScoringReader.newReader(infiles, file_format, readmethod, readfilter,
                                             enable_isotopic_grouping = False, read_cluster_id = False)
-    # reader.map_infiles_chromfiles(chromatograms)
+    reader.map_infiles_chromfiles(chromatograms)
     runs = reader.parse_files()
     MStoFeature = MSfileRunMapping(chromatograms, runs)
     precursor_to_transitionID, precursor_sequence = getPrecursorTransitionMapping(infiles[0])
