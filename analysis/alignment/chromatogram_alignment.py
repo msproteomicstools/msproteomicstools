@@ -176,7 +176,7 @@ def main(options):
     MStoFeature = MSfileRunMapping(chromatograms, runs)
     precursor_to_transitionID, precursor_sequence = getPrecursorTransitionMapping(infiles[0])
     MZs = mzml_accessors(runs, MStoFeature)
-    MZs.get_precursor_to_chromID(precursor_to_transitionID)
+    MZs.set_precursor_to_chromID(precursor_to_transitionID)
 
     this_exp = Experiment()
     this_exp.set_runs(runs)

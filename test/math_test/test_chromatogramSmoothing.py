@@ -44,11 +44,17 @@ class TestXICsmoothig(unittest.TestCase):
         self.XIC = (x,y)
 
     def test_LoessSmooth(self):
-        pass
-        #self.assertRaises(smoother.getXIC_SmoothingObj(smoother = "loess", kernelLen = 4, polyOrd = 1), Exception)
+        sm = smoother.getXIC_SmoothingObj(smoother = "loess", kernelLen = 3.9, polyOrd = 1)
+        sm.initialize(self.XIC[0], self.XIC[1])
+        XIC_sm = sm.smooth(self.XIC[0], self.XIC[1])
+        XIC_true = (self.XIC[0], np.array([0.2050595, 0.8850070, 2.2068768, 3.7212677, 5.1652605,
+                                5.8288915, 5.5446804, 4.5671360, 3.3213154, 1.9485889,
+                                0.9520709, 0.3294218, 0.2009581, 0.1420923]))
+        Almost_equal_XIC(self, XIC_sm, XIC_true, decimal = 7)
 
     def test_SgolaySmooth(self):
         sm = smoother.getXIC_SmoothingObj(smoother = "sgolay", kernelLen = 9, polyOrd = 5)
+        sm.initialize(self.XIC[0], self.XIC[1])
         XIC_sm = sm.smooth(self.XIC[0], self.XIC[1])
         XIC_true = (self.XIC[0], np.array([0.20636662, 0.88411087, 2.19019973, 3.76695006,
                           5.12687085, 5.77230554, 5.56200672, 4.5968725 , 3.2886408 , 1.97239146,
@@ -57,12 +63,15 @@ class TestXICsmoothig(unittest.TestCase):
 
     def test_GaussianSmooth(self):
         sm = smoother.getXIC_SmoothingObj(smoother = "gaussian", kernelLen = 4)
+        sm.initialize(self.XIC[0], self.XIC[1])
         XIC_sm = sm.smooth(self.XIC[0], self.XIC[1])
         XIC_true = (self.XIC[0], np.array([0.29757935, 1.00811467, 2.24531529, 3.70565892, 5.01475393,
                         5.64511602, 5.40968113, 4.51346745, 3.29795671, 2.02014922,
                         1.02574116, 0.42391014, 0.21569467, 0.12735513]))
         Almost_equal_XIC(self, XIC_sm, XIC_true, decimal = 7)
 
+    def test_UnknownMethod(self):
+        self.assertRaises(Exception, smoother.getXIC_SmoothingObj, "Unknown")
 
 if __name__ == '__main__':
     unittest.main()
