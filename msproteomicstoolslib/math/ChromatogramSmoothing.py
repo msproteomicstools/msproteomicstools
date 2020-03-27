@@ -38,7 +38,7 @@ def getXIC_SmoothingObj(smoother, kernelLen = 13, polyOrd = 4):
     elif smoother == "gaussian":
         return GaussianSmooth(kernelLen)
     elif smoother == "loess":
-        return LoessSmooth(kernelLen, polyOrd)
+        raise Exception("Not implemented yet")
     else:
         raise Exception("Unknown chromatogram smoothing method: " + smoother)
 

@@ -35,7 +35,7 @@ def Almost_equal_XICs(self, xic1, xic2, decimal = 6):
     for i in range(len(xic2)):
         for j in range(len(xic2[i][0])):
             self.assertAlmostEqual(xic2[i][0][j], xic1[i][0][j],  places = decimal)
-            self.assertAlmostEqual(xic2[i][0][j], xic1[i][0][j],  places = decimal)
+            self.assertAlmostEqual(xic2[i][1][j], xic1[i][1][j],  places = decimal)
 
 def get_XICs(self):
     import pickle
