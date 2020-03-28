@@ -59,11 +59,7 @@ class LoessSmooth(LowessSmoothingBase):
             print("Cannot import the module lowess from 'statsmodels', \nplease install the Python package 'statsmodels'")
             print("===================================")
         
-        if len(data2) < 100:
-            frac = 1.0
-        else:
-            frac = self.kernelLen / len(data1)
-
+        frac = self.kernelLen / len(data1)
         k = 0
         while k <= 10:
             k += 1

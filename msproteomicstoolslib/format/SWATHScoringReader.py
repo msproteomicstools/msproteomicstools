@@ -220,7 +220,7 @@ class SWATHScoringReader:
         Updates the infiles_chromfiles_map with a dictionary. The dictionary has a mapping between each feature
         file (osw) and chromatogram file (chrom.mzML).
         """
-        self.infiles_chromfiles_map = getMapping(chromatogramFiles, self.infiles, useCython = False)
+        self.infiles_chromfiles_map = getMapping(chromatogramFiles, self.infiles, useCython)
 
 class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
     """

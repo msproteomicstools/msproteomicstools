@@ -67,6 +67,7 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
         self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
         self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
         self.datadir_gui = os.path.join(self.datadir, "gui")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
 
     def test_newReader(self):
         filename = os.path.join(self.datadir, "dataset3.csv")
@@ -90,6 +91,48 @@ class TestUnitScoringMapperOpenSWATH(unittest.TestCase):
 
         self.assertEqual(len(peakgroup_map.keys()), 2)
         self.assertEqual(sorted(list(peakgroup_map.keys())), ['testpeptide/0', 'testpeptide/0_pr'])
+ 
+class TestFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.dirname = os.path.dirname(os.path.abspath(__file__))
+        self.topdir = os.path.join(os.path.join(self.dirname, ".."), "..")
+        self.datadir = os.path.join(os.path.join(self.topdir, "test"), "data")
+        self.datadir_DIAlign = os.path.join(self.datadir, "DIAlign") # Instance attribute
+    
+    def test_MSfileRunMapping(self):
+        from msproteomicstoolslib.data_structures.Run import Run
+        filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
+        chromFile0 = os.path.join(self.datadir_DIAlign, 'hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.chrom.mzML')
+        chromFile2 = os.path.join(self.datadir_DIAlign, 'hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.chrom.mzML')
+        chromFiles = [chromFile0, chromFile2]
+        run0 = Run([], {}, 125704171604355508, filename, 'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz',
+         'data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz', useCython=False)
+        run1 = Run([], {}, 6752973645981403097, filename, 'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz',
+         'data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz', useCython=False)
+        run2 = Run([], {}, 2234664662238281994, filename, 'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz',
+         'data/raw/hroest_K120809_Strep10%PlasmaBiolRepl2_R04_SW_filt.mzML.gz', useCython=False)
+        runs = [run0, run1, run2]
+        MStoFeature = mapper.MSfileRunMapping(chromFiles, runs)
+        self.assertEqual(MStoFeature['data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz'][0], chromFile0)
+        self.assertEqual(MStoFeature['data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz'][1].get_id(), 125704171604355508)
+        self.assertEqual(MStoFeature['data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz'][0], chromFile2)
+        self.assertEqual(MStoFeature['data/raw/hroest_K120809_Strep0%PlasmaBiolRepl2_R04_SW_filt.mzML.gz'][1].get_id(), 6752973645981403097)
+
+    def test_getPrecursorTransitionMapping(self):
+        filename = os.path.join(self.datadir_DIAlign, 'merged.osw')
+        precursors_mapping, precursors_sequences = mapper.getPrecursorTransitionMapping(filename)
+
+        self.assertIsInstance(precursors_mapping, dict)
+        self.assertIsInstance(precursors_sequences, dict)
+        self.assertEqual(len(precursors_mapping), 322)
+        self.assertEqual(len(precursors_mapping), 322)
+        # Non-decoy precursor
+        self.assertEqual(precursors_mapping[32], [192, 193, 194, 195, 196, 197])
+        self.assertEqual(precursors_sequences[32], (7040, 'GNNSVYMNNFLNLILQNER', 3))
+        # Decoy precursor
+        self.assertEqual(precursors_mapping[20517], [123098, 123099, 123100, 123101, 123102, 123103])
+        self.assertEqual(precursors_sequences[20517], (10334, 'LALAYLNAQAQEAR', 2))
 
 if __name__ == '__main__':
     unittest.main()

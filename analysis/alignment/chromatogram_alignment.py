@@ -171,12 +171,12 @@ def main(options):
 
     reader = SWATHScoringReader.newReader(infiles, file_format, readmethod, readfilter,
                                             enable_isotopic_grouping = False, read_cluster_id = False)
-    # reader.map_infiles_chromfiles(chromatograms)
+    reader.map_infiles_chromfiles(chromatograms)
     runs = reader.parse_files()
     MStoFeature = MSfileRunMapping(chromatograms, runs)
     precursor_to_transitionID, precursor_sequence = getPrecursorTransitionMapping(infiles[0])
     MZs = mzml_accessors(runs, MStoFeature)
-    MZs.get_precursor_to_chromID(precursor_to_transitionID)
+    MZs.set_precursor_to_chromID(precursor_to_transitionID)
 
     this_exp = Experiment()
     this_exp.set_runs(runs)
@@ -243,8 +243,8 @@ B2p = 49.998
 noBeef = 20.0
 t_ref = np.array([9.9, 13.3, 16.7, 20.1, 23.5, 26.9, 30.4, 33.8, 37.2, 40.6])
 t_eXp = np.array([9.9, 13.3, 16.7, 20.1, 23.5, 26.9, 30.4, 33.8, 37.2, 40.6])
-intensityList_ref = np.array([[1,2,3,2,1,0,0,0,0,0]], dtype = np.double)
-intensityList_eXp = np.array([[0,0,0,0,1,2,3,2,1,0]], dtype = np.double)
+intensityList_ref = np.array([[1,2,3,2,1,0.01,0.11,0.07,0.02,0.1]], dtype = np.double)
+intensityList_eXp = np.array([[0.01,0.02,0.01,0.06,1,2,3,2,1,0.1]], dtype = np.double)
 chromAlignObj = AffineAlignObj(256, 256)
 
 chromAlignObj.indexA_aligned # [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -266,6 +266,7 @@ retention_time
 9          17186             4649.70               4651.0              4651.00
 10         20003             4131.70               4128.3              4130.72
 
+# TODO
 prec_id = 3864 # 2474, 20003
 # For 3864 picks a peak from run1 based on FDR, if matched over boundary the peak should be different that is
 # not even picked by OpenSWATH. Same for run0, OpenSWATH didn't even pick that feature.
