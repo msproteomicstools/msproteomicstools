@@ -37,11 +37,11 @@ $Authors: Pedro Navarro$
 
 from __future__ import print_function
 try:
-    from elements       import Formulas        
+    from elements       import Formulas
     from aminoacides    import Aminoacides
     from peptide        import Peptide
 except ImportError:
-    from .elements       import Formulas        
+    from .elements       import Formulas
     from .aminoacides    import Aminoacides
     from .peptide        import Peptide
 
@@ -55,13 +55,13 @@ class Modifications:
     """
     A collection of modifications
     """
-    
+
     def __init__(self, default_mod_file=None):
         self.list= []
         self.mods_TPPcode = {}   # a more confortable way to store the modifications, if you want just to declare them elsewhere in a sequence
         self.mods_unimods = {}
         self._initModifications(default_mod_file)
-    
+
     def _initModifications(self, default_mod_file):
         if not default_mod_file:
             default_mod_file = pkg_resources.resource_filename(__name__, "modifications_default.tsv")
@@ -71,17 +71,17 @@ class Modifications:
         self.list.append(modification)
         self.mods_TPPcode[modification.TPP_Mod] = modification
         self.mods_unimods [modification.unimodAccession] = modification
-        
+
     def is_bool(self,expression) :
         return expression.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh', 'por supuesto', 'of course']
-    
+
     def printModifications(self) :
-        
+
         for mymod in self.list:
             print(["%s : %s" % (prop,val) for prop,val in vars(mymod).items() ])
-        
+
     def readModificationsFile(self, modificationsfile):
-        '''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications 
+        '''It reads a tsv file with additional modifications. Modifications will be appended to the default modifications
         of this class.
         Tsv file headers & an example:
         modified-AA    TPP-nomenclature    Unimod-Accession    ProteinPilot-nomenclature    is_a_labeling    composition-dictionary
@@ -92,34 +92,34 @@ class Modifications:
         reader = csv.reader(open(modificationsfile,'r'),dialect="excel-tab")
         headers = ['modified-AA', 'TPP-nomenclature',   'Unimod-Accession',  'ProteinPilot-nomenclature', 'is_a_labeling',
                    'composition-dictionary']
-         
-        header_found = False    
-         
+
+        header_found = False
+
         for row in reader:
-            if row[0] in headers : 
+            if row[0] in headers :
                 header_found = True
                 header_d = dict([(l, i) for i, l in enumerate(row)])
                 continue
-           
+
             if not header_found:
                 continue
-        
-            mod = Modification(row[header_d['modified-AA']], row[header_d['TPP-nomenclature']], int(row[header_d['Unimod-Accession']]), 
-                               row[header_d['ProteinPilot-nomenclature']], self.is_bool(row[header_d['is_a_labeling']]), 
+
+            mod = Modification(row[header_d['modified-AA']], row[header_d['TPP-nomenclature']], int(row[header_d['Unimod-Accession']]),
+                               row[header_d['ProteinPilot-nomenclature']], self.is_bool(row[header_d['is_a_labeling']]),
                                ast.literal_eval(row[header_d['composition-dictionary']]) )
-                        
+
             self.appendModification(mod)
 
 
     def translateModificationsFromSequence(self, sequence, code, aaLib = None) :
         '''Returns a Peptide object, given a sequence with modifications in any of the available codes.
         The code (TPP, Unimod,...) to be translated must be given.'''
-        
-        if code not in Modification.codes : 
+
+        if code not in Modification.codes :
             #Throw an Exception
             print("The following nomenclature (code) is not recognized : ", code)
             sys.exit(5)
-        
+
         aminoacides_with_mods = []
         terminal_mods = []
         if code == 'unimod' :
@@ -127,8 +127,8 @@ class Modifications:
         else :
             aminoacides_with_mods     = re.findall('([A-Z]\[[^\]]*\]|[A-Z])', sequence )
             #Warning : this will only work for TPP unfortunately. It is though the most common operation we'll do
-            if code == 'TPP' : terminal_mods = re.findall('([a-z]\[[^\]]*\]|[a-z])', sequence) 
-                    
+            if code == 'TPP' : terminal_mods = re.findall('([a-z]\[[^\]]*\]|[a-z])', sequence)
+
         #mods_peptide is a dictionary wich uses the position of the modification as key, and a Modification object as value:
         #example : GGGGMoxDDCDK  -> mods_peptide = { 5 : Modification1 , 8 : Modification2 }
         mods_peptide = {}
@@ -148,8 +148,8 @@ class Modifications:
                     print("This modification has not been recognized : " , aa)
                     print("Found in the following sequence : " , sequence)
                     print("The code used to interpret it was : " , code)
-                    sys.exit(4) 
-        
+                    sys.exit(4)
+
         for i, mod in enumerate(terminal_mods) :
             modification_found = False
             for modif in self.list :
@@ -162,18 +162,18 @@ class Modifications:
                 print("This modification has not been recognized : " , mod)
                 print("Found in the following sequence : " , sequence)
                 print("The code used to interpret it was : " , code)
-                sys.exit(4) 
-        
+                sys.exit(4)
+
         return Peptide(sequence_no_mods, mods_peptide, aminoacidLib = aaLib)
-        
+
 class Modification:
     """
     A modification on an Aminoacid
     """
-    
+
     #: Available modification formats
     codes = ['TPP', 'unimod', 'ProteinPilot']
-    
+
     def __init__(self, aminoacid, tpp_Mod, unimodAccession, peakViewAccession, is_labeling, composition):
         #self.aminoacid = Aminoacid()
         self.aminoacid            = aminoacid
@@ -195,11 +195,11 @@ class Modification:
             print("Can't process the requested modification code : " , code)
             print("Available codes are: " , Modification.codes)
             sys.exit(5)
-        
+
         if code == 'TPP' :             return self.TPP_Mod
         if code == 'unimod' :        return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
         if code == 'ProteinPilot' :    return "%s%s" % (self.aminoacid, self.peakviewAccession)
-        
+
 
 def test(args = []):
     mods = Modifications()
@@ -211,7 +211,7 @@ def test(args = []):
     for mymod in mods.list:
         print(["%s : %s" % (prop,val) for prop,val in vars(mymod).items() ])
 
-        
+
     #Translate some peptide sequences
     sequences =['PEPTIMEK' , 'PEPTIM[147]EK', 'n[43]PEPTIMEK']
     peptides = []
@@ -223,10 +223,10 @@ def test(args = []):
             print(mod.id , mod.deltamass)
         print("peptide mass : " , peptide.mass)
 
-        
+
 
 if __name__ == "__main__":
     import sys
     test(sys.argv[1:])
     sys.exit(2)
-    
+

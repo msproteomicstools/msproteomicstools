@@ -50,9 +50,9 @@ from configobj import ConfigObj
 
 from msproteomicstoolslib.data_structures.aminoacides     import Aminoacides
 from msproteomicstoolslib.data_structures.modifications    import Modifications
-from msproteomicstoolslib.format.ProteinDB                import ProteinDB  
-import msproteomicstoolslib.format.speclib_db_lib            as speclib_db_lib  
-#import msproteomicstoolslib.utils.logs.MultiProcessingLog     as MPlog 
+from msproteomicstoolslib.format.ProteinDB                import ProteinDB
+import msproteomicstoolslib.format.speclib_db_lib            as speclib_db_lib
+#import msproteomicstoolslib.utils.logs.MultiProcessingLog     as MPlog
 
 
 def usage() :
@@ -177,7 +177,7 @@ def read_swathsfile(swathsfile) :
                 sys.exit(2)
 
     return swaths
-    
+
 
 def is_Q3_in_swath_range(q1 , q3 , swaths):
     #determine which is the swath
@@ -253,11 +253,11 @@ def filterBySearchEngineParams(searchEngineInfo, parameter_thresholds) :
 
 
 def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = None) :
-    '''It reads a spectraST file, and gets a dictionary of peptides containing a dictionary of isoforms of the peptide. 
+    '''It reads a spectraST file, and gets a dictionary of peptides containing a dictionary of isoforms of the peptide.
     The values of the latter dictionary are the file offset in which the related species are located at the spectraST file. If
-    the specie is not located (it has only been theoretically defined), the offset value is -1. 
+    the specie is not located (it has only been theoretically defined), the offset value is -1.
     Example : iso_species = { 'PEPTSISE_(UniMod:21)' : {'PEPTS(UniMod:21)ISE' : 335542366 , 'PEPTSIS(UniMod:21)E' : -1 } },
-    where PEPTSISE_(UniMod:21) means that the peptide contains only one phosphorilation. Two phosphorilations are reported as 
+    where PEPTSISE_(UniMod:21) means that the peptide contains only one phosphorilation. Two phosphorilations are reported as
     PEPTSISE_(UniMod:21)(UniMod:21)
     '''
     iso_species = {}
@@ -289,40 +289,40 @@ def get_iso_species(sptxtfile, switchingModification, modificationsLib, aaLib = 
         num_of_sites = 0
         for aa in aaTargets :
             if aa in aaList : num_of_sites += aaList[aa]
-        if num_of_sites < 2 : continue 
+        if num_of_sites < 2 : continue
         #If the peptide+#switchingMods is not present in the dictionary, initialize its key with all the possible isobaric species.
         #Otherwise, find the corresponding specie in the dictionary, and change its offset value.
         specie_family = pep.sequence + "_%s" % (num_of_swmods * unimodcode)
         specie = pep.getSequenceWithMods('unimod')
-        if specie_family in iso_species : 
+        if specie_family in iso_species :
             if specie in iso_species[specie_family] : iso_species[specie_family][specie] = last_offset
         else :
             iso_species[specie_family] = {}
             #Calculate here all the possible isobaric peptides, and initialize the value in the dictionary
-            isobaric_peptides = pep.calIsoforms(switchingMod,modificationsLib)    
-            for isopep in isobaric_peptides : 
+            isobaric_peptides = pep.calIsoforms(switchingMod,modificationsLib)
+            for isopep in isobaric_peptides :
                 iso_species[specie_family][isopep.getSequenceWithMods('unimod')] = -1
-                if isopep.getSequenceWithMods('unimod') == specie : iso_species[specie_family][specie] = last_offset 
+                if isopep.getSequenceWithMods('unimod') == specie : iso_species[specie_family][specie] = last_offset
     return iso_species
 
-def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
+def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_,
                 writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision):
     filteredtransitions = []
     library_key = 99
     spectrastlib = speclib_db_lib.Library(library_key)
     switchingModification = modLibrary.mods_unimods[switchingModification_]
-    
+
     pepfamily_cnt = 0
-    precursor_cnt = 0   # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes. 
+    precursor_cnt = 0   # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes.
     transition_cnt = 0  # To-Do : This maybe I should pass to the worker the indexes, so that we don't repeat indexes.
     fut_progress = 0.05
     for pepfamily , isoforms in isobaric_species.items() :
         pepfamily_cnt += 1
         progress = pepfamily_cnt / len(isobaric_species)
-        if progress >= fut_progress and progress > 0.005 : 
+        if progress >= fut_progress and progress > 0.005 :
             print("process id:", os.getpid() , ", ", fut_progress*100 ,  "% of peptide families written.")
-            fut_progress += 0.05 
-        
+            fut_progress += 0.05
+
         #print pepfamily, isoforms
         precursor_cnt  += 1
         protein_code1 = pepfamily
@@ -332,8 +332,8 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
         for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
-            
-            if offset > 0 :  
+
+            if offset > 0 :
                 if lock : lock.acquire()
                 _ , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
                 time.sleep(0.001)
@@ -343,9 +343,9 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             for isof in isoforms:
                 if isof != isoform_:
                     otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib=aaLib))
-            
+
             shared, unshared = isoform.comparePeptideFragments(otherIsoforms, ['y','b'], precision = 1e-5)
-        
+
             #if there is a spectrum for the isoform, use it. Otherwise, use dummy data
             z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
             sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
@@ -353,7 +353,7 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
             RT_experimental = -100000.0
             searchenginefiltered = False
             peaks = []
-            if spectrum : 
+            if spectrum :
                 z_parent = float(spectrum.name.split('/')[1])
                 if spectrum.RetTime_detected:
                     RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
@@ -372,13 +372,13 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                     pass
                 peaks = spectrum.get_peaks()
             precursorMZ = isoform.getMZ(z_parent, label ='')
-            
+
 
             if searchenginefiltered : peaks = []
-            
-            
+
+
             for (frg_serie,frg_nr,frg_z,gainloss,fragment_mz) in unshared :
-                #Check whether we have the fragment in the spectrum    
+                #Check whether we have the fragment in the spectrum
                 rel_intensity = 1 #Dummy value in case there's no spectrum
                 is_in_spectrum = False
                 for peak in peaks :
@@ -389,15 +389,15 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                     if hasattr(peak, 'mass_error') :
                         if abs(peak.mass_error) > precision : continue
                     '''
-                    if abs(float(peak.peak) - fragment_mz) < precision : 
-                        is_in_spectrum = True 
+                    if abs(float(peak.peak) - fragment_mz) < precision :
+                        is_in_spectrum = True
                         rel_intensity = float(peak.intensity)
                         break
                 #print isoform.getSequenceWithMods('unimod') , frg_serie, frg_nr, frg_z, fragment_mz, is_in_spectrum, rel_intensity
                 #Filter by mass range
                 if fragment_mz < masslimits[0] : continue
                 if fragment_mz > masslimits[1] : continue
-                    
+
                 code = 'ProteinPilot'
                 if key == 'openswath'     : code = 'unimod'
                 if key == 'peakview'     : code = 'ProteinPilot'
@@ -410,26 +410,26 @@ def isoform_writer(isobaric_species, lock, sptxtfile, modLibrary, aaLib, searchE
                                     frg_serie , frg_z , frg_nr , iRT_experimental , protein_code1 , 'FALSE']
                 if key == 'openswath' :
                     transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
-                            rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
+                            rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc,
                             "%s_%s_%s" %(frg_serie, frg_z, frg_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, frg_serie, frg_z, frg_nr ]
                 filteredtransitions.append(transition)
-            
+
             #For each isoform, filtering and write
             do_filtering_and_write(filteredtransitions, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, lock = lock)
             filteredtransitions = []
-            
 
 
-def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
+
+def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_,
                 writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key,useMinutes, precision, nprocs):
-    def worker(pepfamilies, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
+    def worker(pepfamilies, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_,
                 writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision):
         """ The worker function, invoked in a process. 'nums' is a
             list of pep families to process.
         """
         #outdict = {}
         #To-Do: This worker is absolutely absurd --> REDEFINE!!!!
-        isoform_writer(pepfamilies, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
+        isoform_writer(pepfamilies, lock, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_,
                 writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision)
         #out_q.put(outdict)
 
@@ -441,7 +441,7 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     procs = []
     lock = multiprocessing.Lock()
     #lock = None
-    
+
     dict_chunks = {}
     last_chunk = 0
     dict_chunks[last_chunk] = {}
@@ -454,8 +454,8 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     for i in dict_chunks.values():
         p = multiprocessing.Process(
                 target=worker,
-                args=(i, lock, sptxtfile, modLibrary, aaLib, 
-                    searchEngineconfig, masslimits, switchingModification_, 
+                args=(i, lock, sptxtfile, modLibrary, aaLib,
+                    searchEngineconfig, masslimits, switchingModification_,
                 writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision))
         procs.append(p)
         p.start()
@@ -474,42 +474,42 @@ def mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngi
     return 0
 
 
-def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary,UISorder, ionseries, fragmentlossgains, frg_z_list,  
-                        useMinutes, searchEngineconfig, masslimits, key, precision,  
+def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification_, modLibrary,UISorder, ionseries, fragmentlossgains, frg_z_list,
+                        useMinutes, searchEngineconfig, masslimits, key, precision,
                         writer,  labeling, removeDuplicatesInHeavy, swaths, mintransitions, maxtransitions, massTolerance, aaLib = None, nprocs = 0, verbose = False) :
     '''
     This returns the (specific!) transitions of all the isoforms of the peptides present in the spectraST library. If there is no
-    spectraST reference for an isoform, transitions are chosen randomly, respecting the established filter rules, and a dummy 
+    spectraST reference for an isoform, transitions are chosen randomly, respecting the established filter rules, and a dummy
     relative intensity value is given.
     '''
     library_key = 99
     spectrastlib = speclib_db_lib.Library(library_key)
     switchingModification = modLibrary.mods_unimods[switchingModification_]
-    
+
     filteredtransitions = []
     transition_cnt = 0
     precursor_cnt  = 0
-    
+
     print("A total of %s peptide families have been found."  % len(isobaric_species) )
-    
+
     pepfamily_cnt = 0
     fut_progress = 0.01
 
     #Multiprocess this part of the code (only if multiprocess option has been specified)
     if nprocs > 0 :
-        mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_, 
+        mp_isoform_writer(isobaric_species, sptxtfile, modLibrary, aaLib, searchEngineconfig, masslimits, switchingModification_,
                     writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, key, useMinutes, precision, nprocs)
         print("done!")
         sys.exit()
-    
+
     for pepfamily , isoforms in isobaric_species.items() :
         #print pepfamily, [ isof for isof in isoforms]
         pepfamily_cnt += 1
         progress = pepfamily_cnt / len(isobaric_species)
-        if progress >= fut_progress and progress > 0.005 : 
+        if progress >= fut_progress and progress > 0.005 :
             print(fut_progress*100 ,  "% of peptide families written.")
-            fut_progress += 0.01 
-        
+            fut_progress += 0.01
+
         #print pepfamily, isoforms
         precursor_cnt  += 1
         protein_code1 = pepfamily
@@ -519,7 +519,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
         for isoform_,offset in isoforms.items() :
             spectrum = None
             isoform  = modLibrary.translateModificationsFromSequence(isoform_, 'unimod', aaLib = aaLib)
-            
+
             if offset > 0:
                 _, spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
             #Get the shared and unshared ions of this isoform to all its family
@@ -527,10 +527,10 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             for isof in isoforms:
                 if isof != isoform_:
                     otherIsoforms.append(modLibrary.translateModificationsFromSequence(isof, 'unimod', aaLib = aaLib))
-            
-            uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries, 
+
+            uis_list , uis_annotated_list = isoform.cal_UIS(otherIsoforms, UISorder = UISorder,  ionseries = ionseries,
                                             fragmentlossgains = fragmentlossgains, precision = massTolerance, frg_z_list = frg_z_list, mass_limits = masslimits)
-            
+
             #if there is a spectrum for the isoform, use it. Otherwise, use dummy data
             z_parent = 2  #To-Do: Better if we'd take the most common parental charge among the family
             sequence = isoform.getSequenceWithMods('TPP') # spectrum.name.split('/')[0]
@@ -538,7 +538,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
             RT_experimental = -100000.0
             searchenginefiltered = False
             peaks = []
-            if spectrum : 
+            if spectrum :
                 z_parent = float(spectrum.name.split('/')[1])
                 if spectrum.RetTime_detected:
                     RT_experimental = spectrum.RetTime / 60.0   #PeakView expect minutes, and spectraST reports seconds.
@@ -557,7 +557,7 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     pass
                 peaks = spectrum.get_peaks()
             precursorMZ = isoform.getMZ(z_parent, label ='')
-            
+
 
             if searchenginefiltered : peaks = []
             #print uis_annotated_list
@@ -573,24 +573,24 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                     uis_mass    = uis_unit[4]
                     rel_intensity = 1 #Dummy value in case there's no spectrum
                     is_in_spectrum = False
-                    for peak in peaks : 
+                    for peak in peaks :
                         if abs(float(peak.peak) - uis_mass) < precision:
-                            is_in_spectrum = True 
+                            is_in_spectrum = True
                             rel_intensity = float(peak.intensity)
                             break
-                        
-                    
+
+
                     if uis_mass < masslimits[0]:
                         continue   # I don't think this is necessary,
                     if uis_mass > masslimits[1]:
                         continue   # since UIS are already mass limited, but...
-               
+
                     code = 'ProteinPilot'
                     if key == 'openswath':
                         code = 'unimod'
                     if key == 'peakview':
                         code = 'ProteinPilot'
-    
+
                     transition = []
                     transition_cnt += 1
                     if key == 'peakview':
@@ -606,10 +606,10 @@ def transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModific
                         ]
                     if key == 'openswath' :
                         transition = [precursorMZ, uis_mass, iRT_experimental, "%s_%s_%s" % (transition_cnt, isoform.getSequenceWithMods(code), int(z_parent)), '-1',
-                                rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc, 
+                                rel_intensity, "%s_%s_%s" % (precursor_cnt, isoform.getSequenceWithMods(code), int(z_parent)), 0, isoform.sequence, protein_desc,
                                 "%s_%s_%s" %(uis_serie, uis_frg_z, uis_nr), isoform.getSequenceWithMods(code), int(z_parent), 'light', protein_code1, uis_serie, uis_frg_z, uis_nr, uis_order, uis_masses ]
                     filteredtransitions.append(transition)
-            
+
             #For each isoform, filtering and write
             if verbose and ( len(filteredtransitions) > maxtransitions or len(filteredtransitions) ) < mintransitions : print(mintransitions, maxtransitions, len(filteredtransitions))
             do_filtering_and_write(filteredtransitions, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, verbose = verbose)
@@ -645,17 +645,17 @@ def main(argv) :
     nprocs = 0
     verbose = False
     UISorder = 2
-    
+
     csv_headers_peakview =     [    'Q1', 'Q3', 'RT_detected', 'protein_name', 'isotype',
                      'relative_intensity', 'stripped_sequence', 'modification_sequence', 'prec_z',
                      'frg_type', 'frg_z', 'frg_nr', 'iRT', 'uniprot_id', 'decoy' , 'N', 'confidence', 'shared'
                      ]
     csv_headers_openswath = ['PrecursorMz', 'ProductMz', 'Tr_recalibrated', 'transition_name', 'CE',
-                            'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName', 
-                            'Annotation', 'FullUniModPeptideName', 
+                            'LibraryIntensity', 'transition_group_id', 'decoy', 'PeptideSequence', 'ProteinName',
+                            'Annotation', 'FullUniModPeptideName',
                             'PrecursorCharge', 'PeptideGroupLabel',   'UniprotID', 'FragmentType', 'FragmentCharge',
                             'FragmentSeriesNumber', 'LabelType']
-    
+
     csv_headers = csv_headers_peakview
 
     swaths = []
@@ -753,7 +753,7 @@ def main(argv) :
                 if arg in ["minutes"] : useMinutes = True
             else :
                 print("Choose a right time-scale. Options are: minutes, seconds")
-                sys.exit(10) 
+                sys.exit(10)
         if opt in ('-k', 'key') :
             if arg not in codes :
                 print("Error: key option is not valid! key : " , arg)
@@ -775,7 +775,7 @@ def main(argv) :
         if opt in ('-y','--UISorder') :
             argsUsed += 2
             UISorder = int(arg)
-            
+
 
     print("Masslimits:",masslimits)
 
@@ -789,16 +789,16 @@ def main(argv) :
     if len(sptxtfiles) == 0:
         print("No input files given")
         sys.exit(2)
-    
+
     #If a modifications file is provided, update the Modifications
     modificationsLib = Modifications()     #None
     if len(modificationsfile) > 0 :
         modificationsLib.readModificationsFile(modificationsfile)
     print("Modifications used : ", list(modificationsLib.mods_TPPcode.keys()))
-    
-    
+
+
     #If a fasta file is provided, read and store it into a dictionary
-    
+
     proteins = None
     if len(fastafile) > 0 :
         proteins = ProteinDB()
@@ -832,7 +832,7 @@ def main(argv) :
             sys.exit(1)
 
         #write the headers
-        if switchingModification : 
+        if switchingModification :
             csv_headers.extend(["UIS_order", "UIS_mass_list"])
         writer.writerow( csv_headers )
 
@@ -846,7 +846,7 @@ def main(argv) :
             if 0 not in gain_or_loss_mz : gain_or_loss_mz.append(0.0)
             transitions_isobaric_peptides(isobaric_species , sptxtfile, switchingModification, modificationsLib, UISorder, ionseries, gain_or_loss_mz, frgchargestate,
                         useMinutes, searchEngineconfig, masslimits, key, precision, writer,  labeling, removeDuplicatesInHeavy, swaths,mintransitions, maxtransitions, 0.02, aaLib = aaLib, nprocs = nprocs, verbose = verbose)
-            
+
             print("done!")
             sys.exit()
 
@@ -858,10 +858,10 @@ def main(argv) :
         offset = spectrastlib.get_first_offset(sptxtfile)
         last_offset = -100
         modification_code = 'TPP'
-        
+
         transition_cnt = 0
         precursor_cnt = 0
-        
+
         while ( offset - last_offset > 10) :
             last_offset = offset
             offset , spectrum = spectrastlib.read_sptxt_with_offset(sptxtfile,offset)
@@ -878,7 +878,7 @@ def main(argv) :
 
             #Declare the peptide
             pep = modificationsLib.translateModificationsFromSequence(sequence, modification_code, aaLib = aaLib)
-            
+
             iRT_experimental = 0.0
             RT_experimental = 0.0
             if spectrum.RetTime_detected:
@@ -915,8 +915,8 @@ def main(argv) :
                 if hasattr(spectrum, 'protein_ac') : protein_desc = spectrum.protein_ac
                 else : protein_desc  = 'unknown'
             ###endfasta
-            
-            
+
+
             num_spectrum = num_spectrum +1
             if (num_spectrum % 1000 == 0) : print("spectra processed: %s" % num_spectrum)
 
@@ -1001,13 +1001,13 @@ def main(argv) :
                 if key == 'openswath' :
                     transition_group_id = "%s_%s_%s" % (precursor_cnt, pep.getSequenceWithMods(code), int(z_parent))
                     transition = [precursorMZ, fragment_mz, iRT_experimental, "%s_%s%s_%s_%s_%s" % (transition_cnt, peak.frg_serie, peak.frg_nr, peak.frg_z, pep.getSequenceWithMods(code), int(z_parent)), '-1',
-                            peak.intensity, transition_group_id, 0, spectrum.sequence, protein_desc, 
+                            peak.intensity, transition_group_id, 0, spectrum.sequence, protein_desc,
                             peak.peak_annotation, pep.getSequenceWithMods(code),
                             int(z_parent), transition_group_id, protein_code1, peak.frg_serie, peak.frg_z,
                             peak.frg_nr , 'light']
-                
+
                 filteredtransitions.append(transition)
-            
+
 
             #Sort transitions by frg_serie, frg_nr, frg_z and MINUS intensity, then remove duplicates
             #this means of every frag_serie/no/chg only the highest(!) intensity peak is stored
@@ -1043,7 +1043,7 @@ def main(argv) :
             for index in range(0,min(len(filteredtransitions),maxtransitions)) :
                 writer.writerow(filteredtransitions[index])
 
-                #Isotopic labeling 
+                #Isotopic labeling
                 #To-Do : All the labeling calculations must be reviewed and adapted to the Peptide class
                 if len(labeling) > 0 :
                     heavy_transition       = filteredtransitions[index]
@@ -1084,8 +1084,8 @@ def main(argv) :
 
 
 
-                                        
-                    # TODO also change full unimod peptide name     
+
+                    # TODO also change full unimod peptide name
 
 
                     #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
@@ -1176,15 +1176,15 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
     if verbose : print("after removing num of transitions below the required minimum " , len(filteredtransitions))
 
     adssfsfadsf
-    
+
     #Write in the peakview input file (until the max number of transitions per peptide/z (the most intense N transitions)
     for index in range(0,min(len(filteredtransitions),maxtransitions)) :
         if lock : lock.acquire()
         writer.writerow(filteredtransitions[index])
         time.sleep(0.001)
         if lock : lock.release()
-        
-        #Isotopic labeling 
+
+        #Isotopic labeling
         #To-Do : All the labeling calculations must be reviewed and adapted to the Peptide class
         if len(labeling) > 0 :
             heavy_transition       = filteredtransitions[index]
@@ -1208,7 +1208,7 @@ def do_filtering_and_write(filteredtransitions, writer, labeling, removeDuplicat
                 frg_serie              = heavy_transition[15]
                 frg_z                   = heavy_transition[16]
                 frg_number               = heavy_transition[17]
-                                
+
             #NOTE: This only works for y- and b- ions (AND their neutral losses). Other fragment series are ignored, and no heavy transition will be generated for them.
             if frg_serie[0] not in ['y','b'] : continue
 
