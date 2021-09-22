@@ -197,8 +197,16 @@ class Modification:
             sys.exit(5)
 
         if code == 'TPP' :             return self.TPP_Mod
-        if code == 'unimod' :        return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
-        if code == 'ProteinPilot' :    return "%s%s" % (self.aminoacid, self.peakviewAccession)
+        if code == 'unimod' :
+            if (self.aminoacid == "N-term" or self.aminoacid == "n-term" or self.aminoacid == "n" or
+                self.aminoacid == "C-term" or self.aminoacid == "c-term" or self.aminoacid == "c") :
+                return ".(UniMod:%s)" % (self.unimodAccession)
+            else :
+                return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
+        if code == 'ProteinPilot' :
+            if (self.aminoacid == "N-term" or self.aminoacid == "n-term" or self.aminoacid == "n") :    return "%s-" % (self.peakviewAccession)
+            if (self.aminoacid == "C-term" or self.aminoacid == "c-term" or self.aminoacid == "c") :    return "-%s" % (self.peakviewAccession)
+            return "%s%s" % (self.aminoacid, self.peakviewAccession)
 
 
 def test(args = []):
@@ -220,7 +228,7 @@ def test(args = []):
         print("peptide sequence : " , peptide.sequence)
         print("peptide modifications :" )
         for mod in peptide.modifications.values() :
-            print(mod.id , mod.deltamass)
+            print(mod.id , mod.deltamass, mod.getcode('unimod'), mod.getcode('ProteinPilot'))
         print("peptide mass : " , peptide.mass)
 
 
