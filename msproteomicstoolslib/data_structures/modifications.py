@@ -205,7 +205,6 @@ class Modification:
                 return "%s(UniMod:%s)" % (self.aminoacid, self.unimodAccession)
         if code == 'ProteinPilot' :
             if (self.aminoacid == "N-term" or self.aminoacid == "n-term" or self.aminoacid == "n") :    return "%s-" % (self.peakviewAccession)
-            if (self.aminoacid == "C-term" or self.aminoacid == "c-term" or self.aminoacid == "c") :    return "-%s" % (self.peakviewAccession)
             return "%s%s" % (self.aminoacid, self.peakviewAccession)
 
 
