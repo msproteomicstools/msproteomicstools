@@ -245,6 +245,7 @@ class SplineAligner():
         # get those peptides we want to use for alignment => for this use the mapping
         # data1 = reference data (master)
         # data2 = data to be aligned (slave)
+
         data1,data2 = self._getRTData(bestrun, run, multipeptides)
 
         if len(data2) < 2:

@@ -43,7 +43,7 @@ import msproteomicstoolslib.math.Smoothing as smoothing
 from msproteomicstoolslib.version import __version__ as version
 from msproteomicstoolslib.math.chauvenet import chauvenet
 from msproteomicstoolslib.format.SWATHScoringReader import *
-from msproteomicstoolslib.format.TransformationCollection import TransformationCollection, LightTransformationData
+from msproteomicstoolslib.format.TransformationCollection import initialize_transformation, TransformationCollection, LightTransformationData
 from msproteomicstoolslib.algorithms.alignment.Multipeptide import Multipeptide
 from msproteomicstoolslib.algorithms.alignment.MRExperiment import MRExperiment
 from msproteomicstoolslib.algorithms.alignment.AlignmentAlgorithm import AlignmentAlgorithm
@@ -475,6 +475,26 @@ class Experiment(MRExperiment):
                 myYaml["RawData"].append(this)
             open(yaml_outfile, 'w').write(yaml.dump({"AlignedSwathRuns" : myYaml}))
 
+    def determine_best_run(self, alignment_fdr_threshold):
+        """
+        Returns the run that has the highest number of high-scoring (below certain FDR) peakgroups.  
+        """
+        maxcount = -1
+        bestrun = -1
+        for run in self.runs:
+            cnt = 0
+            for prgroup in run:
+                for peptide in prgroup:
+                    if peptide.get_decoy(): continue
+                    pg = peptide.get_best_peakgroup()
+                    if pg.get_fdr_score() < alignment_fdr_threshold:
+                        cnt += 1
+            if cnt > maxcount:
+                maxcount = cnt
+                bestrun = run.get_id()
+        print("Found best run", bestrun, "with %s features above the cutoff of %s%%" % (maxcount, alignment_fdr_threshold))
+        return [r for r in self.runs if r.get_id() == bestrun][0]
+
 def estimate_aligned_fdr_cutoff(options, this_exp, multipeptides, fdr_range):
     print("Try to find parameters for target fdr %0.2f %%" % (options.target_fdr * 100))
 
@@ -524,15 +544,7 @@ def doMSTAlignment(exp, multipeptides, max_rt_diff, rt_diff_isotope, initial_ali
     
     # Get alignments
     start = time.time()
-    try:
-        from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
-        if optimized_cython:
-            tr_data = CyLightTransformationData()
-        else:
-            tr_data = LightTransformationData()
-    except ImportError:
-        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
-        tr_data = LightTransformationData()
+    tr_data = initialize_transformation(optimized_cython)
 
     for edge in tree:
         addDataToTrafo(tr_data, exp.runs[edge[0]], exp.runs[edge[1]],

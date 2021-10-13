@@ -39,6 +39,20 @@ from __future__ import print_function
 import msproteomicstoolslib.math.Smoothing as smoothing
 import numpy
 
+def initialize_transformation(useCython = False):
+    # Initialize objects to get transformation
+    try:
+        from msproteomicstoolslib.cython.LightTransformationData import CyLightTransformationData
+        if useCython:
+            tr_data = CyLightTransformationData()
+        else:
+            tr_data = LightTransformationData()
+    except ImportError:
+        print("WARNING: cannot import CyLightTransformationData, will use Python version (slower).")
+        tr_data = LightTransformationData()
+    return tr_data
+
+
 class LightTransformationData:
     """
     A lightweight data structure to store a transformation between retention times of multiple runs.

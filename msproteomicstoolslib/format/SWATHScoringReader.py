@@ -128,89 +128,99 @@ class SWATHScoringReader:
             raise Exception("Unknown filetype '%s', allowed types are %s" % (decoy, str(filetypes) ) )
 
     def parse_files(self, read_exp_RT=True, verbosity=10, useCython=False):
-      """Parse the input file(s) (CSV).
+        """Parse the input file(s) csv and osw.
 
-      Args:
-          read_exp_RT(bool) : to read the real, experimental retention time
-              (default behavior) or the delta iRT should be used instead.
-      
-      Returns:
-          runs(list(SWATHScoringReader.Run))
+        Args:
+            read_exp_RT(bool) : to read the real, experimental retention time
+                (default behavior) or the delta iRT should be used instead.
+        
+        Returns:
+            runs(list(SWATHScoringReader.Run))
 
-      A single CSV file might contain more than one run and thus to create
-      unique run ids, we number the runs as xx_yy where xx is the current file
-      number and yy is the run found in the current file. However, if an
-      alignment has already been performed and each run has already obtained a
-      unique run id, we can directly use the previous alignment id.
-      """
+        A single CSV file might contain more than one run and thus to create
+        unique run ids, we number the runs as xx_yy where xx is the current file
+        number and yy is the run found in the current file. However, if an
+        alignment has already been performed and each run has already obtained a
+        unique run id, we can directly use the previous alignment id.
+        """
 
-      print("Parsing input files")
-      from sys import stdout
-      import csv
-      skipped = 0; read = 0
-      runs = []
-      for file_nr, f in enumerate(self.infiles):
-        if verbosity >= 10:
-            stdout.write("\rReading %s" % str(f))
-            stdout.flush()
-        if f.endswith(".osw"):
-            read += self.parse_file(f, runs, useCython)
-            continue
-
-        header_dict = {}
-        if f.endswith('.gz'):
-            import gzip 
-            filehandler = gzip.open(f,'rb')
-        else:
-            filehandler = open(f)
-        reader = csv.reader(filehandler, delimiter="\t")
-        header = next(reader)
-        for i,n in enumerate(header):
-          header_dict[n] = i
-        if verbosity >= 10:
-            stdout.write("\rReading file %s" % (str(f)) )
-            stdout.flush()
-
-        # Check if runs are already aligned (only one input file and correct header)
-        already_aligned = (len(self.infiles) == 1 and self.aligned_run_id_name in header_dict)
-
-        for this_row in reader:
-            if already_aligned:
-                runid = this_row[header_dict[self.aligned_run_id_name]]
-            else:
-                runnr = this_row[header_dict[self.run_id_name]]
-                runid = runnr + "_" + str(file_nr)
-
-            current_run = [r for r in runs if r.get_id() == runid]
-            # check if we have a new run
-            if len(current_run) == 0:
-                orig_fname = None
-                aligned_fname = None
-                if "align_origfilename" in header_dict:
-                    aligned_fname = this_row[header_dict[ "align_origfilename"] ]
-                if "filename" in header_dict:
-                    orig_fname = this_row[header_dict[ "filename"] ]
-                current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
-                runs.append(current_run)
-                print(current_run, "maps to", orig_fname)
-            else: 
-                assert len(current_run) == 1
-                current_run = current_run[0]
-
-            if not self.readfilter(this_row, current_run.header_dict):
-                skipped += 1
+        print("Parsing input files")
+        from sys import stdout
+        import csv
+        skipped = 0; read = 0
+        runs = []
+        for file_nr, f in enumerate(self.infiles):
+            if verbosity >= 10:
+                stdout.write("\rReading %s" % str(f))
+                stdout.flush()
+            if f.endswith(".osw"):
+                if not self.infiles_chromfiles_map:
+                    read += self.parse_file(f, runs, useCython)
+                else:
+                    read += self.parse_file_selective(f, runs, useCython)
                 continue
 
-            read += 1
-            # Unfortunately, since we are using csv, tell() will not work...
-            # print("parse row at", filehandler.tell())
-            self.parse_row(current_run, this_row, read_exp_RT)
+            header_dict = {}
+            if f.endswith('.gz'):
+                import gzip 
+                filehandler = gzip.open(f,'rb')
+            else:
+                filehandler = open(f)
+            reader = csv.reader(filehandler, delimiter="\t")
+            header = next(reader)
+            for i,n in enumerate(header):
+                header_dict[n] = i
+            if verbosity >= 10:
+                stdout.write("\rReading file %s" % (str(f)) )
+                stdout.flush()
 
-      # Here we check that each run indeed has a unique id
-      assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
-      if verbosity >= 10: stdout.write("\r\r\n") # clean up
-      print("Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped))
-      return runs
+            # Check if runs are already aligned (only one input file and correct header)
+            already_aligned = (len(self.infiles) == 1 and self.aligned_run_id_name in header_dict)
+
+            for this_row in reader:
+                if already_aligned:
+                    runid = this_row[header_dict[self.aligned_run_id_name]]
+                else:
+                    runnr = this_row[header_dict[self.run_id_name]]
+                    runid = runnr + "_" + str(file_nr)
+
+                current_run = [r for r in runs if r.get_id() == runid]
+                # check if we have a new run
+                if len(current_run) == 0:
+                    orig_fname = None
+                    aligned_fname = None
+                    if "align_origfilename" in header_dict:
+                        aligned_fname = this_row[header_dict[ "align_origfilename"] ]
+                    if "filename" in header_dict:
+                        orig_fname = this_row[header_dict[ "filename"] ]
+                    current_run = Run(header, header_dict, runid, f, orig_fname, aligned_fname, useCython=useCython)
+                    runs.append(current_run)
+                    print(current_run, "maps to", orig_fname)
+                else: 
+                    assert len(current_run) == 1
+                    current_run = current_run[0]
+
+                if not self.readfilter(this_row, current_run.header_dict):
+                    skipped += 1
+                    continue
+
+                read += 1
+                # Unfortunately, since we are using csv, tell() will not work...
+                # print("parse row at", filehandler.tell())
+                self.parse_row(current_run, this_row, read_exp_RT)
+
+        # Here we check that each run indeed has a unique id
+        assert len(set([r.get_id() for r in runs])) == len(runs) # each run has a unique id
+        if verbosity >= 10: stdout.write("\r\r\n") # clean up
+        print("Found %s runs, read %s lines and skipped %s lines" % (len(runs), read, skipped))
+        return runs
+    
+    def map_infiles_chromfiles(self, chromatogramFiles, useCython=False):
+        """
+        Updates the infiles_chromfiles_map with a dictionary. The dictionary has a mapping between each feature
+        file (osw) and chromatogram file (chrom.mzML).
+        """
+        self.infiles_chromfiles_map = getMapping(chromatogramFiles, self.infiles, useCython)
 
 class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
     """
@@ -226,6 +236,7 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
         self.errorHandling = errorHandling
         self.sequence_col = "Sequence"
         self.read_cluster_id = read_cluster_id
+        self.infiles_chromfiles_map = {}
         if readmethod == "cminimal":
             try:
                 from msproteomicstoolslib.cython.Precursor import CyPrecursor
@@ -272,6 +283,26 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             nrows += self._parse_file(filename, current_run, runid, conn)
         return nrows
 
+    def parse_file_selective(self, filename, runs, useCython):
+        """
+        Parse a OSW file. Pick runs that has corresponding mzML file. 
+        """
+
+        nrows = 0
+        if filename not in self.infiles_chromfiles_map:
+            return nrows
+
+        import sqlite3
+        conn = sqlite3.connect(filename)
+
+        # Retrieve available runs from the dictionary and then iterate over them
+        for current_run in self.infiles_chromfiles_map[filename]:
+            runid = current_run.get_id()
+            runs.append(current_run)
+            nrows += self._parse_file(filename, current_run, runid, conn)
+        conn.close()
+        return nrows
+
     def _parse_file(self, filename, run, run_id, conn):
 
         # Make sure the correct indices exist
@@ -284,7 +315,7 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
             CREATE INDEX IF NOT EXISTS idx_feature_ms2_feature_id ON FEATURE_MS2 (FEATURE_ID);
             CREATE INDEX IF NOT EXISTS idx_score_ms2_feature_id ON SCORE_MS2 (FEATURE_ID);
         ''')
-
+        # TODO: Shubham: Add left width and right width
         query = """
         SELECT PRECURSOR.ID, SCORE_MS2.QVALUE, FEATURE.EXP_RT, PRECURSOR.DECOY, PEPTIDE.MODIFIED_SEQUENCE, PEPTIDE.ID, FEATURE.ID, AREA_INTENSITY, SCORE_MS2.SCORE
         FROM SCORE_MS2
@@ -318,39 +349,41 @@ class OpenSWATH_OSW_SWATHScoringReader(SWATHScoringReader):
                 decoy = "TRUE"
             else:
                 raise Exception("Unknown decoy", row[3])
+            # left_width = run [8]
+            # right_width = run [9]
 
             # If the peptide does not yet exist, generate it
             if not run.hasPrecursor(peptide_group_label, trgr_id):
-              p = self.Precursor(trgr_id, run)
-              p.setProteinName(protein_name)
-              p.setSequence(sequence)
-              p.set_decoy(decoy)
-              run.addPrecursor(p, peptide_group_label)
+                p = self.Precursor(trgr_id, run)
+                p.setProteinName(protein_name)
+                p.setSequence(sequence)
+                p.set_decoy(decoy)
+                run.addPrecursor(p, peptide_group_label)
 
             if self.readmethod == "cminimal":
-              peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
-              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+                peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+                run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
             elif self.readmethod == "minimal":
-              peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
-              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+                peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+                run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
             elif self.readmethod == "gui":
-              leftWidth = this_row[run.header_dict[left_width_name]]
-              assay_rt = -1
-              if "assay_rt" in run.header_dict:
-                assay_rt = this_row[run.header_dict["assay_rt"]]
-              rightWidth = this_row[run.header_dict[right_width_name]]
-              charge = this_row[run.header_dict[charge_name]]
-              peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
-              peakgroup.charge = charge
-              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+                leftWidth = this_row[run.header_dict[left_width_name]]
+                assay_rt = -1
+                if "assay_rt" in run.header_dict:
+                    assay_rt = this_row[run.header_dict["assay_rt"]]
+                rightWidth = this_row[run.header_dict[right_width_name]]
+                charge = this_row[run.header_dict[charge_name]]
+                peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
+                peakgroup.charge = charge
+                run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
             elif self.readmethod == "complete":
-              peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-              peakgroup.set_normalized_retentiontime(retention_time)
-              peakgroup.set_fdr_score(fdr_score)
-              peakgroup.set_feature_id(thisid)
-              peakgroup.set_intensity(intensity)
-              peakgroup.setClusterID(cluster_id)
-              run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+                peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+                peakgroup.set_normalized_retentiontime(retention_time)
+                peakgroup.set_fdr_score(fdr_score)
+                peakgroup.set_feature_id(thisid)
+                peakgroup.set_intensity(intensity)
+                peakgroup.setClusterID(cluster_id)
+                run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
             else:
                 raise Exception("Unknown readmethod", self.readmethod)
         return len(q)
@@ -464,36 +497,36 @@ class OpenSWATH_SWATHScoringReader(SWATHScoringReader):
 
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
-          p = self.Precursor(trgr_id, run)
-          p.setProteinName(protein_name)
-          p.setSequence(sequence)
-          p.set_decoy(decoy)
-          run.addPrecursor(p, peptide_group_label)
+            p = self.Precursor(trgr_id, run)
+            p.setProteinName(protein_name)
+            p.setSequence(sequence)
+            p.set_decoy(decoy)
+            run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "cminimal":
-          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+            peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+            peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
-          leftWidth = this_row[run.header_dict[left_width_name]]
-          assay_rt = -1
-          if "assay_rt" in run.header_dict:
-            assay_rt = this_row[run.header_dict["assay_rt"]]
-          rightWidth = this_row[run.header_dict[right_width_name]]
-          charge = this_row[run.header_dict[charge_name]]
-          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.charge = charge
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            leftWidth = this_row[run.header_dict[left_width_name]]
+            assay_rt = -1
+            if "assay_rt" in run.header_dict:
+                assay_rt = this_row[run.header_dict["assay_rt"]]
+            rightWidth = this_row[run.header_dict[right_width_name]]
+            charge = this_row[run.header_dict[charge_name]]
+            peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, assay_rt, run.getPrecursor(peptide_group_label, trgr_id))
+            peakgroup.charge = charge
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
-          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(retention_time)
-          peakgroup.set_fdr_score(fdr_score)
-          peakgroup.set_feature_id(thisid)
-          peakgroup.set_intensity(intensity)
-          peakgroup.setClusterID(cluster_id)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+            peakgroup.set_normalized_retentiontime(retention_time)
+            peakgroup.set_fdr_score(fdr_score)
+            peakgroup.set_feature_id(thisid)
+            peakgroup.set_intensity(intensity)
+            peakgroup.setClusterID(cluster_id)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         else:
             raise Exception("Unknown readmethod", self.readmethod)
 
@@ -558,21 +591,21 @@ class mProphet_SWATHScoringReader(SWATHScoringReader):
         # If the peptide does not yet exist, generate it
         peptide_group_label = trgr_id
         if not run.hasPrecursor(peptide_group_label, trgr_id):
-          p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
-          p.set_decoy(decoy)
-          run.addPrecursor(p, peptide_group_label)
+            p = self.Precursor(trgr_id, run)
+            p.protein_name = protein_name
+            p.sequence = sequence
+            p.set_decoy(decoy)
+            run.addPrecursor(p, peptide_group_label)
         if self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+            peakgroup_tuple = (thisid, fdr_score, retention_time, intensity)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
-          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(retention_time)
-          peakgroup.set_fdr_score(fdr_score)
-          peakgroup.set_feature_id(thisid)
-          peakgroup.set_intensity(intensity)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+            peakgroup.set_normalized_retentiontime(retention_time)
+            peakgroup.set_fdr_score(fdr_score)
+            peakgroup.set_feature_id(thisid)
+            peakgroup.set_intensity(intensity)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
 class Peakview_SWATHScoringReader(SWATHScoringReader):
     """
@@ -647,18 +680,18 @@ class Peakview_SWATHScoringReader(SWATHScoringReader):
         # If the peptide does not yet exist, generate it
         peptide_group_label = trgr_id
         if not run.hasPrecursor(peptide_group_label, trgr_id):
-          p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
-          p.set_decoy(decoy)
-          run.addPrecursor(p, peptide_group_label)
-          if verb: print("add peptide", trgr_id)
+            p = self.Precursor(trgr_id, run)
+            p.protein_name = protein_name
+            p.sequence = sequence
+            p.set_decoy(decoy)
+            run.addPrecursor(p, peptide_group_label)
+            if verb: print("add peptide", trgr_id)
 
         # Only minimal reading is implemented
         if self.readmethod == "minimal":
-          if verb: print("append tuple", peakgroup_tuple)
-          peakgroup_tuple = (thisid, fdr_score, retention_time,intensity)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
+            if verb: print("append tuple", peakgroup_tuple)
+            peakgroup_tuple = (thisid, fdr_score, retention_time,intensity)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id)
         else:
             raise NotImplemented
 
@@ -761,28 +794,119 @@ class PeakviewPP_SWATHScoringReader(Peakview_SWATHScoringReader):
 
         # If the peptide does not yet exist, generate it
         if not run.hasPrecursor(peptide_group_label, trgr_id):
-          p = self.Precursor(trgr_id, run)
-          p.protein_name = protein_name
-          p.sequence = sequence
-          p.set_decoy(decoy)
-          run.addPrecursor(p, peptide_group_label)
+            p = self.Precursor(trgr_id, run)
+            p.protein_name = protein_name
+            p.sequence = sequence
+            p.set_decoy(decoy)
+            run.addPrecursor(p, peptide_group_label)
 
         if self.readmethod == "minimal":
-          peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
+            peakgroup_tuple = (thisid, fdr_score, retention_time, intensity, d_score)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup_tpl(peakgroup_tuple, unique_peakgroup_id, cluster_id)
         elif self.readmethod == "gui":
-          leftWidth = this_row[run.header_dict[left_width_name]]
-          rightWidth = this_row[run.header_dict[right_width_name]]
-          charge = this_row[run.header_dict[charge_name]]
-          peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.charge = charge
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            leftWidth = this_row[run.header_dict[left_width_name]]
+            rightWidth = this_row[run.header_dict[right_width_name]]
+            charge = this_row[run.header_dict[charge_name]]
+            peakgroup = self.PeakGroup(fdr_score, intensity, leftWidth, rightWidth, run.getPrecursor(peptide_group_label, trgr_id))
+            peakgroup.charge = charge
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
         elif self.readmethod == "complete":
-          peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
-          peakgroup.set_normalized_retentiontime(retention_time)
-          peakgroup.set_fdr_score(fdr_score)
-          peakgroup.set_feature_id(thisid)
-          peakgroup.set_intensity(intensity)
-          peakgroup.setClusterID(cluster_id)
-          run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
+            peakgroup = self.PeakGroup(this_row, run, run.getPrecursor(peptide_group_label, trgr_id))
+            peakgroup.set_normalized_retentiontime(retention_time)
+            peakgroup.set_fdr_score(fdr_score)
+            peakgroup.set_feature_id(thisid)
+            peakgroup.set_intensity(intensity)
+            peakgroup.setClusterID(cluster_id)
+            run.getPrecursor(peptide_group_label, trgr_id).add_peakgroup(peakgroup)
 
+def getMapping(chromatogramFiles, featureFiles, useCython = False):
+    """
+    Returns a dictionary of feature files with Run objects. Only those Runs are included which
+    have corresponding mzML files available.
+    Sometimes, a single feature file is provided for all chromatogram files, this function checks
+    whether there is corresponding chromatogram file present for each run.
+    
+    >>> chromatogramFiles = ["file1.chrom.mzML", "file2.chrom.mzML"]
+    >>> featureFiles = ["file1.osw", "file2.osw"]
+    >>> featureFiles_chromFiles_map = getMapping(chromatogramFiles, featureFiles)
+    >>> {"file1.osw" : [run1], "file2.osw" : [run2]}
+    """
+
+    # Read osw file. Create a dictionary of "Feature file": Run()
+    MS_feature_fileMapping = getRunfromFeatureFile(featureFiles, useCython)
+
+    # Read mzML, get a list of all provided mzML file.
+    chromFiles = []
+    for filename in chromatogramFiles:
+        base_name = getBaseName(filename)
+        if base_name in chromFiles:
+            print(str(filename) + " has basename same as of another mzML file. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.")
+        else:
+            chromFiles.append(base_name)
+
+    # Iterate through the osw file and find associated mzML file.
+    # Remove Run from the dictionary if mzML file is missing and Throw warning.
+    # Add to the final dictionary if the basename has associated chromatogram file and OpenSWATH feature file.
+
+    for featureFile, runs in MS_feature_fileMapping.items():
+        for run in runs:
+            MSrun = getBaseName(run.get_openswath_filename())
+            if(MSrun not in chromFiles):
+                # Warning
+                print("Chromatogram file associated with " + run.get_openswath_filename() + " from " + run.get_original_filename() + " is not found. Skipping!")
+                MS_feature_fileMapping[featureFile].remove(run)
+        if len(MS_feature_fileMapping[featureFile]) == 0:
+            del MS_feature_fileMapping[featureFile]
+    
+    if not MS_feature_fileMapping:
+        # Error
+        raise Exception("Feature files and chromatogram files do not have matching names.")
+    return MS_feature_fileMapping
+
+def getRunfromFeatureFile(featureFiles, useCython = False):
+    """
+    Return as dictionary with key as feature file and value as associated Run objects.
+
+    >>> featureFiles = ["merged.osw"]
+    >>> fileMapping = getRunfromFeatureFile(featureFiles)
+    >>> fileMapping = {"merged.osw": [Run0, Run1, Run2]}
+    """
+
+    import sqlite3
+    MSfile_featureFile_mapping = {}
+    for filename in featureFiles:
+        MSfile_featureFile_mapping[filename] = []
+        conn = sqlite3.connect(filename)
+        c = conn.cursor()
+        try:
+            # Retrieve and then iterate over all available runs
+            query = """SELECT ID, FILENAME FROM RUN"""
+            results = [row for row in c.execute(query)]
+            for (run_id, MS_file) in results:
+                current_run = Run([], {}, run_id, filename, MS_file, MS_file, useCython=useCython)
+                MSfile_featureFile_mapping[filename].append(current_run)
+        
+        except sqlite3.Error as e:
+            print("An error occured in reading file " + str(filename) + ", ", e.args[0])
+            conn.close()
+                
+        # Close the connection
+        conn.close()
+    return MSfile_featureFile_mapping
+
+def getBaseName(filename):
+    """
+    Returns a basename for filename. Basename is obtained by removing directory separator, .gz, .sqMass, .mzML and .chrom extensions.
+    
+    >>> getBaseName('data/raw/hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt.mzML.gz')
+    >>> hroest_K120808_Strep10%PlasmaBiolRepl1_R03_SW_filt
+    """
+
+    fileBase = filename
+    # Remove directory separator from filename
+    for dir_sep in ["/", "\\"]:
+        fileBase = fileBase.split(dir_sep)[-1]
+    # First remove gz, then sqmass, then mzML & then chrom, if present.
+    for ending in [".gz", ".sqMass", ".mzML", ".chrom"]:
+        fileBase = fileBase.split(ending)[0]
+    return fileBase
